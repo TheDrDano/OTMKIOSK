@@ -11,8 +11,18 @@ if (-not (Test-Path $SourcePng)) {
 }
 
 Add-Type -AssemblyName System.Drawing
+Add-Type @"
+using System;
+using System.Runtime.InteropServices;
 
-function Convert-ToIconPngFrame {
+public static class NativeIconMethods
+{
+    [DllImport("user32.dll", SetLastError = true)]
+    public static extern bool DestroyIcon(IntPtr hIcon);
+}
+"@
+
+function New-IconBitmap {
     param(
         [System.Drawing.Image]$Source,
         [int]$Size
@@ -27,7 +37,7 @@ function Convert-ToIconPngFrame {
         $graphics.PixelOffsetMode = [System.Drawing.Drawing2D.PixelOffsetMode]::HighQuality
         $graphics.CompositingQuality = [System.Drawing.Drawing2D.CompositingQuality]::HighQuality
 
-        $padding = [Math]::Max(2, [int]($Size * 0.08))
+        $padding = [Math]::Max(3, [int]($Size * 0.10))
         $maxWidth = $Size - ($padding * 2)
         $maxHeight = $Size - ($padding * 2)
         $scale = [Math]::Min($maxWidth / $Source.Width, $maxHeight / $Source.Height)
@@ -35,68 +45,59 @@ function Convert-ToIconPngFrame {
         $height = [int]($Source.Height * $scale)
         $x = [int](($Size - $width) / 2)
         $y = [int](($Size - $height) / 2)
-        $graphics.DrawImage($Source, $x, $y, $width, $height)
 
-        $stream = New-Object System.IO.MemoryStream
-        $bitmap.Save($stream, [System.Drawing.Imaging.ImageFormat]::Png)
-        return $stream.ToArray()
+        $graphics.DrawImage($Source, $x, $y, $width, $height)
+        return $bitmap
     }
     finally {
         $graphics.Dispose()
-        $bitmap.Dispose()
     }
 }
 
-function Write-IconFile {
+function Save-CompilerSafeIcon {
     param(
-        [string]$Path,
-        [byte[][]]$Frames,
-        [int[]]$Sizes
+        [System.Drawing.Bitmap]$Bitmap,
+        [string]$Path
     )
 
     $directory = Split-Path -Parent $Path
     New-Item -ItemType Directory -Force -Path $directory | Out-Null
 
-    $file = [System.IO.File]::Open($Path, [System.IO.FileMode]::Create, [System.IO.FileAccess]::Write)
-    $writer = New-Object System.IO.BinaryWriter $file
+    $handle = $Bitmap.GetHicon()
     try {
-        $writer.Write([UInt16]0)
-        $writer.Write([UInt16]1)
-        $writer.Write([UInt16]$Frames.Count)
-
-        $offset = 6 + (16 * $Frames.Count)
-        for ($i = 0; $i -lt $Frames.Count; $i++) {
-            $sizeByte = if ($Sizes[$i] -eq 256) { 0 } else { $Sizes[$i] }
-            $writer.Write([byte]$sizeByte)
-            $writer.Write([byte]$sizeByte)
-            $writer.Write([byte]0)
-            $writer.Write([byte]0)
-            $writer.Write([UInt16]1)
-            $writer.Write([UInt16]32)
-            $writer.Write([UInt32]$Frames[$i].Length)
-            $writer.Write([UInt32]$offset)
-            $offset += $Frames[$i].Length
+        $icon = [System.Drawing.Icon]::FromHandle($handle)
+        $clone = [System.Drawing.Icon]$icon.Clone()
+        try {
+            $stream = [System.IO.File]::Open($Path, [System.IO.FileMode]::Create, [System.IO.FileAccess]::Write)
+            try {
+                $clone.Save($stream)
+            }
+            finally {
+                $stream.Dispose()
+            }
         }
-
-        foreach ($frame in $Frames) {
-            $writer.Write($frame)
+        finally {
+            $clone.Dispose()
+            $icon.Dispose()
         }
     }
     finally {
-        $writer.Dispose()
-        $file.Dispose()
+        [NativeIconMethods]::DestroyIcon($handle) | Out-Null
     }
 }
 
 $source = [System.Drawing.Image]::FromFile((Resolve-Path $SourcePng))
 try {
-    $sizes = @(256, 128, 64, 48, 32, 16)
-    $frames = foreach ($size in $sizes) {
-        Convert-ToIconPngFrame -Source $source -Size $size
+    # MSBuild's Win32 resource compiler is stricter than Windows Explorer.
+    # A classic single-frame icon produced by System.Drawing.Icon.Save is accepted by csc.
+    $bitmap = New-IconBitmap -Source $source -Size 64
+    try {
+        Save-CompilerSafeIcon -Bitmap $bitmap -Path $BrandingIcon
+        Copy-Item -LiteralPath $BrandingIcon -Destination $ShellIcon -Force
     }
-
-    Write-IconFile -Path $BrandingIcon -Frames $frames -Sizes $sizes
-    Copy-Item -LiteralPath $BrandingIcon -Destination $ShellIcon -Force
+    finally {
+        $bitmap.Dispose()
+    }
 }
 finally {
     $source.Dispose()

@@ -1,6 +1,6 @@
 param(
     [string]$Configuration = "Release",
-    [string]$Version = "4.1.2",
+    [string]$Version = "4.2.3",
     [switch]$FrameworkDependent,
     [switch]$Sign,
     [string]$CertificateThumbprint = $env:OTM_SIGN_CERT_THUMBPRINT,
@@ -56,6 +56,9 @@ function Publish-App {
     }
 
     dotnet @args
+    if ($LASTEXITCODE -ne 0) {
+        throw "dotnet publish failed for $Project with exit code $LASTEXITCODE."
+    }
 }
 
 Assert-Command "dotnet" "Install the .NET 8 SDK from https://dotnet.microsoft.com/download/dotnet/8.0"
@@ -132,6 +135,9 @@ if (-not $isccPath) {
 
 $env:OTM_KIOSK_VERSION = $Version
 & $isccPath (Join-Path $repoRoot "installer\OTMKiosk.iss")
+if ($LASTEXITCODE -ne 0) {
+    throw "Inno Setup failed with exit code $LASTEXITCODE."
+}
 
 if ($Sign) {
     $installerFiles = Get-ChildItem -Path $installerRoot -Filter "OTM-Kiosk-Setup-$Version*.exe" -File
