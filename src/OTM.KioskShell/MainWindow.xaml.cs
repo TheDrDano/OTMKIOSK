@@ -375,7 +375,7 @@ public partial class MainWindow : Window
         }
     }
 
-    private void Window_PreviewKeyDown(object sender, KeyEventArgs e)
+    private void Window_PreviewKeyDown(object sender, System.Windows.Input.KeyEventArgs e)
     {
         if (ShouldSuppressKey(e))
         {
@@ -390,7 +390,7 @@ public partial class MainWindow : Window
         }
     }
 
-    private static bool ShouldSuppressKey(KeyEventArgs e)
+    private static bool ShouldSuppressKey(System.Windows.Input.KeyEventArgs e)
     {
         var key = e.Key == Key.System ? e.SystemKey : e.Key;
         var alt = (Keyboard.Modifiers & ModifierKeys.Alt) == ModifierKeys.Alt;
