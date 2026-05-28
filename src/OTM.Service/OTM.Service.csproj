@@ -6,5 +6,6 @@
   <PropertyGroup>
     <OutputType>Exe</OutputType>
     <RootNamespace>Otm.Kiosk.Service</RootNamespace>
+    <ApplicationIcon>..\OTM.KioskShell\Assets\simplekioskos.ico</ApplicationIcon>
   </PropertyGroup>
 </Project>

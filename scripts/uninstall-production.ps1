@@ -8,10 +8,13 @@ $ErrorActionPreference = "Stop"
 $uninstaller = Join-Path $InstallRoot "unins000.exe"
 
 if (Test-Path $uninstaller) {
+    Get-Process -Name "OTM.KioskShell" -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
     Start-Process -FilePath $uninstaller -ArgumentList "/VERYSILENT", "/SUPPRESSMSGBOXES", "/NORESTART" -Wait
     Write-Host "Ran installed OTM Kiosk uninstaller."
 } elseif (Get-Service -Name "OTMKioskService" -ErrorAction SilentlyContinue) {
+    sc.exe failure "OTMKioskService" reset= 0 actions= "" | Out-Null
     Stop-Service -Name "OTMKioskService" -Force -ErrorAction SilentlyContinue
+    Stop-Process -Name "OTM.Service" -Force -ErrorAction SilentlyContinue
     sc.exe delete "OTMKioskService" | Out-Null
     Write-Host "Removed OTMKioskService."
 } else {

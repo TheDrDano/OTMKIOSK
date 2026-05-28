@@ -11,7 +11,8 @@ public sealed class ProcessEnforcer
         "System", "Idle", "Registry", "smss", "csrss", "wininit", "winlogon", "services",
         "lsass", "svchost", "fontdrvhost", "dwm", "explorer", "sihost", "taskhostw",
         "RuntimeBroker", "SearchIndexer", "StartMenuExperienceHost", "ShellExperienceHost",
-        "SecurityHealthSystray", "OTM.Service", "OTM.ControlPanel", "OTM.RecoveryTool", "OTM.KioskShell"
+        "SecurityHealthSystray", "OTM.Service", "OTM.ControlPanel", "OTM.RecoveryTool", "OTM.KioskShell",
+        "unins000", "unins001", "unins002"
     };
 
     private readonly KioskRuntime _runtime;

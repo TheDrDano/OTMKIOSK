@@ -111,6 +111,15 @@ public sealed class KioskRuntime : IDisposable
         SavePolicy(policy, "Kiosk enforcement locked.");
     }
 
+    public void EmergencyDisableEnforcement(string reason)
+    {
+        TemporaryUnlockUntil = DateTimeOffset.UtcNow.AddHours(24);
+        var policy = GetPolicy();
+        policy.Enforcement.Enabled = false;
+        SavePolicy(policy, reason);
+        Log("Warning", "EmergencyDisableEnforcement", reason);
+    }
+
     public void Log(string level, string eventType, string message, string? processName = null, string? path = null)
     {
         _store.Append(new LogEntry

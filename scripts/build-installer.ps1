@@ -1,6 +1,6 @@
 param(
     [string]$Configuration = "Release",
-    [string]$Version = "4.1.0",
+    [string]$Version = "4.1.2",
     [switch]$FrameworkDependent,
     [switch]$Sign,
     [string]$CertificateThumbprint = $env:OTM_SIGN_CERT_THUMBPRINT,
@@ -67,6 +67,8 @@ if (-not $sdkList) {
 
 Remove-Item -Path $stageRoot -Recurse -Force -ErrorAction SilentlyContinue
 New-Item -ItemType Directory -Force -Path $stageRoot, $installerRoot, $dependencyRoot | Out-Null
+
+& (Join-Path $repoRoot "scripts\create-simplekioskos-icon.ps1")
 
 Write-Host "Downloading Microsoft Edge WebView2 Evergreen bootstrapper..."
 try {

@@ -165,6 +165,13 @@ public sealed class LocalManagementServer
                 return;
             }
 
+            if (path.Equals("/api/recovery/disable-enforcement", StringComparison.OrdinalIgnoreCase) && request.HttpMethod == "POST")
+            {
+                _runtime.EmergencyDisableEnforcement("Local recovery disabled enforcement from kiosk shell.");
+                await WriteJsonAsync(response, _runtime.GetState());
+                return;
+            }
+
             if (path.Equals("/api/templates/exam-mode", StringComparison.OrdinalIgnoreCase))
             {
                 if (request.HttpMethod == "GET")

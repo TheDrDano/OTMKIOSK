@@ -8,7 +8,10 @@ $ErrorActionPreference = "Stop"
 
 function Stop-OtmService {
     if (Get-Service -Name "OTMKioskService" -ErrorAction SilentlyContinue) {
+        sc.exe failure "OTMKioskService" reset= 0 actions= "" | Out-Null
         Stop-Service -Name "OTMKioskService" -Force -ErrorAction SilentlyContinue
+        Start-Sleep -Seconds 2
+        Stop-Process -Name "OTM.Service" -Force -ErrorAction SilentlyContinue
         sc.exe delete "OTMKioskService" | Out-Null
         Start-Sleep -Seconds 2
         Write-Host "Removed OTMKioskService."
@@ -18,7 +21,7 @@ function Stop-OtmService {
 }
 
 function Stop-OtmProcesses {
-    $names = @("OTM.ControlPanel", "OTM.Service", "OTM.RecoveryTool")
+    $names = @("OTM.KioskShell", "OTM.ControlPanel", "OTM.Service", "OTM.RecoveryTool")
     foreach ($name in $names) {
         Get-Process -Name $name -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
     }

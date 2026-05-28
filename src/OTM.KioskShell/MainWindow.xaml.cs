@@ -35,6 +35,7 @@ public partial class MainWindow : Window
     private DateTimeOffset _lastViolationPoll = DateTimeOffset.UtcNow.AddMinutes(-5);
     private bool _appOwnsDisplays;
     private bool _restoreWebWorkspaceAfterAdmin;
+    private bool _allowClose;
 
     public MainWindow()
     {
@@ -77,6 +78,16 @@ public partial class MainWindow : Window
             ShowNotice("Locked", "Kiosk restrictions are active.", NoticeKind.Success);
             await RefreshAsync();
         }
+    }
+
+    private async void EmergencyUnlock_Click(object sender, RoutedEventArgs e)
+    {
+        await EmergencyUnlockAsync();
+    }
+
+    private void ExitShell_Click(object sender, RoutedEventArgs e)
+    {
+        ExitShell();
     }
 
     private void Manager_Click(object sender, RoutedEventArgs e)
@@ -402,6 +413,22 @@ public partial class MainWindow : Window
 
     private void Window_PreviewKeyDown(object sender, System.Windows.Input.KeyEventArgs e)
     {
+        if ((Keyboard.Modifiers & (ModifierKeys.Control | ModifierKeys.Shift | ModifierKeys.Alt)) == (ModifierKeys.Control | ModifierKeys.Shift | ModifierKeys.Alt)
+            && e.Key == Key.End)
+        {
+            e.Handled = true;
+            ExitShell();
+            return;
+        }
+
+        if ((Keyboard.Modifiers & (ModifierKeys.Control | ModifierKeys.Shift | ModifierKeys.Alt)) == (ModifierKeys.Control | ModifierKeys.Shift | ModifierKeys.Alt)
+            && e.Key == Key.U)
+        {
+            e.Handled = true;
+            _ = EmergencyUnlockAsync();
+            return;
+        }
+
         if ((Keyboard.Modifiers & (ModifierKeys.Control | ModifierKeys.Shift)) == (ModifierKeys.Control | ModifierKeys.Shift)
             && e.Key == Key.A)
         {
@@ -448,6 +475,16 @@ public partial class MainWindow : Window
 
     private void Window_Closing(object? sender, CancelEventArgs e)
     {
+        if (_allowClose)
+        {
+            foreach (var window in _secondaryWindows)
+            {
+                window.CloseFromOwner();
+            }
+
+            return;
+        }
+
         e.Cancel = true;
         ShowNotice("Close blocked", "Use the admin controls to unlock or manage this station.", NoticeKind.Info);
     }
@@ -503,6 +540,40 @@ public partial class MainWindow : Window
         Topmost = false;
         SetSecondaryCoversVisible(false);
         ShowNotice("Admin tool opening", "The kiosk shell is yielding focus for local administration.", NoticeKind.Info);
+    }
+
+    private async Task EmergencyUnlockAsync()
+    {
+        try
+        {
+            var response = await _client.PostAsync("/api/recovery/disable-enforcement", new StringContent("{}", Encoding.UTF8, "application/json"));
+            if (response.IsSuccessStatusCode)
+            {
+                _yieldFocusUntil = DateTimeOffset.UtcNow.AddHours(24);
+                Topmost = false;
+                SetSecondaryCoversVisible(false);
+                ShowNotice("Emergency unlock active", "Enforcement is disabled locally for recovery/testing. You can now uninstall or open admin tools.", NoticeKind.Warning);
+                await RefreshAsync();
+                return;
+            }
+
+            ShowNotice("Emergency unlock failed", await ReadApiErrorAsync(response), NoticeKind.Error);
+        }
+        catch (Exception ex)
+        {
+            Topmost = false;
+            _yieldFocusUntil = DateTimeOffset.UtcNow.AddMinutes(10);
+            SetSecondaryCoversVisible(false);
+            ShowNotice("Service unavailable", $"The shell yielded focus, but the service did not accept emergency unlock: {ex.Message}", NoticeKind.Warning);
+        }
+    }
+
+    private void ExitShell()
+    {
+        _allowClose = true;
+        Topmost = false;
+        SetSecondaryCoversVisible(false);
+        Close();
     }
 
     private void YieldDisplaysToApp(Process? process)

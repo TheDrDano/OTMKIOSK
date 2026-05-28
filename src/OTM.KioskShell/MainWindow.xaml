@@ -183,11 +183,13 @@
                 </DockPanel>
                 <TextBlock Text="PIN" Foreground="#344756" FontWeight="SemiBold" Margin="0,0,0,4" />
                 <PasswordBox x:Name="PinBox" Height="38" Margin="0,0,0,12" />
-                <UniformGrid Columns="2" Rows="2">
+                <UniformGrid Columns="2" Rows="3">
                     <Button Content="Unlock 15m" Margin="0,0,6,6" Click="Unlock_Click" />
                     <Button Content="Lock" Margin="6,0,0,6" Style="{StaticResource DangerButton}" Click="Lock_Click" />
                     <Button Content="Manager" Margin="0,6,6,0" Style="{StaticResource SecondaryButton}" Click="Manager_Click" />
                     <Button Content="Control Panel" Margin="6,6,0,0" Style="{StaticResource SecondaryButton}" Click="ControlPanel_Click" />
+                    <Button Content="Emergency Unlock" Margin="0,6,6,0" Style="{StaticResource DangerButton}" Click="EmergencyUnlock_Click" />
+                    <Button Content="Exit Shell" Margin="6,6,0,0" Style="{StaticResource SecondaryButton}" Click="ExitShell_Click" />
                 </UniformGrid>
                 <Button Content="Refresh Status" Margin="0,14,0,0" Style="{StaticResource SecondaryButton}" Click="Refresh_Click" />
                 <Separator Margin="0,14,0,12" />
