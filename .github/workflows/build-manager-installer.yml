@@ -1,0 +1,65 @@
+name: Build Remote Manager Installer
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Remote Manager installer version"
+        required: true
+        default: "5.1.2"
+      allow_unsigned:
+        description: "Allow unsigned installer artifact"
+        required: true
+        default: "true"
+
+jobs:
+  build-manager-installer:
+    runs-on: windows-2025
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "8.0.x"
+
+      - name: Install Inno Setup
+        run: choco install innosetup -y
+
+      - name: Restore signing certificate
+        shell: pwsh
+        env:
+          OTM_SIGN_PFX_BASE64: ${{ secrets.OTM_SIGN_PFX_BASE64 }}
+          ALLOW_UNSIGNED: ${{ github.event.inputs.allow_unsigned || 'true' }}
+        run: |
+          if ([string]::IsNullOrWhiteSpace($env:OTM_SIGN_PFX_BASE64)) {
+            if ($env:ALLOW_UNSIGNED -eq "true") {
+              Write-Host "No signing certificate secret configured. Building unsigned manager installer because allow_unsigned=true."
+              exit 0
+            }
+            throw "No signing certificate configured. Add OTM_SIGN_PFX_BASE64 and OTM_SIGN_PFX_PASSWORD secrets, or rerun manually with allow_unsigned=true."
+          }
+          New-Item -ItemType Directory -Force -Path .\artifacts\signing | Out-Null
+          [IO.File]::WriteAllBytes(".\artifacts\signing\otm-signing.pfx", [Convert]::FromBase64String($env:OTM_SIGN_PFX_BASE64))
+
+      - name: Build Remote Manager installer
+        shell: pwsh
+        env:
+          OTM_SIGN_PFX_PATH: artifacts\signing\otm-signing.pfx
+          OTM_SIGN_PFX_PASSWORD: ${{ secrets.OTM_SIGN_PFX_PASSWORD }}
+        run: |
+          if (Test-Path $env:OTM_SIGN_PFX_PATH) {
+            .\scripts\build-manager-installer.ps1 -Version "${{ github.event.inputs.version || '5.1.2' }}" -Sign
+          } else {
+            .\scripts\build-manager-installer.ps1 -Version "${{ github.event.inputs.version || '5.1.2' }}"
+          }
+
+      - name: Upload Remote Manager installer
+        uses: actions/upload-artifact@v4
+        with:
+          name: SimpleKioskOS-Remote-Manager-Installer
+          path: artifacts/manager-installer/*.exe

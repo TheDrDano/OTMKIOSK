@@ -7,7 +7,6 @@
 #define MyAppExeName "OTM.ControlPanel.exe"
 #define ShellExeName "OTM.KioskShell.exe"
 #define ServiceExeName "OTM.Service.exe"
-#define ClassroomExeName "OTM.Classroom.exe"
 
 [Setup]
 AppId={{8A75836D-56C9-4F00-97FB-458F32E2D6AB}
@@ -42,7 +41,6 @@ Source: "..\artifacts\stage\service\*"; DestDir: "{app}\Service"; Flags: ignorev
 Source: "..\artifacts\stage\control-panel\*"; DestDir: "{app}\ControlPanel"; Flags: ignoreversion recursesubdirs createallsubdirs
 Source: "..\artifacts\stage\kiosk-shell\*"; DestDir: "{app}\KioskShell"; Flags: ignoreversion recursesubdirs createallsubdirs
 Source: "..\artifacts\stage\recovery\*"; DestDir: "{app}\Recovery"; Flags: ignoreversion recursesubdirs createallsubdirs
-Source: "..\artifacts\stage\classroom\*"; DestDir: "{app}\Classroom"; Flags: ignoreversion recursesubdirs createallsubdirs
 Source: "..\artifacts\stage\dependencies\MicrosoftEdgeWebView2Setup.exe"; DestDir: "{tmp}"; Flags: deleteafterinstall
 Source: "..\branding\*.png"; DestDir: "{app}\Branding"; Flags: ignoreversion
 Source: "..\branding\*.ico"; DestDir: "{app}\Branding"; Flags: ignoreversion
@@ -62,8 +60,6 @@ Name: "{commonappdata}\OTM Kiosk\WebView2"; Permissions: users-modify
 [Icons]
 Name: "{group}\SimpleKioskOS"; Filename: "{app}\KioskShell\{#ShellExeName}"; IconFilename: "{app}\Branding\simplekioskos.ico"
 Name: "{group}\SimpleKioskOS Control Panel"; Filename: "{app}\ControlPanel\{#MyAppExeName}"; IconFilename: "{app}\Branding\simplekioskos.ico"
-Name: "{group}\SimpleKioskOS Classroom"; Filename: "{app}\Classroom\{#ClassroomExeName}"; IconFilename: "{app}\Branding\simplekioskos.ico"
-Name: "{group}\SimpleKioskOS Local Manager"; Filename: "http://localhost:47821"; IconFilename: "{app}\Branding\simplekioskos.ico"
 Name: "{group}\SimpleKioskOS Recovery Tool"; Filename: "{app}\Recovery\OTM.RecoveryTool.exe"; IconFilename: "{app}\Branding\simplekioskos.ico"
 Name: "{group}\Emergency Testing Uninstall"; Filename: "{sys}\WindowsPowerShell\v1.0\powershell.exe"; Parameters: "-ExecutionPolicy Bypass -File ""{app}\Scripts\start-testing-uninstall-admin.ps1"""; IconFilename: "{app}\Branding\simplekioskos.ico"
 Name: "{group}\Uninstall SimpleKioskOS"; Filename: "{uninstallexe}"; IconFilename: "{app}\Branding\simplekioskos.ico"
@@ -78,6 +74,7 @@ Filename: "{tmp}\MicrosoftEdgeWebView2Setup.exe"; Parameters: "/silent /install"
 Filename: "{sys}\sc.exe"; Parameters: "create OTMKioskService binPath= ""{app}\Service\{#ServiceExeName}"" start= auto DisplayName= ""OTM Kiosk Service"""; Flags: runhidden waituntilterminated
 Filename: "{sys}\sc.exe"; Parameters: "description OTMKioskService ""Local-first Windows lockdown and kiosk enforcement service."""; Flags: runhidden waituntilterminated
 Filename: "{sys}\sc.exe"; Parameters: "failure OTMKioskService reset= 86400 actions= restart/5000/restart/10000/restart/30000"; Flags: runhidden waituntilterminated
+Filename: "{sys}\netsh.exe"; Parameters: "advfirewall firewall add rule name=""SimpleKioskOS Local API"" dir=in action=allow protocol=TCP localport=47821"; Flags: runhidden waituntilterminated
 Filename: "{sys}\sc.exe"; Parameters: "start OTMKioskService"; Flags: runhidden waituntilterminated
 Filename: "{app}\ControlPanel\{#MyAppExeName}"; Description: "Open SimpleKioskOS Control Panel"; Flags: nowait postinstall skipifsilent
 
@@ -87,8 +84,8 @@ Filename: "{sys}\sc.exe"; Parameters: "stop OTMKioskService"; Flags: runhidden w
 Filename: "{sys}\taskkill.exe"; Parameters: "/IM OTM.KioskShell.exe /F /T"; Flags: runhidden waituntilterminated
 Filename: "{sys}\taskkill.exe"; Parameters: "/IM OTM.Service.exe /F /T"; Flags: runhidden waituntilterminated
 Filename: "{sys}\taskkill.exe"; Parameters: "/IM OTM.ControlPanel.exe /F /T"; Flags: runhidden waituntilterminated
-Filename: "{sys}\taskkill.exe"; Parameters: "/IM OTM.Classroom.exe /F /T"; Flags: runhidden waituntilterminated
 Filename: "{sys}\taskkill.exe"; Parameters: "/IM OTM.RecoveryTool.exe /F /T"; Flags: runhidden waituntilterminated
+Filename: "{sys}\netsh.exe"; Parameters: "advfirewall firewall delete rule name=""SimpleKioskOS Local API"""; Flags: runhidden waituntilterminated
 Filename: "{sys}\sc.exe"; Parameters: "delete OTMKioskService"; Flags: runhidden waituntilterminated
 
 [Code]
@@ -150,7 +147,6 @@ begin
   Exec(ExpandConstant('{sys}\taskkill.exe'), '/IM OTM.KioskShell.exe /F /T', '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
   Exec(ExpandConstant('{sys}\taskkill.exe'), '/IM OTM.Service.exe /F /T', '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
   Exec(ExpandConstant('{sys}\taskkill.exe'), '/IM OTM.ControlPanel.exe /F /T', '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
-  Exec(ExpandConstant('{sys}\taskkill.exe'), '/IM OTM.Classroom.exe /F /T', '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
   Exec(ExpandConstant('{sys}\taskkill.exe'), '/IM OTM.RecoveryTool.exe /F /T', '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
   Exec(ExpandConstant('{sys}\sc.exe'), 'delete OTMKioskService', '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
   Sleep(1500);

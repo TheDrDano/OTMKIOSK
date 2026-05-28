@@ -97,14 +97,14 @@
                     <Border Background="#FFFFFF" BorderBrush="#FFFFFF" BorderThickness="1" CornerRadius="29" Padding="10">
                         <Image Source="pack://application:,,,/Assets/simplekioskos_side.png" Width="238" Height="58" Stretch="Uniform" HorizontalAlignment="Left" />
                     </Border>
-                    <TextBlock Text="Secure workspace" Foreground="White" FontSize="19" FontWeight="SemiBold" Margin="0,16,0,0" />
+                    <TextBlock Text="Launchpad" Foreground="White" FontSize="19" FontWeight="SemiBold" Margin="0,16,0,0" />
                     <TextBlock x:Name="StatusText" Text="Device locked" Foreground="#C8D3DD" FontSize="13" TextWrapping="Wrap" Margin="1,4,0,0" />
                 </StackPanel>
 
                 <Border Grid.Row="1" Background="#242A31" BorderBrush="#343C45" BorderThickness="1" CornerRadius="8" Padding="12" Margin="0,22,0,14">
                     <StackPanel>
-                        <TextBlock Text="Approved Launchers" Foreground="#F8FAFC" FontWeight="SemiBold" />
-                        <TextBlock Text="Apps and exam sites allowed by this policy." Foreground="#AAB6C2" FontSize="12" TextWrapping="Wrap" Margin="0,4,0,0" />
+                        <TextBlock Text="Workspace apps" Foreground="#F8FAFC" FontWeight="SemiBold" />
+                        <TextBlock Text="Choose an app, site, or saved workspace." Foreground="#AAB6C2" FontSize="12" TextWrapping="Wrap" Margin="0,4,0,0" />
                     </StackPanel>
                 </Border>
 
@@ -122,7 +122,7 @@
                     </ItemsControl>
                 </ScrollViewer>
 
-                <TextBlock Grid.Row="3" Text="Local-first controls work offline." Foreground="#AAB6C2" FontSize="12" TextWrapping="Wrap" />
+                <TextBlock Grid.Row="3" Text="Local controls work offline." Foreground="#AAB6C2" FontSize="12" TextWrapping="Wrap" />
             </Grid>
         </Border>
 
@@ -140,10 +140,10 @@
                         <ColumnDefinition Width="Auto" />
                     </Grid.ColumnDefinitions>
                     <StackPanel Grid.Column="0">
-                        <TextBlock x:Name="WorkspaceTitle" Text="Locked Workspace" Foreground="#111827" FontSize="28" FontWeight="SemiBold" />
-                        <TextBlock x:Name="WorkspaceSubtitle" Text="Choose an approved app or exam site from the left." Foreground="#526171" FontSize="14" Margin="1,4,0,0" />
+                        <TextBlock x:Name="WorkspaceTitle" Text="Workspace Launchpad" Foreground="#111827" FontSize="28" FontWeight="SemiBold" />
+                        <TextBlock x:Name="WorkspaceSubtitle" Text="Choose an approved app, website, or workspace from the launcher." Foreground="#526171" FontSize="14" Margin="1,4,0,0" />
                         <Border x:Name="SafeTestBanner" Visibility="Collapsed" Background="#FFF7ED" BorderBrush="#FDBA74" BorderThickness="1" CornerRadius="7" Padding="10,7" Margin="0,12,0,0">
-                            <TextBlock Text="Safe test mode: enforcement is off. Apps and websites are not actively blocked." Foreground="#9A3412" FontWeight="SemiBold" TextWrapping="Wrap" />
+                            <TextBlock Text="Safe test mode: managed rules are off. Apps and websites are not actively limited." Foreground="#9A3412" FontWeight="SemiBold" TextWrapping="Wrap" />
                         </Border>
                     </StackPanel>
                     <Border Grid.Column="1" Background="#F8FAFC" BorderBrush="#E2E8F0" BorderThickness="1" CornerRadius="7" Padding="12,8" VerticalAlignment="Top" Margin="20,0,0,0">
@@ -153,16 +153,15 @@
             </Border>
 
             <Grid Grid.Row="1" Margin="26,0,26,14">
-                <Border x:Name="IdleWorkspace" Background="#F8FAFC" BorderBrush="#CBD5E1" BorderThickness="1" CornerRadius="10">
+                <Border x:Name="IdleWorkspace" Background="#FFFFFF" BorderBrush="#CBD5E1" BorderThickness="1" CornerRadius="10">
                     <Grid>
                         <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center" MaxWidth="680">
-                            <Border Width="260" Height="260" Background="#FFFFFF" BorderBrush="#E2E8F0" BorderThickness="1" CornerRadius="130" Padding="26" HorizontalAlignment="Center">
-                                <Image Source="pack://application:,,,/Assets/simplekioskos.png" Stretch="Uniform" />
+                            <Border Width="430" Height="170" Background="#FFFFFF" BorderBrush="#E2E8F0" BorderThickness="1" CornerRadius="85" Padding="30,22" HorizontalAlignment="Center">
+                                <Image Source="pack://application:,,,/Assets/simplekioskos_bottom.png" Stretch="Uniform" />
                             </Border>
-                            <Image Source="pack://application:,,,/Assets/simplekioskos_bottom.png" Width="410" Height="112" Stretch="Uniform" Margin="0,18,0,0" />
-                            <TextBlock Text="This station is protected" Foreground="#111827" FontSize="42" FontWeight="SemiBold" TextAlignment="Center" Margin="0,18,0,0" />
-                            <TextBlock Text="Start an approved application or exam site from the launcher." Foreground="#526171" FontSize="17" TextAlignment="Center" TextWrapping="Wrap" Margin="0,12,0,0" />
-                            <TextBlock Text="A production of OTM (Oklahoma Tech Maker)" Foreground="#64748B" FontSize="13" TextAlignment="Center" Margin="0,16,0,0" />
+                            <TextBlock Text="Ready to start" Foreground="#111827" FontSize="42" FontWeight="SemiBold" TextAlignment="Center" Margin="0,18,0,0" />
+                            <TextBlock Text="Pick a workspace from the launcher. Apps stay organized here while this station remains managed." Foreground="#526171" FontSize="17" TextAlignment="Center" TextWrapping="Wrap" Margin="0,12,0,0" />
+                            <TextBlock Text="SimpleKioskOS Launchpad" Foreground="#64748B" FontSize="13" TextAlignment="Center" Margin="0,16,0,0" />
                         </StackPanel>
                     </Grid>
                 </Border>
@@ -175,7 +174,7 @@
                         </Grid.RowDefinitions>
                         <Border Background="#111827" BorderBrush="#1F2937" BorderThickness="0,0,0,1" Padding="10,8">
                             <DockPanel LastChildFill="True">
-                                <TextBlock Text="Secure web workspace" Foreground="#F8FAFC" FontWeight="SemiBold" VerticalAlignment="Center" />
+                                <TextBlock Text="Web workspace" Foreground="#F8FAFC" FontWeight="SemiBold" VerticalAlignment="Center" />
                                 <Button x:Name="WebFullscreenButton" DockPanel.Dock="Right" Width="126" Height="34" MinHeight="34" Padding="10,0" Style="{StaticResource SecondaryButton}" Click="ToggleWebFullscreen_Click">
                                     <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
                                         <Path Width="14" Height="14" Stretch="Uniform" Stroke="#1D2935" StrokeThickness="1.8" StrokeStartLineCap="Round" StrokeEndLineCap="Round" Fill="Transparent" Margin="0,0,8,0" Data="M2,6 L2,2 L6,2 M10,2 L14,2 L14,6 M14,10 L14,14 L10,14 M6,14 L2,14 L2,10" />
@@ -201,25 +200,26 @@
                 </Border>
             </Grid>
 
-            <Border x:Name="ShellTaskbar" Grid.Row="2" Margin="26,0,26,18" Background="#151A20" BorderBrush="#343C45" BorderThickness="1" CornerRadius="8" Padding="12">
-                <DockPanel LastChildFill="True">
-                    <StackPanel DockPanel.Dock="Left" Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,14,0">
+            <Border x:Name="ShellTaskbar" Grid.Row="2" Margin="26,0,26,18" Background="#111827" BorderBrush="#2D3744" BorderThickness="1" CornerRadius="8" Padding="12">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,16,0">
                         <Border Width="30" Height="30" Background="#242A31" BorderBrush="#3D4651" BorderThickness="1" CornerRadius="6" Margin="0,0,10,0">
                             <Path Width="16" Height="16" Stretch="Uniform" Fill="#FF6B1A" HorizontalAlignment="Center" VerticalAlignment="Center" Data="M2,3 L14,3 L14,11 L2,11 Z M5,14 L11,14 M8,11 L8,14" />
                         </Border>
                         <StackPanel>
                             <TextBlock Text="Open apps" Foreground="#F8FAFC" FontWeight="SemiBold" />
-                            <TextBlock Text="OTM (Oklahoma Tech Maker)" Foreground="#AAB6C2" FontSize="11" Margin="0,2,0,0" />
+                            <TextBlock Text="SimpleKioskOS Launchpad" Foreground="#AAB6C2" FontSize="11" Margin="0,2,0,0" />
                         </StackPanel>
-                        <TextBlock x:Name="OpenAppsCountText" Text="0" Foreground="#AAB6C2" VerticalAlignment="Center" Margin="8,0,0,0" />
+                        <Border Background="#1F2937" BorderBrush="#3D4651" BorderThickness="1" CornerRadius="10" Padding="8,2" VerticalAlignment="Center" Margin="12,0,0,0">
+                            <TextBlock x:Name="OpenAppsCountText" Text="0" Foreground="#DDE5EF" FontSize="12" />
+                        </Border>
                     </StackPanel>
-                    <Button DockPanel.Dock="Right" Width="132" Height="38" Margin="12,0,0,0" Style="{StaticResource SecondaryButton}" Click="ShowShell_Click">
-                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
-                            <Path Width="15" Height="15" Stretch="Uniform" Fill="#1D2935" Margin="0,0,8,0" Data="M2,3 L14,3 L14,11 L2,11 Z M5,14 L11,14 M8,11 L8,14" />
-                            <TextBlock Text="Show Shell" VerticalAlignment="Center" />
-                        </StackPanel>
-                    </Button>
-                    <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled">
+                    <ScrollViewer Grid.Column="1" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled" VerticalAlignment="Center">
                         <ItemsControl x:Name="ManagedAppsList">
                             <ItemsControl.ItemsPanel>
                                 <ItemsPanelTemplate>
@@ -238,21 +238,28 @@
                             </ItemsControl.ItemTemplate>
                         </ItemsControl>
                     </ScrollViewer>
-                </DockPanel>
+                    <Button x:Name="AdminTaskbarButton" Grid.Column="2" Width="94" Height="42" Margin="16,0,0,0" Style="{StaticResource SecondaryButton}" Click="ToggleAdmin_Click">
+                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                            <Path Width="15" Height="15" Stretch="Uniform" Fill="#1D2935" Margin="0,0,7,0" Data="M9.405 1.05c-.413-1.4-2.397-1.4-2.81 0l-.1.34a1.464 1.464 0 0 1-2.105.872l-.31-.18c-1.266-.73-2.666.67-1.936 1.936l.18.31c.446.772.075 1.76-.872 2.105l-.34.1c-1.4.413-1.4 2.397 0 2.81l.34.1c.947.345 1.318 1.333.872 2.105l-.18.31c-.73 1.266.67 2.666 1.936 1.936l.31-.18a1.464 1.464 0 0 1 2.105.872l.1.34c.413 1.4 2.397 1.4 2.81 0l.1-.34a1.464 1.464 0 0 1 2.105-.872l.31.18c1.266.73 2.666-.67 1.936-1.936l-.18-.31a1.464 1.464 0 0 1 .872-2.105l.34-.1c1.4-.413 1.4-2.397 0-2.81l-.34-.1a1.464 1.464 0 0 1-.872-2.105l.18-.31c.73-1.266-.67-2.666-1.936-1.936l-.31.18a1.464 1.464 0 0 1-2.105-.872l-.1-.34z M8 10.93a2.929 2.929 0 1 1 0-5.858 2.929 2.929 0 0 1 0 5.858z" />
+                            <TextBlock Text="Admin" VerticalAlignment="Center" />
+                        </StackPanel>
+                    </Button>
+                </Grid>
             </Border>
         </Grid>
 
         <Button x:Name="AdminCornerButton"
                 Grid.ColumnSpan="2"
-                Width="126"
-                Height="44"
+                Width="94"
+                Height="42"
                 HorizontalAlignment="Right"
                 VerticalAlignment="Bottom"
-                Margin="0,0,30,30"
+                Margin="0,0,30,104"
                 Style="{StaticResource SecondaryButton}"
+                Visibility="Collapsed"
                 Click="ToggleAdmin_Click">
             <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
-                <Path Width="15" Height="15" Stretch="Uniform" Fill="#1D2935" Margin="0,0,8,0" Data="M8,1 L10,3 L13,3 L13,6 L15,8 L13,10 L13,13 L10,13 L8,15 L6,13 L3,13 L3,10 L1,8 L3,6 L3,3 L6,3 Z M8,5 A3,3 0,1,0 8,11 A3,3 0,1,0 8,5" />
+                <Path Width="15" Height="15" Stretch="Uniform" Fill="#1D2935" Margin="0,0,7,0" Data="M9.405 1.05c-.413-1.4-2.397-1.4-2.81 0l-.1.34a1.464 1.464 0 0 1-2.105.872l-.31-.18c-1.266-.73-2.666.67-1.936 1.936l.18.31c.446.772.075 1.76-.872 2.105l-.34.1c-1.4.413-1.4 2.397 0 2.81l.34.1c.947.345 1.318 1.333.872 2.105l-.18.31c-.73 1.266.67 2.666 1.936 1.936l.31-.18a1.464 1.464 0 0 1 2.105.872l.1.34c.413 1.4 2.397 1.4 2.81 0l.1-.34a1.464 1.464 0 0 1 2.105-.872l.31.18c1.266.73 2.666-.67 1.936-1.936l-.18-.31a1.464 1.464 0 0 1 .872-2.105l.34-.1c1.4-.413 1.4-2.397 0-2.81l-.34-.1a1.464 1.464 0 0 1-.872-2.105l.18-.31c.73-1.266-.67-2.666-1.936-1.936l-.31.18a1.464 1.464 0 0 1-2.105-.872l-.1-.34z M8 10.93a2.929 2.929 0 1 1 0-5.858 2.929 2.929 0 0 1 0 5.858z" />
                 <TextBlock Text="Admin" VerticalAlignment="Center" />
             </StackPanel>
         </Button>
@@ -273,7 +280,7 @@
                 </DockPanel>
                 <TextBlock Text="PIN" Foreground="#344756" FontWeight="SemiBold" Margin="0,0,0,4" />
                 <PasswordBox x:Name="PinBox" Height="38" Margin="0,0,0,12" />
-                <UniformGrid Columns="2" Rows="3">
+                <UniformGrid Columns="2" Rows="4">
                     <Button Margin="0,0,6,6" Click="Unlock_Click">
                         <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
                             <Path Width="15" Height="15" Stretch="Uniform" Fill="White" Margin="0,0,8,0" Data="M5,7 L5,5 A3,3 0,0,1 11,5 L9.5,5 A1.5,1.5 0,0,0 6.5,5 L6.5,7 M4,7 L12,7 L12,14 L4,14 Z" />
@@ -286,41 +293,46 @@
                             <TextBlock Text="Lock" />
                         </StackPanel>
                     </Button>
-                    <Button Margin="0,6,6,0" Style="{StaticResource SecondaryButton}" Click="Manager_Click">
-                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
-                            <Path Width="15" Height="15" Stretch="Uniform" Stroke="#1D2935" StrokeThickness="1.7" StrokeStartLineCap="Round" StrokeEndLineCap="Round" Fill="Transparent" Margin="0,0,8,0" Data="M8,1 A7,7 0,1,0 8,15 A7,7 0,1,0 8,1 M1.5,8 L14.5,8 M8,1 A10,10 0,0,1 8,15 M8,1 A10,10 0,0,0 8,15" />
-                            <TextBlock Text="Manager" />
-                        </StackPanel>
-                    </Button>
-                    <Button Margin="6,6,0,0" Style="{StaticResource SecondaryButton}" Click="ControlPanel_Click">
+                    <Button Margin="0,6,6,0" Style="{StaticResource SecondaryButton}" Click="ControlPanel_Click">
                         <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
                             <Path Width="15" Height="15" Stretch="Uniform" Stroke="#1D2935" StrokeThickness="1.8" StrokeStartLineCap="Round" StrokeEndLineCap="Round" Margin="0,0,8,0" Data="M2,4 L14,4 M2,8 L14,8 M2,12 L14,12 M5,2 L5,6 M11,6 L11,10 M7,10 L7,14" />
                             <TextBlock Text="Control Panel" />
                         </StackPanel>
                     </Button>
-                    <Button Margin="0,6,6,0" Style="{StaticResource DangerButton}" Click="EmergencyUnlock_Click">
+                    <Button Margin="6,6,0,0" Style="{StaticResource DangerButton}" Click="EmergencyUnlock_Click">
                         <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
                             <Path Width="15" Height="15" Stretch="Uniform" Fill="White" Margin="0,0,8,0" Data="M8,1 L15,14 L1,14 Z M8,5 L8,9 M8,11 L8,12" />
                             <TextBlock Text="Emergency" />
                         </StackPanel>
                     </Button>
-                    <Button Margin="6,6,0,0" Style="{StaticResource SecondaryButton}" Click="ExitShell_Click">
+                    <Button Margin="0,6,6,0" Style="{StaticResource SecondaryButton}" Click="ExitShell_Click">
                         <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
                             <Path Width="15" Height="15" Stretch="Uniform" Stroke="#1D2935" StrokeThickness="1.7" StrokeStartLineCap="Round" StrokeEndLineCap="Round" Fill="Transparent" Margin="0,0,8,0" Data="M3,2 L9,2 L9,14 L3,14 Z M9,8 L15,8 M12,5 L15,8 L12,11" />
                             <TextBlock Text="Exit Shell" />
                         </StackPanel>
                     </Button>
+                    <Button Margin="6,6,0,0" Style="{StaticResource SecondaryButton}" Click="RestartSystem_Click">
+                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                            <Path Width="15" Height="15" Stretch="Uniform" Fill="#1D2935" Margin="0,0,8,0" Data="M8 3a5 5 0 1 0 4.546 2.914.5.5 0 0 1 .908-.417A6 6 0 1 1 8 2v1z M8 0v4.5a.5.5 0 0 0 .5.5H13L8 0z" />
+                            <TextBlock Text="Restart" />
+                        </StackPanel>
+                    </Button>
+                    <Button Margin="0,6,6,0" Style="{StaticResource DangerButton}" Click="ShutdownSystem_Click">
+                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                            <Path Width="15" Height="15" Stretch="Uniform" Fill="White" Margin="0,0,8,0" Data="M7.5 1v7h1V1h-1z M3 8.812a5 5 0 0 1 2.578-4.375l-.485-.874A6 6 0 1 0 10.907 3.563l-.485.874A5 5 0 1 1 3 8.812z" />
+                            <TextBlock Text="Shutdown" />
+                        </StackPanel>
+                    </Button>
+                    <Button Margin="6,6,0,0" Style="{StaticResource SecondaryButton}" Click="Refresh_Click">
+                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                            <Path Width="15" Height="15" Stretch="Uniform" Fill="#1D2935" Margin="0,0,8,0" Data="M8 3a5 5 0 1 0 4.546 2.914.5.5 0 0 1 .908-.417A6 6 0 1 1 8 2v1z M8 0v4.5a.5.5 0 0 0 .5.5H13L8 0z" />
+                            <TextBlock Text="Refresh" />
+                        </StackPanel>
+                    </Button>
                 </UniformGrid>
-                <Button Margin="0,14,0,0" Style="{StaticResource SecondaryButton}" Click="Refresh_Click">
-                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
-                        <Path Width="15" Height="15" Stretch="Uniform" Stroke="#1D2935" StrokeThickness="1.7" StrokeStartLineCap="Round" StrokeEndLineCap="Round" Fill="Transparent" Margin="0,0,8,0" Data="M13,4 L13,1 L10,1 M13,1 L9.5,4.5 A5,5 0,1,0 13,8 M3,12 L3,15 L6,15 M3,15 L6.5,11.5 A5,5 0,1,0 3,8" />
-                        <TextBlock Text="Refresh Status" />
-                    </StackPanel>
-                </Button>
                 <Separator Margin="0,14,0,12" />
-                <TextBlock Text="Remote Manager" FontWeight="SemiBold" Foreground="#17202A" />
-                <TextBlock Text="Offline local mode. Pairing will be enabled when cloud management is added." Foreground="#64748B" TextWrapping="Wrap" FontSize="12" Margin="0,4,0,8" />
-                <TextBox Text="Not connected" Height="32" IsReadOnly="True" Foreground="#64748B" />
+                <TextBlock Text="Local administration only" FontWeight="SemiBold" Foreground="#17202A" />
+                <TextBlock Text="Use the native Control Panel for setup, profiles, app rules, website rules, and logs." Foreground="#64748B" TextWrapping="Wrap" FontSize="12" Margin="0,4,0,0" />
             </StackPanel>
         </Border>
 

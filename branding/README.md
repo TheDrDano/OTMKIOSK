@@ -16,4 +16,4 @@ Current main logo:
 - `simplekioskos_bottom.png`
 - `simplekioskos.ico`
 
-The fullscreen kiosk shell embeds these under `src\OTM.KioskShell\Assets\`. The installer also copies this folder to `{app}\Branding`, and the local web manager serves the PNGs from `/assets/...`. `simplekioskos.ico` is generated from `simplekioskos.png` by `scripts\create-simplekioskos-icon.ps1` and is used for the setup EXE, app EXEs, and Windows shortcuts.
+The fullscreen kiosk shell embeds these under `src\OTM.KioskShell\Assets\`. The installer also copies this folder to `{app}\Branding`. `simplekioskos.ico` is generated from `simplekioskos.png` by `scripts\create-simplekioskos-icon.ps1` and is used for the setup EXE, app EXEs, and Windows shortcuts.

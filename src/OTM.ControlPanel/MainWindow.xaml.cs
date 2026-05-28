@@ -36,9 +36,6 @@ public partial class MainWindow : Window
     private async void Refresh_Click(object sender, RoutedEventArgs e) => await RefreshAsync();
     private async void Unlock_Click(object sender, RoutedEventArgs e) => await RunAdminActionAsync("/api/unlock", HttpMethod.Post, "{\"minutes\":15}");
     private async void Lock_Click(object sender, RoutedEventArgs e) => await RunAdminActionAsync("/api/lock", HttpMethod.Post, "{}");
-    private async void ExamTemplate_Click(object sender, RoutedEventArgs e) => await RunAdminActionAsync("/api/templates/exam-mode", HttpMethod.Post, "{}");
-    private async void LabTemplate_Click(object sender, RoutedEventArgs e) => await RunAdminActionAsync("/api/templates/lab-lockdown", HttpMethod.Post, "{}");
-
     private async void SaveProtectionMode_Click(object sender, RoutedEventArgs e)
     {
         if (_currentPolicy is null)
@@ -49,7 +46,7 @@ public partial class MainWindow : Window
 
         _currentPolicy.Enforcement.Enabled = EnableEnforcementCheckBox.IsChecked == true;
         _currentPolicy.Enforcement.StrictApplicationWhitelist = StrictWhitelistCheckBox.IsChecked == true;
-        await SaveCurrentPolicyAsync("Protection mode saved.");
+        await SaveCurrentPolicyAsync("Workspace mode saved.");
     }
 
     private async void SavePolicy_Click(object sender, RoutedEventArgs e)
@@ -78,10 +75,9 @@ public partial class MainWindow : Window
             var state = await _client.GetFromJsonAsync<RuntimeState>("/api/status", JsonOptions);
             StatusText.Text = state is null
                 ? "Service status unavailable."
-                : $"{state.PolicyName}: enforcement {(state.EnforcementEnabled ? "ON" : "OFF")}"
+                : $"{state.PolicyName}: managed mode {(state.EnforcementEnabled ? "ON" : "OFF")}"
                     + (state.TemporaryUnlockActive ? $"{Environment.NewLine}Unlocked until {state.TemporaryUnlockUntil:yyyy-MM-dd HH:mm:ss zzz}" : "");
             SafeTestBanner.Visibility = state?.EnforcementEnabled == false ? Visibility.Visible : Visibility.Collapsed;
-            await RefreshRemoteStatusAsync();
 
             var policy = await GetAdminJsonAsync<KioskPolicy>("/api/policy");
             var logs = await GetAdminJsonAsync<List<LogEntry>>("/api/logs?count=300") ?? [];
@@ -92,7 +88,6 @@ public partial class MainWindow : Window
             BrowserEnabledCheckBox.IsChecked = policy?.Browser.Enabled == true;
             WhitelistOnlyCheckBox.IsChecked = policy?.Browser.WhitelistOnly == true;
             BrowserBlockDownloadsCheckBox.IsChecked = policy?.Browser.BlockDownloads == true;
-            BindRemoteSettings(policy);
             PolicyTextBox.Text = JsonSerializer.Serialize(policy, JsonOptions);
             BindAppRules();
             BindWebsiteRules();
@@ -104,22 +99,7 @@ public partial class MainWindow : Window
         }
         catch (Exception ex)
         {
-            StatusText.Text = $"Could not reach OTM Kiosk Service at localhost:47821.{Environment.NewLine}{ex.Message}";
-        }
-    }
-
-    private async Task RefreshRemoteStatusAsync()
-    {
-        try
-        {
-            var device = await _client.GetFromJsonAsync<RemoteDeviceStatus>("/api/device", JsonOptions);
-            RemoteStatusText.Text = device is null
-                ? "Remote foundation unavailable."
-                : $"{(string.IsNullOrWhiteSpace(device.ConfiguredName) ? device.DeviceName : device.ConfiguredName)}{Environment.NewLine}Device ID: {device.DeviceId}{Environment.NewLine}LAN access: {(device.LanApiEnabled ? "enabled" : "local-only for now")}";
-        }
-        catch
-        {
-            RemoteStatusText.Text = "Remote foundation unavailable until the service is running.";
+            StatusText.Text = $"Could not reach the SimpleKioskOS service at localhost:47821.{Environment.NewLine}{ex.Message}";
         }
     }
 
@@ -287,94 +267,6 @@ public partial class MainWindow : Window
         }
     }
 
-    private async void GeneratePairingCode_Click(object sender, RoutedEventArgs e)
-    {
-        try
-        {
-            if (string.IsNullOrWhiteSpace(PinBox.Password))
-            {
-                ShowNotice("Admin PIN required", "Enter the admin PIN before generating a pairing code.", NoticeKind.Info);
-                return;
-            }
-
-            var request = new HttpRequestMessage(HttpMethod.Post, "/api/device/pairing-code")
-            {
-                Content = new StringContent("{}", Encoding.UTF8, "application/json")
-            };
-            request.Headers.Add("X-OTM-Admin-PIN", PinBox.Password);
-            var response = await _client.SendAsync(request);
-            if (!response.IsSuccessStatusCode)
-            {
-                ShowNotice("Pairing blocked", await ReadApiErrorAsync(response), NoticeKind.Warning);
-                return;
-            }
-
-            var pairing = await response.Content.ReadFromJsonAsync<PairingCodeResponse>(JsonOptions);
-            PairingCodeBox.Text = pairing?.Code ?? "";
-            ShowNotice("Pairing code created", $"Code expires at {pairing?.ExpiresAt:yyyy-MM-dd HH:mm:ss zzz}. LAN access is still local-only until remote manager is enabled.", NoticeKind.Success);
-            await RefreshRemoteStatusAsync();
-        }
-        catch (Exception ex)
-        {
-            ShowNotice("Pairing failed", ex.Message, NoticeKind.Error);
-        }
-    }
-
-    private async void SaveRemoteSettings_Click(object sender, RoutedEventArgs e)
-    {
-        if (_currentPolicy is null)
-        {
-            ShowNotice("Refresh required", "Enter the admin PIN and refresh before changing remote settings.", NoticeKind.Info);
-            return;
-        }
-
-        _currentPolicy.Remote.Enabled = RemoteEnabledCheckBox.IsChecked == true;
-        _currentPolicy.Remote.ServerUrl = RemoteServerUrlBox.Text.Trim();
-        _currentPolicy.Remote.OrganizationId = RemoteOrganizationBox.Text.Trim();
-        _currentPolicy.Remote.DeviceAlias = RemoteDeviceAliasBox.Text.Trim();
-        _currentPolicy.Remote.AllowRemotePolicyPush = AllowRemotePolicyPushCheckBox.IsChecked == true;
-        _currentPolicy.Remote.AllowRemoteUnlock = AllowRemoteUnlockCheckBox.IsChecked == true;
-        _currentPolicy.Remote.AllowRemoteUpdate = AllowRemoteUpdateCheckBox.IsChecked == true;
-        _currentPolicy.Updates.Enabled = UpdateEnabledCheckBox.IsChecked == true;
-        _currentPolicy.Updates.ManifestUrl = UpdateManifestUrlBox.Text.Trim();
-        _currentPolicy.Updates.Channel = string.IsNullOrWhiteSpace(UpdateChannelBox.Text) ? "stable" : UpdateChannelBox.Text.Trim();
-
-        await SaveCurrentPolicyAsync("Remote and update settings saved.");
-    }
-
-    private async void CheckUpdates_Click(object sender, RoutedEventArgs e)
-    {
-        try
-        {
-            if (string.IsNullOrWhiteSpace(PinBox.Password))
-            {
-                ShowNotice("Admin PIN required", "Enter the admin PIN before checking for updates.", NoticeKind.Info);
-                return;
-            }
-
-            var request = new HttpRequestMessage(HttpMethod.Post, "/api/updates/check")
-            {
-                Content = new StringContent("{}", Encoding.UTF8, "application/json")
-            };
-            request.Headers.Add("X-OTM-Admin-PIN", PinBox.Password);
-            var response = await _client.SendAsync(request);
-            if (!response.IsSuccessStatusCode)
-            {
-                ShowNotice("Update check failed", await ReadApiErrorAsync(response), NoticeKind.Warning);
-                return;
-            }
-
-            var result = await response.Content.ReadFromJsonAsync<UpdateCheckResponse>(JsonOptions);
-            UpdateStatusText.Text = result?.Message ?? "Update check completed.";
-            ShowNotice("Update check completed", UpdateStatusText.Text, result?.Available == true ? NoticeKind.Success : NoticeKind.Info);
-            await RefreshAsync();
-        }
-        catch (Exception ex)
-        {
-            ShowNotice("Update check failed", ex.Message, NoticeKind.Error);
-        }
-    }
-
     private async void ApplyBrowserPolicy_Click(object sender, RoutedEventArgs e)
     {
         if (_currentPolicy is not null)
@@ -449,12 +341,17 @@ public partial class MainWindow : Window
         {
             UpsertSite(_currentPolicy.Browser.AllowedSites, site);
             RemoveSite(_currentPolicy.Browser.BlockedSites, site);
+            if (AddWebsiteLauncherCheckBox.IsChecked == true)
+            {
+                UpsertWebLauncher(site);
+            }
             await SaveCurrentPolicyAsync("Allowed website saved.");
         }
         else
         {
             UpsertSite(_currentPolicy.Browser.BlockedSites, site);
             RemoveSite(_currentPolicy.Browser.AllowedSites, site);
+            RemoveMatchingWebLauncher(site);
             await SaveCurrentPolicyAsync("Blocked website saved.");
         }
 
@@ -545,21 +442,6 @@ public partial class MainWindow : Window
         BlockedSitesList.ItemsSource = _currentPolicy?.Browser.BlockedSites.OrderBy(site => site).ToList() ?? [];
     }
 
-    private void BindRemoteSettings(KioskPolicy? policy)
-    {
-        RemoteEnabledCheckBox.IsChecked = policy?.Remote.Enabled == true;
-        RemoteServerUrlBox.Text = policy?.Remote.ServerUrl ?? "";
-        RemoteOrganizationBox.Text = policy?.Remote.OrganizationId ?? "";
-        RemoteDeviceAliasBox.Text = policy?.Remote.DeviceAlias ?? "";
-        AllowRemotePolicyPushCheckBox.IsChecked = policy?.Remote.AllowRemotePolicyPush == true;
-        AllowRemoteUnlockCheckBox.IsChecked = policy?.Remote.AllowRemoteUnlock == true;
-        AllowRemoteUpdateCheckBox.IsChecked = policy?.Remote.AllowRemoteUpdate == true;
-        UpdateEnabledCheckBox.IsChecked = policy?.Updates.Enabled == true;
-        UpdateManifestUrlBox.Text = policy?.Updates.ManifestUrl ?? "";
-        UpdateChannelBox.Text = string.IsNullOrWhiteSpace(policy?.Updates.Channel) ? "stable" : policy.Updates.Channel;
-        UpdateStatusText.Text = policy?.Updates.LastCheckMessage ?? "";
-    }
-
     private void ClearAppFields()
     {
         AppDisplayNameBox.Clear();
@@ -591,6 +473,34 @@ public partial class MainWindow : Window
     {
         _currentPolicy?.Launchers.RemoveAll(launcher =>
             MatchesRule(launcher.ProcessName, launcher.Path, rule.ProcessName, rule.Path));
+    }
+
+    private void UpsertWebLauncher(string site)
+    {
+        if (_currentPolicy is null)
+        {
+            return;
+        }
+
+        RemoveMatchingWebLauncher(site);
+        var url = ToWorkspaceUrl(site);
+        _currentPolicy.Launchers.Add(new KioskLauncher
+        {
+            Id = CreateLauncherId(site),
+            DisplayName = site,
+            Type = KioskLauncherTypes.Web,
+            WorkspaceMode = KioskWorkspaceModes.Exam,
+            Url = url,
+            AllowedSites = [site]
+        });
+    }
+
+    private void RemoveMatchingWebLauncher(string site)
+    {
+        _currentPolicy?.Launchers.RemoveAll(launcher =>
+            string.Equals(launcher.Type, KioskLauncherTypes.Web, StringComparison.OrdinalIgnoreCase)
+            && (string.Equals(NormalizeSite(launcher.Url ?? ""), NormalizeSite(site), StringComparison.OrdinalIgnoreCase)
+                || launcher.AllowedSites.Any(allowed => string.Equals(NormalizeSite(allowed), NormalizeSite(site), StringComparison.OrdinalIgnoreCase))));
     }
 
     private static void UpsertRule(List<AppRule> rules, AppRule rule)
@@ -647,6 +557,19 @@ public partial class MainWindow : Window
             .TrimEnd('/');
 
         return site.ToLowerInvariant();
+    }
+
+    private static string ToWorkspaceUrl(string site)
+    {
+        var normalized = NormalizeSite(site);
+        if (string.IsNullOrWhiteSpace(normalized))
+        {
+            return "";
+        }
+
+        return normalized.Contains("://", StringComparison.OrdinalIgnoreCase)
+            ? normalized
+            : $"https://{normalized}/";
     }
 
     private static void UpsertSite(List<string> sites, string site)
@@ -757,25 +680,4 @@ public partial class MainWindow : Window
         Error
     }
 
-    private sealed class RemoteDeviceStatus
-    {
-        public string DeviceId { get; set; } = "";
-        public string DeviceName { get; set; } = "";
-        public string ConfiguredName { get; set; } = "";
-        public bool PairingEnabled { get; set; }
-        public bool LanApiEnabled { get; set; }
-        public string LocalManagerUrl { get; set; } = "";
-    }
-
-    private sealed class PairingCodeResponse
-    {
-        public string Code { get; set; } = "";
-        public DateTimeOffset ExpiresAt { get; set; }
-    }
-
-    private sealed class UpdateCheckResponse
-    {
-        public bool Available { get; set; }
-        public string Message { get; set; } = "";
-    }
 }

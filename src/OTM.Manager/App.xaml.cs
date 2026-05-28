@@ -1,6 +1,6 @@
 using System.Windows;
 
-namespace Otm.Kiosk.Classroom;
+namespace Otm.Kiosk.Manager;
 
 public partial class App : Application
 {

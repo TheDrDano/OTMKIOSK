@@ -112,7 +112,7 @@ public sealed class ProcessEnforcer
 
     private static bool IsBlocked(KioskPolicy policy, string processName, string? path)
     {
-        if (policy.Restrictions.BlockSystemTools && PolicyTemplates.DefaultBlockedApps().Any(rule => Matches(rule, processName, path)))
+        if (policy.Restrictions.BlockSystemTools && PolicyDefaults.DefaultBlockedApps().Any(rule => Matches(rule, processName, path)))
         {
             return true;
         }

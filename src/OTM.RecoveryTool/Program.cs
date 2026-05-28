@@ -7,7 +7,7 @@ internal static class Program
 {
     private static int Main(string[] args)
     {
-        Console.WriteLine("OTM Kiosk Recovery Tool");
+        Console.WriteLine("SimpleKioskOS Recovery Tool");
         Console.WriteLine("This tool disables enforcement locally and can reset the admin PIN.");
         Console.WriteLine();
 

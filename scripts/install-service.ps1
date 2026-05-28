@@ -28,11 +28,12 @@ if (Get-Service -Name "OTMKioskService" -ErrorAction SilentlyContinue) {
 
 sc.exe create "OTMKioskService" binPath= "`"$serviceExe`"" start= auto DisplayName= "OTM Kiosk Service" | Out-Null
 sc.exe description "OTMKioskService" "Local-first Windows lockdown and kiosk enforcement service." | Out-Null
+netsh advfirewall firewall add rule name="SimpleKioskOS Local API" dir=in action=allow protocol=TCP localport=47821 | Out-Null
 Start-Service -Name "OTMKioskService"
 
 Write-Host "Installed OTM Kiosk Service."
 Write-Host "Fullscreen shell: $(Join-Path $InstallRoot "KioskShell\OTM.KioskShell.exe")"
-Write-Host "Local manager: http://localhost:47821"
+Write-Host "Local API: http://localhost:47821"
 Write-Host "First-run PIN: 123456"
 Write-Host "Database: $env:ProgramData\OTM Kiosk\otm-kiosk.db"
 Write-Host "Recovery key file: $env:ProgramData\OTM Kiosk\first-run-recovery-key.txt"

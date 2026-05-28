@@ -62,7 +62,7 @@
             <DockPanel LastChildFill="True">
                 <StackPanel DockPanel.Dock="Left">
                     <Image Source="pack://application:,,,/Assets/simplekioskos_side.png" Width="260" Height="58" Stretch="Uniform" HorizontalAlignment="Left" />
-                    <TextBlock Text="Simple local lockdown control panel" Foreground="#526171" FontSize="13" Margin="2,6,0,0" />
+                    <TextBlock Text="Local setup for SimpleKioskOS workspaces" Foreground="#526171" FontSize="13" Margin="2,6,0,0" />
                 </StackPanel>
                 <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
                     <TextBlock Text="Admin PIN" Foreground="#344756" FontWeight="SemiBold" VerticalAlignment="Center" Margin="0,0,8,0" />
@@ -82,19 +82,17 @@
             <StackPanel>
                 <Border Background="White" BorderBrush="#D8DEE6" BorderThickness="1" CornerRadius="8" Padding="18" Margin="0,0,0,14">
                     <StackPanel>
-                        <TextBlock Text="Simple Controls" FontSize="18" FontWeight="SemiBold" Margin="0,0,0,4" />
-                        <TextBlock Text="Use these first. Edit JSON only when you need advanced policy changes." Foreground="#64748B" FontSize="12" TextWrapping="Wrap" Margin="0,0,0,12" />
+                        <TextBlock Text="Workspace Controls" FontSize="18" FontWeight="SemiBold" Margin="0,0,0,4" />
+                        <TextBlock Text="Use these first. Advanced policy JSON is still available when needed." Foreground="#64748B" FontSize="12" TextWrapping="Wrap" Margin="0,0,0,12" />
                         <Border Background="#F8FAFC" BorderBrush="#D7E1EA" BorderThickness="1" CornerRadius="6" Padding="12" Margin="0,0,0,12">
                             <TextBlock x:Name="StatusText" Text="Service status unknown" TextWrapping="Wrap" LineHeight="20" />
                         </Border>
-                        <CheckBox x:Name="EnableEnforcementCheckBox" Content="Turn blocking on" Margin="0,0,0,8" />
-                        <CheckBox x:Name="StrictWhitelistCheckBox" Content="Only allowed apps can run" Margin="0,0,0,8" />
-                        <Button Content="Save Protection Mode" Margin="0,0,0,12" Style="{StaticResource SecondaryButton}" Click="SaveProtectionMode_Click" />
-                        <UniformGrid Columns="2" Rows="2">
+                        <CheckBox x:Name="EnableEnforcementCheckBox" Content="Enable managed mode" Margin="0,0,0,8" />
+                        <CheckBox x:Name="StrictWhitelistCheckBox" Content="Run allowed apps only" Margin="0,0,0,8" />
+                        <Button Content="Save Workspace Mode" Margin="0,0,0,12" Style="{StaticResource SecondaryButton}" Click="SaveProtectionMode_Click" />
+                        <UniformGrid Columns="2" Rows="1">
                             <Button Content="Unlock 15m" Margin="0,0,6,6" Click="Unlock_Click" />
-                            <Button Content="Lock Now" Margin="6,0,0,6" Style="{StaticResource DangerButton}" Click="Lock_Click" />
-                            <Button Content="Exam Template" Margin="0,6,6,0" Style="{StaticResource SecondaryButton}" Click="ExamTemplate_Click" />
-                            <Button Content="Lab Template" Margin="6,6,0,0" Style="{StaticResource SecondaryButton}" Click="LabTemplate_Click" />
+                            <Button Content="Launchpad" Margin="6,0,0,6" Style="{StaticResource DangerButton}" Click="Lock_Click" />
                         </UniformGrid>
                         <Button Content="Save Advanced Policy" Margin="0,14,0,0" Click="SavePolicy_Click" />
                     </StackPanel>
@@ -103,39 +101,11 @@
                 <Border Background="White" BorderBrush="#D8DEE6" BorderThickness="1" CornerRadius="8" Padding="18" Margin="0,0,0,14">
                     <StackPanel>
                         <TextBlock Text="Profiles" FontSize="16" FontWeight="SemiBold" Margin="0,0,0,8" />
-                        <TextBlock Text="Export this setup or import a saved profile. Import keeps this PC's admin PIN." Foreground="#64748B" FontSize="12" TextWrapping="Wrap" Margin="0,0,0,10" />
+                        <TextBlock Text="Export this station setup or import a saved profile. Import keeps this PC's admin PIN." Foreground="#64748B" FontSize="12" TextWrapping="Wrap" Margin="0,0,0,10" />
                         <UniformGrid Columns="2">
                             <Button Content="Import" Margin="0,0,6,0" Style="{StaticResource SecondaryButton}" Click="ImportProfile_Click" />
                             <Button Content="Export" Margin="6,0,0,0" Style="{StaticResource SecondaryButton}" Click="ExportProfile_Click" />
                         </UniformGrid>
-                    </StackPanel>
-                </Border>
-
-                <Border Background="White" BorderBrush="#D8DEE6" BorderThickness="1" CornerRadius="8" Padding="18" Margin="0,0,0,14">
-                    <StackPanel>
-                        <TextBlock Text="Remote Manager" FontSize="16" FontWeight="SemiBold" Margin="0,0,0,8" />
-                        <TextBlock x:Name="RemoteStatusText" Text="LAN pairing not loaded." Foreground="#64748B" FontSize="12" TextWrapping="Wrap" Margin="0,0,0,10" />
-                        <CheckBox x:Name="RemoteEnabledCheckBox" Content="Enable remote manager" Margin="0,0,0,8" />
-                        <TextBlock Text="Server URL" Foreground="#344756" FontWeight="SemiBold" FontSize="12" />
-                        <TextBox x:Name="RemoteServerUrlBox" Height="32" Margin="0,3,0,8" ToolTip="Example: https://manager.simplekioskos.com" />
-                        <TextBlock Text="Organization ID" Foreground="#344756" FontWeight="SemiBold" FontSize="12" />
-                        <TextBox x:Name="RemoteOrganizationBox" Height="32" Margin="0,3,0,8" />
-                        <TextBlock Text="Device name" Foreground="#344756" FontWeight="SemiBold" FontSize="12" />
-                        <TextBox x:Name="RemoteDeviceAliasBox" Height="32" Margin="0,3,0,8" />
-                        <CheckBox x:Name="AllowRemotePolicyPushCheckBox" Content="Allow remote policy changes" Margin="0,0,0,6" />
-                        <CheckBox x:Name="AllowRemoteUnlockCheckBox" Content="Allow remote unlock" Margin="0,0,0,6" />
-                        <CheckBox x:Name="AllowRemoteUpdateCheckBox" Content="Allow remote update approval" Margin="0,0,0,10" />
-                        <TextBlock Text="Updates" FontWeight="SemiBold" Margin="0,2,0,8" />
-                        <CheckBox x:Name="UpdateEnabledCheckBox" Content="Check for updates" Margin="0,0,0,8" />
-                        <TextBlock Text="Manifest URL" Foreground="#344756" FontWeight="SemiBold" FontSize="12" />
-                        <TextBox x:Name="UpdateManifestUrlBox" Height="32" Margin="0,3,0,8" ToolTip="HTTPS JSON manifest with version and installerUrl" />
-                        <TextBlock Text="Channel" Foreground="#344756" FontWeight="SemiBold" FontSize="12" />
-                        <TextBox x:Name="UpdateChannelBox" Height="32" Margin="0,3,0,10" />
-                        <Button Content="Save Remote Settings" Style="{StaticResource SecondaryButton}" Margin="0,0,0,8" Click="SaveRemoteSettings_Click" />
-                        <Button Content="Check Updates" Style="{StaticResource SecondaryButton}" Margin="0,0,0,8" Click="CheckUpdates_Click" />
-                        <Button Content="Generate Pairing Code" Style="{StaticResource SecondaryButton}" Click="GeneratePairingCode_Click" />
-                        <TextBox x:Name="PairingCodeBox" IsReadOnly="True" Height="34" Margin="0,10,0,0" FontSize="15" FontWeight="SemiBold" HorizontalContentAlignment="Center" />
-                        <TextBlock x:Name="UpdateStatusText" Text="" Foreground="#64748B" FontSize="12" TextWrapping="Wrap" Margin="0,10,0,0" />
                     </StackPanel>
                 </Border>
 
@@ -145,14 +115,14 @@
                         <TextBlock Text="Change PIN" Margin="0,0,0,4" />
                         <PasswordBox x:Name="NewPinBox" Height="32" Margin="0,0,0,8" />
                         <Button Content="Update PIN" Height="34" Click="ChangePin_Click" />
-                        <TextBlock Text="First-run default PIN: 123456. Change this before strict lockdown testing." Foreground="#64748B" FontSize="12" TextWrapping="Wrap" Margin="0,10,0,0" />
+                        <TextBlock Text="First-run default PIN: 123456. Change this before managed-mode testing." Foreground="#64748B" FontSize="12" TextWrapping="Wrap" Margin="0,10,0,0" />
                     </StackPanel>
                 </Border>
             </StackPanel>
             </ScrollViewer>
 
             <TabControl Grid.Column="1" Background="White" BorderBrush="#D8DEE6">
-                <TabItem Header="Simple Apps">
+                <TabItem Header="Apps">
                     <Grid Margin="14">
                         <Grid.RowDefinitions>
                             <RowDefinition Height="Auto" />
@@ -173,7 +143,7 @@
                                     <RowDefinition Height="Auto" />
                                 </Grid.RowDefinitions>
 
-                                <TextBlock Grid.ColumnSpan="4" Text="Add an app" FontSize="17" FontWeight="SemiBold" Margin="0,0,0,10" />
+                                <TextBlock Grid.ColumnSpan="4" Text="Add a workspace app" FontSize="17" FontWeight="SemiBold" Margin="0,0,0,10" />
 
                                 <StackPanel Grid.Row="1" Grid.Column="0" Margin="0,0,10,0">
                                     <TextBlock Text="Name" Foreground="#344756" FontWeight="SemiBold" Margin="0,0,0,4" />
@@ -189,9 +159,9 @@
                                 </StackPanel>
                                 <Button Grid.Row="1" Grid.Column="3" Content="Browse" Width="92" VerticalAlignment="Bottom" Style="{StaticResource SecondaryButton}" Click="BrowseApp_Click" />
 
-                                <CheckBox x:Name="AddLauncherCheckBox" Grid.Row="2" Grid.ColumnSpan="2" Content="Show allowed app in kiosk launcher" IsChecked="True" Margin="0,12,0,0" />
+                                <CheckBox x:Name="AddLauncherCheckBox" Grid.Row="2" Grid.ColumnSpan="2" Content="Show in Launchpad" IsChecked="True" Margin="0,12,0,0" />
                                 <StackPanel Grid.Row="2" Grid.Column="2" Grid.ColumnSpan="2" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,10,0,0">
-                                    <Button Content="Allow App" Width="112" Margin="0,0,8,0" Click="AllowApp_Click" />
+                                    <Button Content="Add App" Width="112" Margin="0,0,8,0" Click="AllowApp_Click" />
                                     <Button Content="Block App" Width="112" Style="{StaticResource DangerButton}" Click="BlockApp_Click" />
                                 </StackPanel>
                             </Grid>
@@ -211,7 +181,7 @@
                                         <RowDefinition Height="*" />
                                         <RowDefinition Height="Auto" />
                                     </Grid.RowDefinitions>
-                                    <TextBlock Text="Allowed Apps" FontSize="16" FontWeight="SemiBold" Margin="0,0,0,10" />
+                                    <TextBlock Text="Launchpad Apps" FontSize="16" FontWeight="SemiBold" Margin="0,0,0,10" />
                                     <DataGrid x:Name="AllowedAppsGrid" Grid.Row="1" AutoGenerateColumns="False" IsReadOnly="True" SelectionMode="Single">
                                         <DataGrid.Columns>
                                             <DataGridTextColumn Header="Name" Binding="{Binding DisplayName}" Width="*" />
@@ -219,7 +189,7 @@
                                             <DataGridTextColumn Header="Path" Binding="{Binding Path}" Width="*" />
                                         </DataGrid.Columns>
                                     </DataGrid>
-                                    <Button Grid.Row="2" Content="Remove Selected Allowed App" Height="38" Margin="0,10,0,0" Style="{StaticResource SecondaryButton}" Click="RemoveAllowedApp_Click" />
+                                    <Button Grid.Row="2" Content="Remove Selected App" Height="38" Margin="0,10,0,0" Style="{StaticResource SecondaryButton}" Click="RemoveAllowedApp_Click" />
                                 </Grid>
                             </Border>
 
@@ -263,7 +233,7 @@
                                     <RowDefinition Height="Auto" />
                                 </Grid.RowDefinitions>
 
-                                <TextBlock Grid.ColumnSpan="2" Text="Add a website" FontSize="17" FontWeight="SemiBold" Margin="0,0,0,10" />
+                                <TextBlock Grid.ColumnSpan="2" Text="Add a website rule" FontSize="17" FontWeight="SemiBold" Margin="0,0,0,10" />
                                 <StackPanel Grid.Row="1" Grid.Column="0" Margin="0,0,10,0">
                                     <TextBlock Text="Domain or URL" Foreground="#344756" FontWeight="SemiBold" Margin="0,0,0,4" />
                                     <TextBox x:Name="WebsiteBox" Height="34" ToolTip="Example: testing.example.edu or youtube.com" />
@@ -273,8 +243,9 @@
                                     <Button Content="Block Site" Width="112" Style="{StaticResource DangerButton}" Click="BlockWebsite_Click" />
                                 </StackPanel>
                                 <StackPanel Grid.Row="2" Grid.ColumnSpan="2" Orientation="Horizontal" Margin="0,12,0,0">
-                                    <CheckBox x:Name="BrowserEnabledCheckBox" Content="Website rules on" Margin="0,0,18,0" />
-                                    <CheckBox x:Name="WhitelistOnlyCheckBox" Content="Only allowed websites can open" Margin="0,0,18,0" />
+                                    <CheckBox x:Name="AddWebsiteLauncherCheckBox" Content="Show allowed site in Launchpad" IsChecked="True" Margin="0,0,18,0" />
+                                    <CheckBox x:Name="BrowserEnabledCheckBox" Content="Use website rules" Margin="0,0,18,0" />
+                                    <CheckBox x:Name="WhitelistOnlyCheckBox" Content="Allow listed websites only" Margin="0,0,18,0" />
                                     <CheckBox x:Name="BrowserBlockDownloadsCheckBox" Content="Block browser downloads" Margin="0,0,18,0" />
                                     <Button Content="Save Website Mode" Height="34" Style="{StaticResource SecondaryButton}" Click="SaveBrowserMode_Click" />
                                     <Button Content="Apply Edge/Chrome Policy" Height="34" Margin="10,0,0,0" Style="{StaticResource SecondaryButton}" Click="ApplyBrowserPolicy_Click" />
@@ -381,7 +352,7 @@
                 BorderThickness="1"
                 CornerRadius="8"
                 Padding="14,10">
-            <TextBlock Text="Safe test mode: enforcement is off. This PC is not actively blocking apps or websites."
+            <TextBlock Text="Safe test mode: managed rules are off. This PC is not actively limiting apps or websites."
                        Foreground="#9A3412"
                        FontWeight="SemiBold"
                        TextWrapping="Wrap" />

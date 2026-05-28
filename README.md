@@ -1,20 +1,19 @@
-# OTM Kiosk
+# SimpleKioskOS
 
-OTM Kiosk is a local-first native Windows lockdown and kiosk management app. The MVP in this repo includes:
+SimpleKioskOS is a local-first native Windows workspace launcher and shared-computer management app. The MVP in this repo includes:
 
-- `OTM.Service`: Windows service runtime for process enforcement, downloads quarantine/delete, SQLite policy/log persistence, and local manager API.
+- `OTM.Service`: Windows service runtime for process enforcement, downloads quarantine/delete, SQLite policy/log persistence, and the local API used by the native apps.
 - `OTM.ControlPanel`: native WPF admin UI. No Electron.
 - `OTM.KioskShell`: fullscreen user-facing kiosk screen with approved application launchers and admin access.
-- `OTM.Classroom`: separate native manager foundation for local/remote classroom and lab control.
+- `OTM.Manager`: separate native Remote Manager for connecting to multiple SimpleKioskOS stations.
 - `OTM.RecoveryTool`: offline local recovery/reset utility.
-- Local web manager: `http://localhost:47821`, hosted by the service.
 
 ## MVP Behavior
 
-- Policy and logs are stored locally at `%ProgramData%\OTM Kiosk\otm-kiosk.db`.
+- Policy and logs are stored locally under the existing `%ProgramData%\OTM Kiosk` data folder.
 - Existing `%ProgramData%\OTM Kiosk\policy.json` files are migrated into SQLite on first run.
 - First-run admin PIN is `123456`; change it immediately from the control panel.
-- A first-run recovery key is written to `%ProgramData%\OTM Kiosk\first-run-recovery-key.txt`.
+- A first-run recovery key is written to the local data folder.
 - The service can run as a real Windows service and starts automatically after reboot once installed.
 - Remote/cloud management is intentionally not required.
 
@@ -117,19 +116,13 @@ If Windows still shows **Unknown publisher**, check the build log step named **S
 dotnet run --project .\src\OTM.Service\OTM.Service.csproj -- --console
 ```
 
-Then open:
-
-```txt
-http://localhost:47821
-```
-
 To test the fullscreen kiosk shell after the service is running:
 
 ```powershell
 dotnet run --project .\src\OTM.KioskShell\OTM.KioskShell.csproj
 ```
 
-The kiosk shell is the user-facing locked workspace. It runs fullscreen, uses the SimpleKioskOS shield/monitor logo, shows a left rail of approved launchers, renders exam websites inside embedded WebView2 with no browser controls, and includes an in-shell **Open apps** taskbar for lab mode so approved apps can be brought back above the shell. Admin controls stay behind the bottom-right **Admin** button. `Ctrl+Shift+A` also toggles the admin drawer for testing. For lockout recovery during MVP testing, `Ctrl+Shift+Alt+U` disables enforcement through the local recovery endpoint and `Ctrl+Shift+Alt+End` exits the shell. Common escape shortcuts such as Alt+F4, Alt+Tab, Ctrl+Esc, and Windows keys are suppressed while the shell has focus. Ctrl+Alt+Del cannot be blocked by a normal Windows app and should be handled with Windows policy in production.
+The kiosk shell is the user-facing locked workspace. It runs fullscreen, uses the SimpleKioskOS shield/monitor logo, shows a left rail of approved launchers, renders exam websites inside embedded WebView2 with no browser controls, and includes an in-shell **Open apps** taskbar for lab mode so approved apps can be brought back above the shell. Admin controls stay behind the smaller bottom-right **Admin** button. The shell hides the Windows taskbar while locked and installs a low-level keyboard hook to suppress common escape shortcuts such as Alt+F4, Alt+Tab, Ctrl+Esc, Ctrl+Shift+Esc, and Windows-key combinations. Ctrl+Alt+Del cannot be blocked by a normal Windows app and should be handled with Windows policy in production.
 
 Exam mode requires Microsoft Edge WebView2 Runtime on the target PC. The installer packages the Microsoft Evergreen WebView2 bootstrapper, checks Microsoft's WebView2 EdgeUpdate registry keys, and runs the bootstrapper silently if WebView2 is not registered. The bootstrapper needs internet access on the target PC. If WebView2 does not register after the bootstrapper runs, the installer shows a clear warning before opening the control panel.
 
@@ -153,7 +146,7 @@ Disable it with:
 .\scripts\disable-kiosk-shell-startup.ps1
 ```
 
-Branding assets live in `branding\`. The kiosk shell, secondary lock displays, native control panel, local web manager, and installer payload use the SimpleKioskOS icon, side wordmark, and bottom wordmark.
+Branding assets live in `branding\`. The kiosk shell, secondary lock displays, native control panel, and installer payload use the SimpleKioskOS icon, side wordmark, and bottom wordmark.
 
 ## Install As Windows Service
 
@@ -175,7 +168,7 @@ For normal production-style uninstall, use Windows **Apps & features** or run:
 .\scripts\uninstall-production.ps1
 ```
 
-This removes the app and service but keeps local SQLite data in `%ProgramData%\OTM Kiosk`.
+This removes the app and service but keeps local SQLite data.
 
 For test machines where you want a clean reinstall:
 
@@ -194,8 +187,7 @@ Use a Windows VPS with a desktop experience, not Windows Server Core. Take a sna
 3. The **SimpleKioskOS Control Panel** opens after install. Start the fullscreen shell from the Start menu only after confirming the admin PIN works.
 4. First-run PIN is `123456`.
 5. Change the PIN before enabling a strict profile.
-6. Open `http://localhost:47821` to test the local web manager.
-7. Apply the Exam or Lab template only after adding the remote-access app you use to the allowed list.
+6. Add the remote-access app you use to the allowed list before enabling strict managed mode.
 
 Avoid enabling strict whitelist on a remote VPS until your RDP/remote support tools are allowed, or you can lock yourself out of the session.
 
@@ -223,34 +215,22 @@ The service stores browser allow/block intent in the local policy. The MVP also 
 
 Use `-WhitelistOnly -AllowedSites @("https://example.edu/*")` for whitelist mode.
 
-## Templates
-
-The Exam Mode and Lab Lockdown templates enable enforcement, turn on strict application whitelisting, block common system tools, and block installer/download extensions.
-
-Templates can be applied from either the native control panel or the local web manager.
-
-Example profile JSON files are available in `profiles\`.
-
 ## Simple App Rules
 
-The native control panel and local web manager both include **Simple App Rules** so admins can allow or block apps without editing policy JSON. Enter a display name, process name such as `chrome.exe`, or browse/type an EXE path, then choose **Allow App** or **Block App**. Allowed apps can also be added to the fullscreen kiosk launcher automatically.
+The native control panel includes **Simple App Rules** so admins can allow or block apps without editing policy JSON. Enter a display name, process name such as `chrome.exe`, or browse/type an EXE path, then choose **Add App** or **Block App**. Allowed apps can also be added to the fullscreen kiosk launcher automatically.
 
-Profiles in `profiles\` include Exam Mode, Lab Lockdown, Flight Simulator, Library Mode, and Esports Mode starter policies.
+The Websites tab works the same way. Add an allowed website and keep **Show allowed site in Launchpad** checked to create an embedded WebView2 workspace directly.
 
-## Remote Management and Updates
+## Management
 
-Remote management is optional and off by default. The control panel and local web manager can now store a remote server URL, organization ID, device alias, and explicit permissions for remote policy changes, remote unlock, and remote update approval. The service exposes local foundation endpoints at `/api/device`, `/api/remote/status`, and `/api/device/pairing-code`.
+Management is native-app first. The station installer includes the SimpleKioskOS Control Panel for setup, app rules, website rules, profiles, logs, and admin PIN changes. The service hosts a local/LAN API on port `47821` for the Control Panel, kiosk shell, and Remote Manager. There is no browser-based local manager UI.
 
-Update checks are also optional and off by default. Configure an HTTPS manifest URL, then use **Check Updates**. The MVP only checks and reports available versions; it does not automatically download or run remote installers yet. A manifest should look like:
+The separate **SimpleKioskOS Remote Manager** app can track multiple stations by URL, refresh their status, and send PIN-protected lock, unlock, restart, and shutdown commands.
 
-```json
-{
-  "version": "5.1.0",
-  "channel": "stable",
-  "installerUrl": "https://example.com/OTM-Kiosk-Setup-5.1.0.exe",
-  "sha256": "installer-sha256-hash",
-  "releaseNotes": "Short release notes"
-}
+Build the Remote Manager installer with:
+
+```powershell
+.\scripts\build-manager-installer.ps1 -Version 5.1.2
 ```
 
 ## Security Notes

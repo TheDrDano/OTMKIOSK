@@ -1,4 +1,5 @@
 using System.Net;
+using System.Diagnostics;
 using System.Reflection;
 using System.Security.Cryptography;
 using System.Text;
@@ -19,13 +20,6 @@ public sealed class LocalManagementServer
         PropertyNamingPolicy = JsonNamingPolicy.CamelCase
     };
 
-    private static readonly HashSet<string> AllowedBrandingAssets = new(StringComparer.OrdinalIgnoreCase)
-    {
-        "simplekioskos.png",
-        "simplekioskos_side.png",
-        "simplekioskos_bottom.png"
-    };
-
     private readonly KioskRuntime _runtime;
     private readonly SqliteKioskStore _logs;
     private readonly HttpListener _listener = new();
@@ -39,18 +33,20 @@ public sealed class LocalManagementServer
         _logs = logs;
         _listener.Prefixes.Add("http://localhost:47821/");
         _listener.Prefixes.Add("http://127.0.0.1:47821/");
+        _listener.Prefixes.Add("http://+:47821/");
     }
 
     public async Task RunAsync(CancellationToken cancellationToken)
     {
         try
         {
-            _listener.Start();
-            _runtime.Log("Info", "LocalManagerStarted", "Local manager listening at http://localhost:47821.");
+            StartListenerWithFallback();
+            ApplyBrowserPolicySafely(_runtime.GetPolicy());
+            _runtime.Log("Info", "LocalApiStarted", "Local API listening at http://localhost:47821.");
         }
         catch (Exception ex)
         {
-            _runtime.Log("Error", "LocalManagerFailed", ex.Message);
+            _runtime.Log("Error", "LocalApiFailed", ex.Message);
             return;
         }
 
@@ -73,6 +69,20 @@ public sealed class LocalManagementServer
             {
                 break;
             }
+        }
+    }
+
+    private void StartListenerWithFallback()
+    {
+        try
+        {
+            _listener.Start();
+        }
+        catch (HttpListenerException) when (_listener.Prefixes.Contains("http://+:47821/"))
+        {
+            _listener.Prefixes.Remove("http://+:47821/");
+            _listener.Start();
+            _runtime.Log("Warning", "LocalApiLanDisabled", "LAN API binding failed; local-only API binding is active.");
         }
     }
 
@@ -110,13 +120,8 @@ public sealed class LocalManagementServer
             var path = request.Url?.AbsolutePath.TrimEnd('/') ?? "";
             if (path.Length == 0)
             {
-                await WriteHtmlAsync(response, WebManagerHtml.Page);
-                return;
-            }
-
-            if (path.StartsWith("/assets/", StringComparison.OrdinalIgnoreCase))
-            {
-                await WriteAssetAsync(response, path);
+                response.StatusCode = 404;
+                await WriteJsonAsync(response, new { error = "Browser-based local UI has been removed. Use the native SimpleKioskOS Control Panel." });
                 return;
             }
 
@@ -183,54 +188,6 @@ public sealed class LocalManagementServer
                 return;
             }
 
-            if (path.Equals("/api/templates/exam-mode", StringComparison.OrdinalIgnoreCase))
-            {
-                if (request.HttpMethod == "GET")
-                {
-                    await WriteJsonAsync(response, PolicyTemplates.ExamMode());
-                    return;
-                }
-
-                if (request.HttpMethod == "POST")
-                {
-                    if (!IsAuthorized(request))
-                    {
-                        await Unauthorized(response);
-                        return;
-                    }
-
-                    var template = PolicyTemplates.ExamMode();
-                    template.Admin = _runtime.GetPolicy().Admin;
-                    _runtime.SavePolicy(template, "Exam Mode template applied.");
-                    await WriteJsonAsync(response, _runtime.GetPolicy());
-                    return;
-                }
-            }
-
-            if (path.Equals("/api/templates/lab-lockdown", StringComparison.OrdinalIgnoreCase))
-            {
-                if (request.HttpMethod == "GET")
-                {
-                    await WriteJsonAsync(response, PolicyTemplates.LabLockdown());
-                    return;
-                }
-
-                if (request.HttpMethod == "POST")
-                {
-                    if (!IsAuthorized(request))
-                    {
-                        await Unauthorized(response);
-                        return;
-                    }
-
-                    var template = PolicyTemplates.LabLockdown();
-                    template.Admin = _runtime.GetPolicy().Admin;
-                    _runtime.SavePolicy(template, "Lab Lockdown template applied.");
-                    await WriteJsonAsync(response, _runtime.GetPolicy());
-                    return;
-                }
-            }
-
             if (!IsAuthorized(request))
             {
                 await Unauthorized(response);
@@ -264,7 +221,8 @@ public sealed class LocalManagementServer
                     policy.Admin = _runtime.GetPolicy().Admin;
                 }
 
-                _runtime.SavePolicy(policy, "Policy updated from local manager.");
+                _runtime.SavePolicy(policy, "Policy updated from native control panel.");
+                ApplyBrowserPolicySafely(policy);
                 await WriteJsonAsync(response, _runtime.GetPolicy());
                 return;
             }
@@ -297,8 +255,7 @@ public sealed class LocalManagementServer
 
             if (path.Equals("/api/browser/apply-policy", StringComparison.OrdinalIgnoreCase) && request.HttpMethod == "POST")
             {
-                ApplyBrowserPolicy(_runtime.GetPolicy());
-                _runtime.Log("Info", "BrowserPolicyApplied", "Edge/Chrome browser policies applied from local policy.");
+                ApplyBrowserPolicySafely(_runtime.GetPolicy());
                 await WriteJsonAsync(response, new { ok = true, message = "Edge/Chrome browser policies applied. Restart browsers for changes to apply." });
                 return;
             }
@@ -316,6 +273,22 @@ public sealed class LocalManagementServer
             {
                 _runtime.Relock();
                 await WriteJsonAsync(response, _runtime.GetState());
+                return;
+            }
+
+            if (path.Equals("/api/system/shutdown", StringComparison.OrdinalIgnoreCase) && request.HttpMethod == "POST")
+            {
+                StartSystemCommand("/s /t 0");
+                _runtime.Log("Warning", "SystemShutdownRequested", "Shutdown requested from SimpleKioskOS admin controls.");
+                await WriteJsonAsync(response, new { ok = true });
+                return;
+            }
+
+            if (path.Equals("/api/system/restart", StringComparison.OrdinalIgnoreCase) && request.HttpMethod == "POST")
+            {
+                StartSystemCommand("/r /t 0");
+                _runtime.Log("Warning", "SystemRestartRequested", "Restart requested from SimpleKioskOS admin controls.");
+                await WriteJsonAsync(response, new { ok = true });
                 return;
             }
 
@@ -341,7 +314,7 @@ public sealed class LocalManagementServer
         }
         catch (Exception ex)
         {
-            _runtime.Log("Error", "LocalManagerRequestFailed", ex.Message);
+            _runtime.Log("Error", "LocalApiRequestFailed", ex.Message);
             if (context.Response.OutputStream.CanWrite)
             {
                 context.Response.StatusCode = 500;
@@ -388,8 +361,8 @@ public sealed class LocalManagementServer
             configuredName = GetConfiguredDeviceName(identity, policy),
             pairingEnabled = !string.IsNullOrWhiteSpace(_pairingCode) && _pairingExpiresAt.HasValue && _pairingExpiresAt.Value > now,
             pairingExpiresAt = _pairingExpiresAt,
-            lanApiEnabled = false,
-            localManagerUrl = "http://localhost:47821",
+            lanApiEnabled = true,
+            localApiUrl = "http://localhost:47821",
             remoteFoundation = "local-only"
         };
     }
@@ -503,12 +476,44 @@ public sealed class LocalManagementServer
         return !string.Equals(candidate, current, StringComparison.OrdinalIgnoreCase);
     }
 
+    private static void StartSystemCommand(string arguments)
+    {
+        Process.Start(new ProcessStartInfo
+        {
+            FileName = "shutdown.exe",
+            Arguments = arguments,
+            UseShellExecute = false,
+            CreateNoWindow = true
+        });
+    }
+
+    private void ApplyBrowserPolicySafely(KioskPolicy policy)
+    {
+        try
+        {
+            ApplyBrowserPolicy(policy);
+            _runtime.Log("Info", "BrowserPolicyApplied", "Edge/Chrome browser policies applied from local policy.");
+        }
+        catch (Exception ex)
+        {
+            _runtime.Log("Error", "BrowserPolicyApplyFailed", ex.Message);
+        }
+    }
+
     private static void ApplyBrowserPolicy(KioskPolicy policy)
     {
         foreach (var rootPath in new[] { @"SOFTWARE\Policies\Microsoft\Edge", @"SOFTWARE\Policies\Google\Chrome" })
         {
             using var root = Registry.LocalMachine.CreateSubKey(rootPath, writable: true)
                 ?? throw new InvalidOperationException($"Could not open HKLM\\{rootPath}.");
+
+            if (!policy.Browser.Enabled)
+            {
+                root.SetValue("DownloadRestrictions", 0, RegistryValueKind.DWord);
+                SetPolicyList(rootPath, "URLBlocklist", []);
+                SetPolicyList(rootPath, "URLAllowlist", []);
+                continue;
+            }
 
             root.SetValue("DownloadRestrictions", policy.Browser.BlockDownloads ? 3 : 0, RegistryValueKind.DWord);
 
@@ -529,9 +534,17 @@ public sealed class LocalManagementServer
     {
         return sites
             .Where(static site => !string.IsNullOrWhiteSpace(site))
-            .Select(static site => site.Contains("://", StringComparison.Ordinal) || site.Contains("*", StringComparison.Ordinal)
-                ? site
-                : $"*://*.{site.TrimStart('.').TrimEnd('/')}/*")
+            .SelectMany(static site =>
+            {
+                var trimmed = site.Trim();
+                if (trimmed.Contains("://", StringComparison.Ordinal) || trimmed.Contains("*", StringComparison.Ordinal))
+                {
+                    return new[] { trimmed };
+                }
+
+                var domain = trimmed.TrimStart('.').TrimEnd('/');
+                return new[] { $"*://{domain}/*", $"*://*.{domain}/*" };
+            })
             .Distinct(StringComparer.OrdinalIgnoreCase)
             .ToArray();
     }
@@ -558,7 +571,7 @@ public sealed class LocalManagementServer
 
     private static string GetCurrentVersion()
     {
-        return Assembly.GetExecutingAssembly().GetName().Version?.ToString(3) ?? "5.0.0";
+        return Assembly.GetExecutingAssembly().GetName().Version?.ToString(3) ?? "5.1.2";
     }
 
     private static string GetConfiguredDeviceName(DeviceIdentity identity, KioskPolicy policy)
@@ -715,82 +728,6 @@ public sealed class LocalManagementServer
         response.ContentLength64 = bytes.Length;
         await response.OutputStream.WriteAsync(bytes);
         response.Close();
-    }
-
-    private static async Task WriteHtmlAsync(HttpListenerResponse response, string html)
-    {
-        response.ContentType = "text/html; charset=utf-8";
-        var bytes = Encoding.UTF8.GetBytes(html);
-        response.ContentLength64 = bytes.Length;
-        await response.OutputStream.WriteAsync(bytes);
-        response.Close();
-    }
-
-    private static async Task WriteAssetAsync(HttpListenerResponse response, string path)
-    {
-        var fileName = Path.GetFileName(WebUtility.UrlDecode(path));
-        if (string.IsNullOrWhiteSpace(fileName) || !AllowedBrandingAssets.Contains(fileName))
-        {
-            response.StatusCode = 404;
-            await WriteJsonAsync(response, new { error = "Asset not found" });
-            return;
-        }
-
-        var assetPath = ResolveBrandingAssetPath(fileName);
-        if (assetPath is null)
-        {
-            response.StatusCode = 404;
-            await WriteJsonAsync(response, new { error = "Asset not found" });
-            return;
-        }
-
-        response.ContentType = "image/png";
-        var bytes = await File.ReadAllBytesAsync(assetPath);
-        response.ContentLength64 = bytes.Length;
-        await response.OutputStream.WriteAsync(bytes);
-        response.Close();
-    }
-
-    private static string? ResolveBrandingAssetPath(string fileName)
-    {
-        foreach (var candidate in EnumerateBrandingAssetCandidates(fileName))
-        {
-            if (File.Exists(candidate))
-            {
-                return candidate;
-            }
-        }
-
-        return null;
-    }
-
-    private static IEnumerable<string> EnumerateBrandingAssetCandidates(string fileName)
-    {
-        var baseDirectory = AppContext.BaseDirectory;
-        yield return Path.Combine(baseDirectory, "Branding", fileName);
-        yield return Path.GetFullPath(Path.Combine(baseDirectory, "..", "Branding", fileName));
-        yield return Path.Combine(baseDirectory, "Assets", fileName);
-
-        foreach (var candidate in EnumerateUpwardAssetCandidates(baseDirectory, fileName))
-        {
-            yield return candidate;
-        }
-
-        foreach (var candidate in EnumerateUpwardAssetCandidates(Directory.GetCurrentDirectory(), fileName))
-        {
-            yield return candidate;
-        }
-    }
-
-    private static IEnumerable<string> EnumerateUpwardAssetCandidates(string startDirectory, string fileName)
-    {
-        var directory = new DirectoryInfo(startDirectory);
-        while (directory is not null)
-        {
-            yield return Path.Combine(directory.FullName, "branding", fileName);
-            yield return Path.Combine(directory.FullName, "src", "OTM.KioskShell", "Assets", fileName);
-            directory = directory.Parent;
-        }
     }
 
     private static async Task Unauthorized(HttpListenerResponse response)

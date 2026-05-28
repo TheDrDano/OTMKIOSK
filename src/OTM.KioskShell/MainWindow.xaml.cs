@@ -7,6 +7,7 @@ using System.Net.Http;
 using System.Net.Http.Json;
 using System.Text;
 using System.Text.Json;
+using System.Text.RegularExpressions;
 using System.Windows;
 using System.Windows.Input;
 using System.Windows.Media;
@@ -20,8 +21,23 @@ namespace Otm.Kiosk.Shell;
 
 public partial class MainWindow : Window
 {
+    private const int SwHide = 0;
     private const int SwRestore = 9;
     private const int SwShow = 5;
+    private const int WhKeyboardLl = 13;
+    private const int WmKeyDown = 0x0100;
+    private const int WmKeyUp = 0x0101;
+    private const int WmSysKeyDown = 0x0104;
+    private const int WmSysKeyUp = 0x0105;
+    private const int VkTab = 0x09;
+    private const int VkEscape = 0x1B;
+    private const int VkSpace = 0x20;
+    private const int VkF4 = 0x73;
+    private const int VkLWin = 0x5B;
+    private const int VkRWin = 0x5C;
+    private const int VkControl = 0x11;
+    private const int VkShift = 0x10;
+    private const int LlkhfAltdown = 0x20;
 
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
@@ -44,6 +60,10 @@ public partial class MainWindow : Window
     private bool _restoreWebWorkspaceAfterAdmin;
     private bool _allowClose;
     private bool _webFocusMode;
+    private bool _suppressSystemShortcuts;
+    private bool _taskbarHidden;
+    private IntPtr _keyboardHook;
+    private LowLevelKeyboardProc? _keyboardProc;
 
     public MainWindow()
     {
@@ -52,6 +72,8 @@ public partial class MainWindow : Window
         {
             PlaceOnPrimaryScreen();
             CreateSecondaryDisplayCovers();
+            InstallKeyboardHook();
+            SetSystemLockdownActive(true);
             EnforceFullscreen();
             await RefreshAsync();
         };
@@ -74,6 +96,10 @@ public partial class MainWindow : Window
     {
         if (await AdminPostAsync("/api/unlock", JsonSerializer.Serialize(new { minutes = 15 })))
         {
+            _yieldFocusUntil = DateTimeOffset.UtcNow.AddMinutes(15);
+            SetSystemLockdownActive(false);
+            Topmost = false;
+            SetSecondaryCoversVisible(false);
             ShowNotice("Temporary unlock active", "Kiosk restrictions are paused for 15 minutes.", NoticeKind.Success);
             await RefreshAsync();
         }
@@ -94,6 +120,22 @@ public partial class MainWindow : Window
         await EmergencyUnlockAsync();
     }
 
+    private async void RestartSystem_Click(object sender, RoutedEventArgs e)
+    {
+        if (await AdminPostAsync("/api/system/restart", "{}"))
+        {
+            ShowNotice("Restart requested", "Windows is restarting.", NoticeKind.Warning);
+        }
+    }
+
+    private async void ShutdownSystem_Click(object sender, RoutedEventArgs e)
+    {
+        if (await AdminPostAsync("/api/system/shutdown", "{}"))
+        {
+            ShowNotice("Shutdown requested", "Windows is shutting down.", NoticeKind.Warning);
+        }
+    }
+
     private void ExitShell_Click(object sender, RoutedEventArgs e)
     {
         ExitShell();
@@ -107,11 +149,6 @@ public partial class MainWindow : Window
         }
     }
 
-    private void ShowShell_Click(object sender, RoutedEventArgs e)
-    {
-        ForceShellLock(clearManagedApps: false);
-    }
-
     private void ToggleWebFullscreen_Click(object sender, RoutedEventArgs e)
     {
         SetWebFocusMode(!_webFocusMode);
@@ -122,6 +159,7 @@ public partial class MainWindow : Window
         _yieldFocusUntil = DateTimeOffset.MinValue;
         _appOwnsDisplays = false;
         SetWebFocusMode(false);
+        SetSystemLockdownActive(true);
         if (clearManagedApps)
         {
             _managedApps.Clear();
@@ -129,7 +167,8 @@ public partial class MainWindow : Window
         }
 
         AdminPanel.Visibility = Visibility.Collapsed;
-        AdminCornerButton.Visibility = Visibility.Visible;
+        AdminTaskbarButton.Visibility = Visibility.Visible;
+        AdminCornerButton.Visibility = Visibility.Collapsed;
         Show();
         PlaceOnPrimaryScreen();
         WindowState = WindowState.Maximized;
@@ -137,12 +176,6 @@ public partial class MainWindow : Window
         SetSecondaryCoversVisible(true);
         Activate();
         Focus();
-    }
-
-    private void Manager_Click(object sender, RoutedEventArgs e)
-    {
-        YieldFocusToAdminTool();
-        Process.Start(new ProcessStartInfo("http://localhost:47821") { UseShellExecute = true });
     }
 
     private void ControlPanel_Click(object sender, RoutedEventArgs e)
@@ -196,12 +229,12 @@ public partial class MainWindow : Window
             _launchers = await _client.GetFromJsonAsync<List<KioskLauncher>>("/api/kiosk/launchers", JsonOptions) ?? [];
             StatusText.Text = state is null
                 ? "Service status unavailable"
-                : $"{state.PolicyName}: enforcement {(state.EnforcementEnabled ? "on" : "off")}";
+                : $"{state.PolicyName}: managed mode {(state.EnforcementEnabled ? "on" : "off")}";
             SafeTestBanner.Visibility = state?.EnforcementEnabled == false ? Visibility.Visible : Visibility.Collapsed;
             LaunchersList.ItemsSource = _launchers;
             WorkspaceSubtitle.Text = _launchers.Count == 0
-                ? "No launchers are configured. Open admin controls to apply a template."
-                : "Choose an approved app or exam site from the left.";
+                ? "No launchers are configured. Open admin controls to add apps or websites."
+                : "Choose an approved app, website, or workspace from the launcher.";
         }
         catch (Exception ex)
         {
@@ -243,7 +276,7 @@ public partial class MainWindow : Window
         }
         _activeWebAllowedSites = launcher.AllowedSites.Count > 0 ? launcher.AllowedSites : [launcher.Url];
         WorkspaceTitle.Text = launcher.DisplayName;
-        WorkspaceSubtitle.Text = "Secure embedded exam browser";
+        WorkspaceSubtitle.Text = "Embedded web workspace";
         IdleWorkspace.Visibility = Visibility.Collapsed;
         AppWorkspace.Visibility = Visibility.Collapsed;
         WebWorkspace.Visibility = Visibility.Visible;
@@ -260,7 +293,8 @@ public partial class MainWindow : Window
         WorkspaceHeader.Visibility = enabled ? Visibility.Collapsed : Visibility.Visible;
         ShellTaskbar.Visibility = enabled ? Visibility.Collapsed : Visibility.Visible;
         WebFullscreenText.Text = enabled ? "Exit full" : "Fullscreen";
-        AdminCornerButton.Opacity = enabled ? 0.82 : 1;
+        AdminTaskbarButton.Visibility = enabled ? Visibility.Collapsed : Visibility.Visible;
+        AdminCornerButton.Visibility = enabled && AdminPanel.Visibility != Visibility.Visible ? Visibility.Visible : Visibility.Collapsed;
     }
 
     private void StartAppWorkspace(KioskLauncher launcher)
@@ -296,8 +330,8 @@ public partial class MainWindow : Window
             WorkspaceSubtitle.Text = "Approved apps can stay open together.";
             AppWorkspaceTitle.Text = $"{launcher.DisplayName} started";
             AppWorkspaceText.Text = launcher.AllowMultiMonitorOwnership
-                ? "This approved app can use all connected displays until it exits."
-                : "Use the launcher to open additional approved apps.";
+                ? "This workspace can use all connected displays until it exits."
+                : "Use the launcher or taskbar to open and switch between workspaces.";
             IdleWorkspace.Visibility = Visibility.Collapsed;
             WebWorkspace.Visibility = Visibility.Collapsed;
             AppWorkspace.Visibility = Visibility.Visible;
@@ -482,7 +516,7 @@ public partial class MainWindow : Window
     <h1>Website blocked</h1>
     <p>{{safeReason}}</p>
     <div class="url">{{safeUri}}</div>
-    <div class="brand">SIMPLEKIOSKOS - A production of OTM (Oklahoma Tech Maker)</div>
+    <div class="brand">SIMPLEKIOSKOS Launchpad</div>
   </main>
 </body>
 </html>
@@ -496,13 +530,26 @@ public partial class MainWindow : Window
             return false;
         }
 
-        if (!pattern.Contains("://", StringComparison.Ordinal))
+        pattern = pattern.Trim();
+        if (pattern == "*")
         {
-            return candidate.Host.EndsWith(pattern.TrimStart('*', '.').TrimEnd('*', '/'), StringComparison.OrdinalIgnoreCase);
+            return true;
         }
 
-        var normalized = pattern.TrimEnd('*');
-        return candidate.ToString().StartsWith(normalized, StringComparison.OrdinalIgnoreCase);
+        if (!pattern.Contains("://", StringComparison.Ordinal))
+        {
+            var host = pattern.TrimStart('*', '.').TrimEnd('*', '/');
+            return string.Equals(candidate.Host, host, StringComparison.OrdinalIgnoreCase)
+                || candidate.Host.EndsWith($".{host}", StringComparison.OrdinalIgnoreCase);
+        }
+
+        if (pattern.Contains('*', StringComparison.Ordinal))
+        {
+            var expression = "^" + Regex.Escape(pattern).Replace("\\*", ".*") + "$";
+            return Regex.IsMatch(candidate.ToString(), expression, RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+        }
+
+        return candidate.ToString().StartsWith(pattern.TrimEnd('/'), StringComparison.OrdinalIgnoreCase);
     }
 
     private async Task PollViolationsAsync()
@@ -580,7 +627,8 @@ public partial class MainWindow : Window
         }
 
         AdminPanel.Visibility = open ? Visibility.Visible : Visibility.Collapsed;
-        AdminCornerButton.Visibility = open ? Visibility.Collapsed : Visibility.Visible;
+        AdminTaskbarButton.Visibility = open || _webFocusMode ? Visibility.Collapsed : Visibility.Visible;
+        AdminCornerButton.Visibility = open || !_webFocusMode ? Visibility.Collapsed : Visibility.Visible;
         if (open)
         {
             PinBox.Focus();
@@ -589,22 +637,6 @@ public partial class MainWindow : Window
 
     private void Window_PreviewKeyDown(object sender, System.Windows.Input.KeyEventArgs e)
     {
-        if ((Keyboard.Modifiers & (ModifierKeys.Control | ModifierKeys.Shift | ModifierKeys.Alt)) == (ModifierKeys.Control | ModifierKeys.Shift | ModifierKeys.Alt)
-            && e.Key == Key.End)
-        {
-            e.Handled = true;
-            ExitShell();
-            return;
-        }
-
-        if ((Keyboard.Modifiers & (ModifierKeys.Control | ModifierKeys.Shift | ModifierKeys.Alt)) == (ModifierKeys.Control | ModifierKeys.Shift | ModifierKeys.Alt)
-            && e.Key == Key.U)
-        {
-            e.Handled = true;
-            _ = EmergencyUnlockAsync();
-            return;
-        }
-
         if ((Keyboard.Modifiers & (ModifierKeys.Control | ModifierKeys.Shift)) == (ModifierKeys.Control | ModifierKeys.Shift)
             && e.Key == Key.A)
         {
@@ -653,6 +685,7 @@ public partial class MainWindow : Window
     {
         if (_allowClose)
         {
+            RestoreSystemUi();
             foreach (var window in _secondaryWindows)
             {
                 window.CloseFromOwner();
@@ -674,6 +707,7 @@ public partial class MainWindow : Window
             return;
         }
 
+        SetSystemLockdownActive(true);
         PlaceOnPrimaryScreen();
         Topmost = true;
         WindowStyle = WindowStyle.None;
@@ -716,9 +750,10 @@ public partial class MainWindow : Window
     private void YieldFocusToAdminTool()
     {
         _yieldFocusUntil = DateTimeOffset.UtcNow.AddMinutes(5);
+        SetSystemLockdownActive(false);
         Topmost = false;
         SetSecondaryCoversVisible(false);
-        ShowNotice("Admin tool opening", "The kiosk shell is yielding focus for local administration.", NoticeKind.Info);
+        ShowNotice("Admin tool opening", "SimpleKioskOS is making room for local administration.", NoticeKind.Info);
     }
 
     private async Task EmergencyUnlockAsync()
@@ -729,6 +764,7 @@ public partial class MainWindow : Window
             if (response.IsSuccessStatusCode)
             {
                 _yieldFocusUntil = DateTimeOffset.UtcNow.AddHours(24);
+                SetSystemLockdownActive(false);
                 Topmost = false;
                 SetSecondaryCoversVisible(false);
                 ShowNotice("Emergency unlock active", "Enforcement is disabled locally for recovery/testing. You can now uninstall or open admin tools.", NoticeKind.Warning);
@@ -742,6 +778,7 @@ public partial class MainWindow : Window
         {
             Topmost = false;
             _yieldFocusUntil = DateTimeOffset.UtcNow.AddMinutes(10);
+            SetSystemLockdownActive(false);
             SetSecondaryCoversVisible(false);
             ShowNotice("Service unavailable", $"The shell yielded focus, but the service did not accept emergency unlock: {ex.Message}", NoticeKind.Warning);
         }
@@ -750,6 +787,7 @@ public partial class MainWindow : Window
     private void ExitShell()
     {
         _allowClose = true;
+        RestoreSystemUi();
         Topmost = false;
         SetSecondaryCoversVisible(false);
         Close();
@@ -844,6 +882,121 @@ public partial class MainWindow : Window
         OpenAppsCountText.Text = _managedApps.Count.ToString();
     }
 
+    private void InstallKeyboardHook()
+    {
+        if (_keyboardHook != IntPtr.Zero)
+        {
+            return;
+        }
+
+        try
+        {
+            _keyboardProc = KeyboardHookCallback;
+            using var currentProcess = Process.GetCurrentProcess();
+            using var currentModule = currentProcess.MainModule;
+            _keyboardHook = SetWindowsHookEx(
+                WhKeyboardLl,
+                _keyboardProc,
+                currentModule is null ? IntPtr.Zero : GetModuleHandle(currentModule.ModuleName),
+                0);
+        }
+        catch (Exception ex)
+        {
+            Debug.WriteLine(ex);
+        }
+    }
+
+    private void RestoreSystemUi()
+    {
+        _suppressSystemShortcuts = false;
+        SetTaskbarVisible(true);
+        if (_keyboardHook != IntPtr.Zero)
+        {
+            UnhookWindowsHookEx(_keyboardHook);
+            _keyboardHook = IntPtr.Zero;
+        }
+    }
+
+    private void SetSystemLockdownActive(bool active)
+    {
+        _suppressSystemShortcuts = active;
+        SetTaskbarVisible(!active);
+    }
+
+    private void SetTaskbarVisible(bool visible)
+    {
+        if (_taskbarHidden == !visible)
+        {
+            return;
+        }
+
+        ShowTaskbarWindow("Shell_TrayWnd", visible);
+        ShowTaskbarWindow("Shell_SecondaryTrayWnd", visible);
+        if (visible)
+        {
+            EnsureExplorerRunning();
+        }
+        _taskbarHidden = !visible;
+    }
+
+    private static void EnsureExplorerRunning()
+    {
+        try
+        {
+            if (!Process.GetProcessesByName("explorer").Any())
+            {
+                Process.Start(new ProcessStartInfo("explorer.exe") { UseShellExecute = true });
+            }
+        }
+        catch
+        {
+            // Explorer restoration is best-effort during recovery/admin handoff.
+        }
+    }
+
+    private static void ShowTaskbarWindow(string className, bool visible)
+    {
+        var handle = FindWindow(className, null);
+        if (handle != IntPtr.Zero)
+        {
+            ShowWindow(handle, visible ? SwShow : SwHide);
+        }
+    }
+
+    private IntPtr KeyboardHookCallback(int nCode, IntPtr wParam, IntPtr lParam)
+    {
+        var message = wParam.ToInt32();
+        if (nCode >= 0
+            && _suppressSystemShortcuts
+            && (message == WmKeyDown || message == WmKeyUp || message == WmSysKeyDown || message == WmSysKeyUp))
+        {
+            var data = Marshal.PtrToStructure<KeyboardHookStruct>(lParam);
+            if (ShouldSuppressGlobalKey(data))
+            {
+                return new IntPtr(1);
+            }
+        }
+
+        return CallNextHookEx(_keyboardHook, nCode, wParam, lParam);
+    }
+
+    private static bool ShouldSuppressGlobalKey(KeyboardHookStruct data)
+    {
+        var vkCode = data.VkCode;
+        var alt = (data.Flags & LlkhfAltdown) == LlkhfAltdown;
+        var ctrl = IsKeyDown(VkControl);
+        var shift = IsKeyDown(VkShift);
+        var win = vkCode is VkLWin or VkRWin || IsKeyDown(VkLWin) || IsKeyDown(VkRWin);
+
+        return win
+            || vkCode is VkLWin or VkRWin
+            || (alt && (vkCode is VkTab or VkF4 or VkEscape or VkSpace))
+            || (ctrl && vkCode == VkEscape)
+            || (ctrl && shift && vkCode == VkEscape);
+    }
+
+    private static bool IsKeyDown(int virtualKey) => (GetAsyncKeyState(virtualKey) & 0x8000) != 0;
+
     private void FocusManagedApp(ManagedApp? app)
     {
         if (app is null)
@@ -901,6 +1054,36 @@ public partial class MainWindow : Window
 
     [DllImport("user32.dll")]
     private static extern bool ShowWindow(IntPtr hWnd, int nCmdShow);
+
+    [DllImport("user32.dll", SetLastError = true)]
+    private static extern IntPtr FindWindow(string lpClassName, string? lpWindowName);
+
+    [DllImport("user32.dll", SetLastError = true)]
+    private static extern IntPtr SetWindowsHookEx(int idHook, LowLevelKeyboardProc lpfn, IntPtr hMod, uint dwThreadId);
+
+    [DllImport("user32.dll", SetLastError = true)]
+    private static extern bool UnhookWindowsHookEx(IntPtr hhk);
+
+    [DllImport("user32.dll")]
+    private static extern IntPtr CallNextHookEx(IntPtr hhk, int nCode, IntPtr wParam, IntPtr lParam);
+
+    [DllImport("user32.dll")]
+    private static extern short GetAsyncKeyState(int vKey);
+
+    [DllImport("kernel32.dll", CharSet = CharSet.Auto, SetLastError = true)]
+    private static extern IntPtr GetModuleHandle(string? lpModuleName);
+
+    private delegate IntPtr LowLevelKeyboardProc(int nCode, IntPtr wParam, IntPtr lParam);
+
+    [StructLayout(LayoutKind.Sequential)]
+    private struct KeyboardHookStruct
+    {
+        public int VkCode;
+        public int ScanCode;
+        public int Flags;
+        public int Time;
+        public IntPtr ExtraInfo;
+    }
 
     private static async Task<string> ReadApiErrorAsync(HttpResponseMessage response)
     {

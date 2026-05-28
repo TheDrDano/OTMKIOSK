@@ -1,0 +1,117 @@
+<Window x:Class="Otm.Kiosk.Manager.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="SimpleKioskOS Remote Manager" Height="680" Width="1080" MinHeight="600" MinWidth="900"
+        Background="#E8EDF2">
+    <Window.Resources>
+        <Style TargetType="Button">
+            <Setter Property="Height" Value="38" />
+            <Setter Property="Padding" Value="14,0" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="Background" Value="#FF6B1A" />
+            <Setter Property="Foreground" Value="White" />
+            <Setter Property="BorderBrush" Value="#D9550D" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="Cursor" Value="Hand" />
+        </Style>
+        <Style x:Key="SecondaryButton" TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
+            <Setter Property="Background" Value="White" />
+            <Setter Property="Foreground" Value="#1D2935" />
+            <Setter Property="BorderBrush" Value="#C7D0DA" />
+        </Style>
+        <Style x:Key="DangerButton" TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
+            <Setter Property="Background" Value="#B42318" />
+            <Setter Property="BorderBrush" Value="#8F1D14" />
+        </Style>
+    </Window.Resources>
+
+    <Grid Margin="20">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+
+        <Border Background="White" BorderBrush="#CBD5E1" BorderThickness="1" CornerRadius="8" Padding="18">
+            <DockPanel LastChildFill="True">
+                <StackPanel DockPanel.Dock="Left">
+                    <TextBlock Text="SimpleKioskOS Remote Manager" FontSize="27" FontWeight="SemiBold" Foreground="#111827" />
+                    <TextBlock Text="Connect to multiple SimpleKioskOS stations over LAN or VPN" Foreground="#526171" Margin="1,4,0,0" />
+                </StackPanel>
+                <Image DockPanel.Dock="Right" Source="pack://application:,,,/Assets/simplekioskos_side.png" Width="220" Height="54" Stretch="Uniform" />
+            </DockPanel>
+        </Border>
+
+        <Grid Grid.Row="1" Margin="0,16,0,0">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="340" />
+                <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+
+            <Border Background="White" BorderBrush="#D8DEE6" BorderThickness="1" CornerRadius="8" Padding="16" Margin="0,0,16,0">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="*" />
+                    </Grid.RowDefinitions>
+                    <StackPanel>
+                        <TextBlock Text="Stations" FontSize="18" FontWeight="SemiBold" Margin="0,0,0,10" />
+                        <TextBlock Text="Name" Foreground="#344756" FontWeight="SemiBold" />
+                        <TextBox x:Name="StationNameBox" Height="34" Margin="0,4,0,10" />
+                        <TextBlock Text="Station API URL" Foreground="#344756" FontWeight="SemiBold" />
+                        <TextBox x:Name="StationUrlBox" Text="http://localhost:47821" Height="34" Margin="0,4,0,10" />
+                        <UniformGrid Columns="2">
+                            <Button Content="Save Station" Margin="0,0,6,0" Click="SaveStation_Click" />
+                            <Button Content="Remove" Margin="6,0,0,0" Style="{StaticResource SecondaryButton}" Click="RemoveStation_Click" />
+                        </UniformGrid>
+                        <Button Content="Refresh All" Margin="0,10,0,12" Style="{StaticResource SecondaryButton}" Click="RefreshAll_Click" />
+                    </StackPanel>
+
+                    <ListBox x:Name="StationsList"
+                             Grid.Row="1"
+                             DisplayMemberPath="Summary"
+                             SelectionChanged="StationsList_SelectionChanged" />
+                </Grid>
+            </Border>
+
+            <Grid Grid.Column="1">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="*" />
+                </Grid.RowDefinitions>
+
+                <Border Background="#111827" CornerRadius="8" Padding="18" Margin="0,0,0,14">
+                    <StackPanel>
+                        <TextBlock x:Name="SelectedStationText" Text="No station selected" Foreground="White" FontSize="24" FontWeight="SemiBold" />
+                        <TextBlock x:Name="SelectedStatusText" Text="Add or select a station to manage it." Foreground="#C8D3DD" Margin="0,5,0,0" TextWrapping="Wrap" />
+                    </StackPanel>
+                </Border>
+
+                <Border Grid.Row="1" Background="White" BorderBrush="#D8DEE6" BorderThickness="1" CornerRadius="8" Padding="16" Margin="0,0,0,14">
+                    <StackPanel>
+                        <TextBlock Text="Admin PIN" Foreground="#344756" FontWeight="SemiBold" />
+                        <PasswordBox x:Name="PinBox" Height="34" Margin="0,4,0,12" />
+                        <UniformGrid Columns="5">
+                            <Button Content="Refresh" Margin="0,0,6,0" Click="RefreshSelected_Click" />
+                            <Button Content="Lock" Margin="6,0,6,0" Style="{StaticResource SecondaryButton}" Click="Lock_Click" />
+                            <Button Content="Unlock" Margin="6,0,6,0" Style="{StaticResource SecondaryButton}" Click="Unlock_Click" />
+                            <Button Content="Restart" Margin="6,0,6,0" Style="{StaticResource SecondaryButton}" Click="Restart_Click" />
+                            <Button Content="Shutdown" Margin="6,0,0,0" Style="{StaticResource DangerButton}" Click="Shutdown_Click" />
+                        </UniformGrid>
+                    </StackPanel>
+                </Border>
+
+                <Border Grid.Row="2" Background="White" BorderBrush="#D8DEE6" BorderThickness="1" CornerRadius="8" Padding="16">
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="*" />
+                        </Grid.RowDefinitions>
+                        <TextBlock Text="Activity" FontSize="18" FontWeight="SemiBold" Margin="0,0,0,10" />
+                        <TextBox x:Name="ActivityBox" Grid.Row="1" IsReadOnly="True" AcceptsReturn="True" VerticalScrollBarVisibility="Auto" FontFamily="Consolas" TextWrapping="Wrap" />
+                    </Grid>
+                </Border>
+            </Grid>
+        </Grid>
+    </Grid>
+</Window>

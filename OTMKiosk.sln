@@ -12,7 +12,7 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "OTM.RecoveryTool", "src\OTM
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "OTM.KioskShell", "src\OTM.KioskShell\OTM.KioskShell.csproj", "{F4B467DE-A6FC-4675-A89F-2E88D115AB74}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "OTM.Classroom", "src\OTM.Classroom\OTM.Classroom.csproj", "{7A5E6C3D-0A66-4CE8-8D6E-2A184D285112}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "OTM.Manager", "src\OTM.Manager\OTM.Manager.csproj", "{7A5E6C3D-0A66-4CE8-8D6E-2A184D285112}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

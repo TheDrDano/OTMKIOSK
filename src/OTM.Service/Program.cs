@@ -10,7 +10,7 @@ internal static class Program
         {
             using var runtime = new KioskRuntime();
             await runtime.StartAsync();
-            Console.WriteLine("OTM Kiosk service runtime is running. Press Ctrl+C to stop.");
+            Console.WriteLine("SimpleKioskOS service runtime is running. Press Ctrl+C to stop.");
 
             var stop = new TaskCompletionSource();
             Console.CancelKeyPress += (_, eventArgs) =>

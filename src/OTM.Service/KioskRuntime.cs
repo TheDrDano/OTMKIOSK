@@ -31,7 +31,7 @@ public sealed class KioskRuntime : IDisposable
         _ = _processEnforcer.RunAsync(_cts.Token);
         _ = _managementServer.RunAsync(_cts.Token);
 
-        Log("Info", "ServiceStarted", "OTM Kiosk Service started.");
+        Log("Info", "ServiceStarted", "SimpleKioskOS service started.");
         await Task.CompletedTask;
     }
 
@@ -40,7 +40,7 @@ public sealed class KioskRuntime : IDisposable
         _cts?.Cancel();
         _downloadsGuard?.Dispose();
         _managementServer?.Stop();
-        Log("Info", "ServiceStopped", "OTM Kiosk Service stopped.");
+        Log("Info", "ServiceStopped", "SimpleKioskOS service stopped.");
         await Task.CompletedTask;
     }
 

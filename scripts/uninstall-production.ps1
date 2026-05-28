@@ -55,4 +55,6 @@ if (Test-Path $runKey) {
     Write-Host "Removed SimpleKioskOS machine Run entry."
 }
 
+netsh advfirewall firewall delete rule name="SimpleKioskOS Local API" | Out-Null
+
 Write-Host "OTM Kiosk production uninstall complete."

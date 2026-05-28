@@ -30,10 +30,10 @@ public sealed class SqliteKioskStore
             var json = ReadSetting(connection, "policy");
             if (!string.IsNullOrWhiteSpace(json))
             {
-                return JsonSerializer.Deserialize<KioskPolicy>(json, JsonOptions) ?? PolicyTemplates.Default();
+                return JsonSerializer.Deserialize<KioskPolicy>(json, JsonOptions) ?? PolicyDefaults.Default();
             }
 
-            var policy = TryMigrateJsonPolicy() ?? PolicyTemplates.Default();
+            var policy = TryMigrateJsonPolicy() ?? PolicyDefaults.Default();
             SavePolicy(connection, policy);
             return policy;
         }
@@ -127,7 +127,7 @@ public sealed class SqliteKioskStore
         if (!string.IsNullOrWhiteSpace(policy.Admin.InitialRecoveryKey))
         {
             File.WriteAllText(Path.Combine(KioskPaths.RootDirectory, "first-run-recovery-key.txt"),
-                $"OTM Kiosk recovery key{Environment.NewLine}{policy.Admin.InitialRecoveryKey}{Environment.NewLine}");
+                $"SimpleKioskOS recovery key{Environment.NewLine}{policy.Admin.InitialRecoveryKey}{Environment.NewLine}");
         }
 
         using var command = connection.CreateCommand();
