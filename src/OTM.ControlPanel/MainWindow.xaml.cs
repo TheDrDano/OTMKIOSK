@@ -26,7 +26,8 @@ public partial class MainWindow : Window
     private async void Refresh_Click(object sender, RoutedEventArgs e) => await RefreshAsync();
     private async void Unlock_Click(object sender, RoutedEventArgs e) => await RunAdminActionAsync("/api/unlock", HttpMethod.Post, "{\"minutes\":15}");
     private async void Lock_Click(object sender, RoutedEventArgs e) => await RunAdminActionAsync("/api/lock", HttpMethod.Post, "{}");
-    private async void FlightPreset_Click(object sender, RoutedEventArgs e) => await RunAdminActionAsync("/api/presets/flight-simulator", HttpMethod.Post, "{}");
+    private async void ExamTemplate_Click(object sender, RoutedEventArgs e) => await RunAdminActionAsync("/api/templates/exam-mode", HttpMethod.Post, "{}");
+    private async void LabTemplate_Click(object sender, RoutedEventArgs e) => await RunAdminActionAsync("/api/templates/lab-lockdown", HttpMethod.Post, "{}");
 
     private async void SavePolicy_Click(object sender, RoutedEventArgs e)
     {

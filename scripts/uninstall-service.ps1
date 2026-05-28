@@ -1,3 +1,7 @@
+param(
+    [switch]$RemoveData
+)
+
 $ErrorActionPreference = "Stop"
 
 if (Get-Service -Name "OTMKioskService" -ErrorAction SilentlyContinue) {
@@ -6,4 +10,12 @@ if (Get-Service -Name "OTMKioskService" -ErrorAction SilentlyContinue) {
     Write-Host "Removed OTMKioskService."
 } else {
     Write-Host "OTMKioskService is not installed."
+}
+
+if ($RemoveData) {
+    $dataRoot = "$env:ProgramData\OTM Kiosk"
+    if (Test-Path $dataRoot) {
+        Remove-Item -LiteralPath $dataRoot -Recurse -Force
+        Write-Host "Removed local data at $dataRoot."
+    }
 }

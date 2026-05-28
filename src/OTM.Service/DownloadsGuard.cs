@@ -5,10 +5,10 @@ namespace Otm.Kiosk.Service;
 public sealed class DownloadsGuard : IDisposable
 {
     private readonly KioskRuntime _runtime;
-    private readonly JsonLogStore _logs;
+    private readonly SqliteKioskStore _logs;
     private readonly List<FileSystemWatcher> _watchers = [];
 
-    public DownloadsGuard(KioskRuntime runtime, JsonLogStore logs)
+    public DownloadsGuard(KioskRuntime runtime, SqliteKioskStore logs)
     {
         _runtime = runtime;
         _logs = logs;

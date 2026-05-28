@@ -12,15 +12,16 @@ public sealed class LocalManagementServer
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
         WriteIndented = true,
-        PropertyNameCaseInsensitive = true
+        PropertyNameCaseInsensitive = true,
+        PropertyNamingPolicy = JsonNamingPolicy.CamelCase
     };
 
     private readonly KioskRuntime _runtime;
-    private readonly JsonLogStore _logs;
+    private readonly SqliteKioskStore _logs;
     private readonly HttpListener _listener = new();
     private bool _closed;
 
-    public LocalManagementServer(KioskRuntime runtime, JsonLogStore logs)
+    public LocalManagementServer(KioskRuntime runtime, SqliteKioskStore logs)
     {
         _runtime = runtime;
         _logs = logs;
@@ -107,11 +108,11 @@ public sealed class LocalManagementServer
                 return;
             }
 
-            if (path.Equals("/api/presets/flight-simulator", StringComparison.OrdinalIgnoreCase))
+            if (path.Equals("/api/templates/exam-mode", StringComparison.OrdinalIgnoreCase))
             {
                 if (request.HttpMethod == "GET")
                 {
-                    await WriteJsonAsync(response, PolicyPresets.FlightSimulator());
+                    await WriteJsonAsync(response, PolicyTemplates.ExamMode());
                     return;
                 }
 
@@ -123,9 +124,33 @@ public sealed class LocalManagementServer
                         return;
                     }
 
-                    var preset = PolicyPresets.FlightSimulator();
-                    preset.Admin = _runtime.GetPolicy().Admin;
-                    _runtime.SavePolicy(preset, "Flight Simulator preset applied.");
+                    var template = PolicyTemplates.ExamMode();
+                    template.Admin = _runtime.GetPolicy().Admin;
+                    _runtime.SavePolicy(template, "Exam Mode template applied.");
+                    await WriteJsonAsync(response, _runtime.GetPolicy());
+                    return;
+                }
+            }
+
+            if (path.Equals("/api/templates/lab-lockdown", StringComparison.OrdinalIgnoreCase))
+            {
+                if (request.HttpMethod == "GET")
+                {
+                    await WriteJsonAsync(response, PolicyTemplates.LabLockdown());
+                    return;
+                }
+
+                if (request.HttpMethod == "POST")
+                {
+                    if (!IsAuthorized(request))
+                    {
+                        await Unauthorized(response);
+                        return;
+                    }
+
+                    var template = PolicyTemplates.LabLockdown();
+                    template.Admin = _runtime.GetPolicy().Admin;
+                    _runtime.SavePolicy(template, "Lab Lockdown template applied.");
                     await WriteJsonAsync(response, _runtime.GetPolicy());
                     return;
                 }

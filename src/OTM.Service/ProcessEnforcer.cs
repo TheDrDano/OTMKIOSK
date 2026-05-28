@@ -15,9 +15,9 @@ public sealed class ProcessEnforcer
     };
 
     private readonly KioskRuntime _runtime;
-    private readonly JsonLogStore _logs;
+    private readonly SqliteKioskStore _logs;
 
-    public ProcessEnforcer(KioskRuntime runtime, JsonLogStore logs)
+    public ProcessEnforcer(KioskRuntime runtime, SqliteKioskStore logs)
     {
         _runtime = runtime;
         _logs = logs;
@@ -111,7 +111,7 @@ public sealed class ProcessEnforcer
 
     private static bool IsBlocked(KioskPolicy policy, string processName, string? path)
     {
-        if (policy.Restrictions.BlockSystemTools && PolicyPresets.DefaultBlockedApps().Any(rule => Matches(rule, processName, path)))
+        if (policy.Restrictions.BlockSystemTools && PolicyTemplates.DefaultBlockedApps().Any(rule => Matches(rule, processName, path)))
         {
             return true;
         }

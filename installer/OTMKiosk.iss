@@ -37,12 +37,15 @@ Name: "desktopicon"; Description: "Create a desktop shortcut"; GroupDescription:
 Source: "..\artifacts\stage\service\*"; DestDir: "{app}\Service"; Flags: ignoreversion recursesubdirs createallsubdirs
 Source: "..\artifacts\stage\control-panel\*"; DestDir: "{app}\ControlPanel"; Flags: ignoreversion recursesubdirs createallsubdirs
 Source: "..\artifacts\stage\recovery\*"; DestDir: "{app}\Recovery"; Flags: ignoreversion recursesubdirs createallsubdirs
+Source: "..\scripts\uninstall-testing.ps1"; DestDir: "{app}\Scripts"; Flags: ignoreversion
+Source: "..\scripts\uninstall-production.ps1"; DestDir: "{app}\Scripts"; Flags: ignoreversion
 Source: "..\README.md"; DestDir: "{app}"; Flags: ignoreversion
 
 [Icons]
 Name: "{group}\OTM Kiosk Control Panel"; Filename: "{app}\ControlPanel\{#MyAppExeName}"
 Name: "{group}\OTM Kiosk Local Manager"; Filename: "http://localhost:47821"
 Name: "{group}\OTM Kiosk Recovery Tool"; Filename: "{app}\Recovery\OTM.RecoveryTool.exe"
+Name: "{group}\Uninstall OTM Kiosk"; Filename: "{uninstallexe}"
 Name: "{autodesktop}\OTM Kiosk"; Filename: "{app}\ControlPanel\{#MyAppExeName}"; Tasks: desktopicon
 
 [Run]

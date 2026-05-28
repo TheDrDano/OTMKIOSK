@@ -2,7 +2,7 @@ using Otm.Kiosk.Shared.Models;
 
 namespace Otm.Kiosk.Shared.Storage;
 
-public static class PolicyPresets
+public static class PolicyTemplates
 {
     public static KioskPolicy Default()
     {
@@ -20,24 +20,40 @@ public static class PolicyPresets
         };
     }
 
-    public static KioskPolicy FlightSimulator()
+    public static KioskPolicy ExamMode()
     {
         var policy = Default();
-        policy.Name = "Flight Simulator Lockdown";
+        policy.Name = "Exam Mode";
         policy.Enforcement.Enabled = true;
         policy.Enforcement.StrictApplicationWhitelist = true;
         policy.Browser.WhitelistOnly = true;
         policy.AllowedApps =
         [
-            new AppRule { DisplayName = "Microsoft Flight Simulator", ProcessName = "FlightSimulator.exe" },
-            new AppRule { DisplayName = "Microsoft Flight Simulator Launcher", ProcessName = "FlightSimulator2024.exe" },
-            new AppRule { DisplayName = "Steam", ProcessName = "steam.exe" },
-            new AppRule { DisplayName = "Xbox App", ProcessName = "XboxPcApp.exe" },
-            new AppRule { DisplayName = "Joystick/HOTAS Utility", ProcessName = "joy.cpl" }
+            new AppRule { DisplayName = "Approved Testing Browser", ProcessName = "msedge.exe" },
+            new AppRule { DisplayName = "Testing App", ProcessName = "testing.exe" }
         ];
-        policy.RequiredApps =
+        policy.Browser.AllowedSites =
         [
-            new AppRule { DisplayName = "Microsoft Flight Simulator", ProcessName = "FlightSimulator.exe", Required = true }
+            "https://testing.example.edu/*"
+        ];
+        return policy;
+    }
+
+    public static KioskPolicy LabLockdown()
+    {
+        var policy = Default();
+        policy.Name = "Lab Lockdown";
+        policy.Enforcement.Enabled = true;
+        policy.Enforcement.StrictApplicationWhitelist = true;
+        policy.Browser.WhitelistOnly = false;
+        policy.AllowedApps =
+        [
+            new AppRule { DisplayName = "Microsoft Edge", ProcessName = "msedge.exe" },
+            new AppRule { DisplayName = "Google Chrome", ProcessName = "chrome.exe" },
+            new AppRule { DisplayName = "Office", ProcessName = "winword.exe" },
+            new AppRule { DisplayName = "Excel", ProcessName = "excel.exe" },
+            new AppRule { DisplayName = "PowerPoint", ProcessName = "powerpnt.exe" },
+            new AppRule { DisplayName = "Approved Lab App", ProcessName = "labapp.exe" }
         ];
         return policy;
     }

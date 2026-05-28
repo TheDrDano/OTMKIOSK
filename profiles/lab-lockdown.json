@@ -1,0 +1,34 @@
+{
+  "name": "Lab Lockdown",
+  "enforcement": {
+    "enabled": true,
+    "strictApplicationWhitelist": true,
+    "restartRequiredApps": true,
+    "fullscreenOverlay": false,
+    "processScanIntervalMs": 1000,
+    "temporaryUnlockMinutes": 15
+  },
+  "allowedApps": [
+    { "displayName": "Microsoft Edge", "processName": "msedge.exe" },
+    { "displayName": "Google Chrome", "processName": "chrome.exe" },
+    { "displayName": "Microsoft Word", "processName": "winword.exe" },
+    { "displayName": "Microsoft Excel", "processName": "excel.exe" },
+    { "displayName": "Microsoft PowerPoint", "processName": "powerpnt.exe" },
+    { "displayName": "Approved Lab App", "processName": "labapp.exe" }
+  ],
+  "blockedApps": [
+    { "displayName": "Task Manager", "processName": "Taskmgr.exe" },
+    { "displayName": "Command Prompt", "processName": "cmd.exe" },
+    { "displayName": "PowerShell", "processName": "powershell.exe" },
+    { "displayName": "Registry Editor", "processName": "regedit.exe" },
+    { "displayName": "Windows Settings", "processName": "SystemSettings.exe" },
+    { "displayName": "Microsoft Store", "processName": "WinStore.App.exe" }
+  ],
+  "browser": {
+    "enabled": true,
+    "whitelistOnly": false,
+    "blockDownloads": true,
+    "allowedSites": [],
+    "blockedSites": ["youtube.com", "youtu.be", "tiktok.com", "instagram.com", "facebook.com", "x.com", "twitter.com", "reddit.com", "discord.com"]
+  }
+}

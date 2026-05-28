@@ -6,7 +6,7 @@ public static class KioskPaths
         Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData), "OTM Kiosk");
 
     public static string PolicyPath => Path.Combine(RootDirectory, "policy.json");
-    public static string LogPath => Path.Combine(RootDirectory, "events.jsonl");
+    public static string DatabasePath => Path.Combine(RootDirectory, "otm-kiosk.db");
     public static string RuntimePath => Path.Combine(RootDirectory, "runtime.json");
     public static string QuarantineDirectory => Path.Combine(RootDirectory, "Quarantine");
 }

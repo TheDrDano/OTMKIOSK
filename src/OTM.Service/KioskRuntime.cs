@@ -5,8 +5,7 @@ namespace Otm.Kiosk.Service;
 
 public sealed class KioskRuntime : IDisposable
 {
-    private readonly JsonPolicyStore _policyStore = new();
-    private readonly JsonLogStore _logStore = new();
+    private readonly SqliteKioskStore _store = new();
     private readonly object _policyLock = new();
     private CancellationTokenSource? _cts;
     private ProcessEnforcer? _processEnforcer;
@@ -18,15 +17,15 @@ public sealed class KioskRuntime : IDisposable
 
     public KioskRuntime()
     {
-        Policy = _policyStore.LoadOrCreate();
+        Policy = _store.LoadOrCreate();
     }
 
     public async Task StartAsync()
     {
         _cts = new CancellationTokenSource();
-        _processEnforcer = new ProcessEnforcer(this, _logStore);
-        _downloadsGuard = new DownloadsGuard(this, _logStore);
-        _managementServer = new LocalManagementServer(this, _logStore);
+        _processEnforcer = new ProcessEnforcer(this, _store);
+        _downloadsGuard = new DownloadsGuard(this, _store);
+        _managementServer = new LocalManagementServer(this, _store);
 
         _downloadsGuard.Start();
         _ = _processEnforcer.RunAsync(_cts.Token);
@@ -59,7 +58,7 @@ public sealed class KioskRuntime : IDisposable
         {
             policy.Version = Math.Max(Policy.Version + 1, policy.Version);
             Policy = policy;
-            _policyStore.Save(policy);
+            _store.Save(policy);
             _downloadsGuard?.Reload();
         }
 
@@ -114,7 +113,7 @@ public sealed class KioskRuntime : IDisposable
 
     public void Log(string level, string eventType, string message, string? processName = null, string? path = null)
     {
-        _logStore.Append(new LogEntry
+        _store.Append(new LogEntry
         {
             Level = level,
             EventType = eventType,

@@ -13,7 +13,7 @@ internal static class Program
 
         try
         {
-            var store = new JsonPolicyStore();
+            var store = new SqliteKioskStore();
             var policy = store.LoadOrCreate();
 
             if (args.Contains("--reset-pin", StringComparer.OrdinalIgnoreCase))
@@ -32,7 +32,7 @@ internal static class Program
             policy.Enforcement.Enabled = false;
             store.Save(policy);
 
-            var logs = new JsonLogStore();
+            var logs = store;
             logs.Append(new()
             {
                 Level = "Warning",
@@ -42,7 +42,7 @@ internal static class Program
             });
 
             Console.WriteLine("Kiosk enforcement is now disabled in the local policy.");
-            Console.WriteLine($"Policy path: {KioskPaths.PolicyPath}");
+            Console.WriteLine($"Database path: {KioskPaths.DatabasePath}");
             return 0;
         }
         catch (Exception ex)
