@@ -33,7 +33,7 @@ Install prerequisites on a build machine:
 Then run:
 
 ```powershell
-.\scripts\build-installer.ps1 -Version 7.0.0
+.\scripts\build-installer.ps1 -Version 7.1.0
 ```
 
 The installer will be created in:
@@ -53,9 +53,11 @@ For public testing, keep the station app and Remote Manager in this repo as sepa
 To publish a release from GitHub:
 
 ```powershell
-git tag v7.0.0
-git push origin v7.0.0
+git tag v7.1.0
+git push origin v7.1.0
 ```
+
+Use one lowercase release tag per version, like `v7.1.0`. The workflow normalizes manual inputs and `V...` tags back to lowercase `v...`, but old duplicate GitHub releases should be deleted from the GitHub **Releases** page once so the list stays clean.
 
 The **Release Installers** workflow creates a GitHub Release with:
 
@@ -85,7 +87,7 @@ Windows publisher identity for an `.exe` uses **Authenticode code signing**, not
 For local signing with a certificate installed in the machine certificate store:
 
 ```powershell
-.\scripts\build-installer.ps1 -Version 7.0.0 -Sign -CertificateThumbprint "YOUR_CERT_THUMBPRINT"
+.\scripts\build-installer.ps1 -Version 7.1.0 -Sign -CertificateThumbprint "YOUR_CERT_THUMBPRINT"
 ```
 
 Use `-CertificateStore LocalMachine` if the certificate is installed in the local machine store instead of the current user store.
@@ -93,7 +95,7 @@ Use `-CertificateStore LocalMachine` if the certificate is installed in the loca
 For local signing with a PFX:
 
 ```powershell
-.\scripts\build-installer.ps1 -Version 7.0.0 -Sign -PfxPath "C:\secure\otm-signing.pfx" -PfxPassword "PFX_PASSWORD"
+.\scripts\build-installer.ps1 -Version 7.1.0 -Sign -PfxPath "C:\secure\otm-signing.pfx" -PfxPassword "PFX_PASSWORD"
 ```
 
 The build signs published EXE/DLL files before packaging and signs the final setup EXE after Inno Setup finishes. If the final setup EXE is not Authenticode-signed by a trusted certificate, Windows will show **Unknown publisher**.
@@ -123,7 +125,7 @@ For lab-only testing without buying a certificate yet, create a self-signed test
 
 ```powershell
 .\scripts\create-test-signing-cert.ps1 -Password "test-password"
-.\scripts\build-installer.ps1 -Version 7.0.0 -Sign -PfxPath ".\artifacts\signing\simplekioskos-test.pfx" -PfxPassword "test-password"
+.\scripts\build-installer.ps1 -Version 7.1.0 -Sign -PfxPath ".\artifacts\signing\simplekioskos-test.pfx" -PfxPassword "test-password"
 ```
 
 On the test machine, trust that test cert before installing:
@@ -247,7 +249,7 @@ The service stores browser allow/block intent in the local policy. The MVP also 
 
 Use `-WhitelistOnly -AllowedSites @("https://example.edu/*")` for whitelist mode.
 
-Uninstall now clears the Edge/Chrome URL and download policy values created by SimpleKioskOS. If an older test build left browser restrictions behind, run:
+Uninstall now clears the Edge/Chrome URL and download policy values created by SimpleKioskOS. If an older test build or manual folder deletion left browser restrictions behind, open **PowerShell as Administrator** and run:
 
 ```powershell
 .\scripts\clear-browser-policies.ps1
@@ -258,6 +260,16 @@ or:
 ```powershell
 .\scripts\apply-browser-policies.ps1 -Clear
 ```
+
+Installed builds also include **Start > SimpleKioskOS > Clear Browser Restrictions**, which launches the cleanup script elevated.
+
+If the old build was deleted and the cleanup script is not available, open **PowerShell as Administrator** and paste this standalone cleanup:
+
+```powershell
+$roots=@("HKLM:\SOFTWARE\Policies\Microsoft\Edge","HKLM:\SOFTWARE\Policies\Google\Chrome","HKCU:\SOFTWARE\Policies\Microsoft\Edge","HKCU:\SOFTWARE\Policies\Google\Chrome"); $lists=@("URLBlocklist","URLAllowlist","URLBlacklist","URLWhitelist"); $values=@("DownloadRestrictions","SafeBrowsingAllowlistDomains"); foreach($root in $roots){ if(Test-Path $root){ foreach($value in $values){ Remove-ItemProperty -Path $root -Name $value -ErrorAction SilentlyContinue }; foreach($list in $lists){ $path=Join-Path $root $list; if(Test-Path $path){ Remove-Item -LiteralPath $path -Recurse -Force -ErrorAction SilentlyContinue } } } }
+```
+
+Close every Edge/Chrome window after clearing policies. If the blocked page is still cached, open `edge://policy` or `chrome://policy` and choose **Reload policies**, or restart Windows.
 
 ## Simple App Rules
 
@@ -274,7 +286,7 @@ The separate **SimpleKioskOS Remote Manager** app can track multiple stations by
 Build the Remote Manager installer with:
 
 ```powershell
-.\scripts\build-manager-installer.ps1 -Version 7.0.0
+.\scripts\build-manager-installer.ps1 -Version 7.1.0
 ```
 
 ## Security Notes

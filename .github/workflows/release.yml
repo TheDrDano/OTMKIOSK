@@ -4,12 +4,13 @@ on:
   push:
     tags:
       - "v*"
+      - "V*"
   workflow_dispatch:
     inputs:
       version:
         description: "Release version without leading v"
         required: true
-        default: "7.0.0"
+        default: "7.1.0"
       allow_unsigned:
         description: "Allow unsigned release artifacts"
         required: true
@@ -41,12 +42,14 @@ jobs:
         shell: pwsh
         run: |
           if ("${{ github.event_name }}" -eq "workflow_dispatch") {
-            $version = "${{ github.event.inputs.version }}"
-            $tag = "v$version"
+            $version = "${{ github.event.inputs.version }}".Trim()
           } else {
-            $tag = "${{ github.ref_name }}"
-            $version = $tag.TrimStart("v")
+            $version = "${{ github.ref_name }}".Trim()
           }
+          if ($version.StartsWith("v", [System.StringComparison]::OrdinalIgnoreCase)) {
+            $version = $version.Substring(1)
+          }
+          $tag = "v$version"
           "version=$version" >> $env:GITHUB_OUTPUT
           "tag=$tag" >> $env:GITHUB_OUTPUT
 

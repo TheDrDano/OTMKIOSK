@@ -1,7 +1,7 @@
 #define MyAppName "SimpleKioskOS"
 #define MyAppVersion GetEnv("OTM_KIOSK_VERSION")
 #if MyAppVersion == ""
-  #define MyAppVersion "7.0.0"
+  #define MyAppVersion "7.1.0"
 #endif
 #define MyAppPublisher "SimpleKioskOS"
 #define MyAppExeName "OTM.ControlPanel.exe"
@@ -50,6 +50,7 @@ Source: "..\scripts\uninstall-production.ps1"; DestDir: "{app}\Scripts"; Flags: 
 Source: "..\scripts\enable-kiosk-shell-startup.ps1"; DestDir: "{app}\Scripts"; Flags: ignoreversion
 Source: "..\scripts\disable-kiosk-shell-startup.ps1"; DestDir: "{app}\Scripts"; Flags: ignoreversion
 Source: "..\scripts\clear-browser-policies.ps1"; DestDir: "{app}\Scripts"; Flags: ignoreversion
+Source: "..\scripts\start-clear-browser-policies-admin.ps1"; DestDir: "{app}\Scripts"; Flags: ignoreversion
 Source: "..\scripts\verify-signatures.ps1"; DestDir: "{app}\Scripts"; Flags: ignoreversion
 Source: "..\scripts\trust-test-signing-cert.ps1"; DestDir: "{app}\Scripts"; Flags: ignoreversion
 Source: "..\README.md"; DestDir: "{app}"; Flags: ignoreversion
@@ -63,6 +64,7 @@ Name: "{group}\SimpleKioskOS"; Filename: "{app}\KioskShell\{#ShellExeName}"; Ico
 Name: "{group}\SimpleKioskOS Control Panel"; Filename: "{app}\ControlPanel\{#MyAppExeName}"; IconFilename: "{app}\Branding\simplekioskos.ico"
 Name: "{group}\SimpleKioskOS Recovery Tool"; Filename: "{app}\Recovery\OTM.RecoveryTool.exe"; IconFilename: "{app}\Branding\simplekioskos.ico"
 Name: "{group}\Emergency Testing Uninstall"; Filename: "{sys}\WindowsPowerShell\v1.0\powershell.exe"; Parameters: "-ExecutionPolicy Bypass -File ""{app}\Scripts\start-testing-uninstall-admin.ps1"""; IconFilename: "{app}\Branding\simplekioskos.ico"
+Name: "{group}\Clear Browser Restrictions"; Filename: "{sys}\WindowsPowerShell\v1.0\powershell.exe"; Parameters: "-ExecutionPolicy Bypass -File ""{app}\Scripts\start-clear-browser-policies-admin.ps1"""; IconFilename: "{app}\Branding\simplekioskos.ico"
 Name: "{group}\Uninstall SimpleKioskOS"; Filename: "{uninstallexe}"; IconFilename: "{app}\Branding\simplekioskos.ico"
 Name: "{autodesktop}\SimpleKioskOS"; Filename: "{app}\KioskShell\{#ShellExeName}"; IconFilename: "{app}\Branding\simplekioskos.ico"; Tasks: desktopicon
 Name: "{commonstartup}\SimpleKioskOS"; Filename: "{app}\KioskShell\{#ShellExeName}"; IconFilename: "{app}\Branding\simplekioskos.ico"; Tasks: startupshell

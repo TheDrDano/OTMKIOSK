@@ -1,5 +1,5 @@
 param(
-    [string]$Version = "7.0.0",
+    [string]$Version = "7.1.0",
     [switch]$Sign,
     [string]$PfxPath = $env:OTM_SIGN_PFX_PATH,
     [string]$PfxPassword = $env:OTM_SIGN_PFX_PASSWORD
@@ -10,6 +10,8 @@ $repoRoot = Resolve-Path "$PSScriptRoot\.."
 $stageRoot = Join-Path $repoRoot "artifacts\manager-stage"
 $installerRoot = Join-Path $repoRoot "artifacts\manager-installer"
 $managerOut = Join-Path $stageRoot "manager"
+
+& (Join-Path $repoRoot "scripts\create-simplekioskos-icon.ps1")
 
 Remove-Item -Recurse -Force $stageRoot -ErrorAction SilentlyContinue
 New-Item -ItemType Directory -Force -Path $managerOut, $installerRoot | Out-Null

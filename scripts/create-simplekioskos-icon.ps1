@@ -1,5 +1,5 @@
 param(
-    [string]$SourcePng = "$PSScriptRoot\..\branding\simplekioskos.png",
+    [string]$SourcePng = "$PSScriptRoot\..\branding\simplekioskos_app_icon.png",
     [string]$BrandingIcon = "$PSScriptRoot\..\branding\simplekioskos.ico",
     [string]$ShellIcon = "$PSScriptRoot\..\src\OTM.KioskShell\Assets\simplekioskos.ico"
 )
@@ -7,7 +7,12 @@ param(
 $ErrorActionPreference = "Stop"
 
 if (-not (Test-Path $SourcePng)) {
-    throw "Source PNG not found: $SourcePng"
+    $fallback = "$PSScriptRoot\..\branding\simplekioskos.png"
+    if (Test-Path $fallback) {
+        $SourcePng = $fallback
+    } else {
+        throw "Source PNG not found: $SourcePng"
+    }
 }
 
 Add-Type -AssemblyName System.Drawing

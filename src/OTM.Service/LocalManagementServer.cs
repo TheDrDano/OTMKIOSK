@@ -571,7 +571,7 @@ public sealed class LocalManagementServer
 
     private static string GetCurrentVersion()
     {
-        return Assembly.GetExecutingAssembly().GetName().Version?.ToString(3) ?? "7.0.0";
+        return Assembly.GetExecutingAssembly().GetName().Version?.ToString(3) ?? "7.1.0";
     }
 
     private static string GetConfiguredDeviceName(DeviceIdentity identity, KioskPolicy policy)
