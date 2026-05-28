@@ -85,8 +85,8 @@ public partial class MainWindow : Window
 
     private void ControlPanel_Click(object sender, RoutedEventArgs e)
     {
-        var controlPanelPath = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "ControlPanel", "OTM.ControlPanel.exe"));
-        if (File.Exists(controlPanelPath))
+        var controlPanelPath = System.IO.Path.GetFullPath(System.IO.Path.Combine(AppContext.BaseDirectory, "..", "ControlPanel", "OTM.ControlPanel.exe"));
+        if (System.IO.File.Exists(controlPanelPath))
         {
             Process.Start(new ProcessStartInfo(controlPanelPath) { UseShellExecute = true });
             return;
@@ -185,7 +185,7 @@ public partial class MainWindow : Window
         WebWorkspace.Visibility = Visibility.Visible;
         Topmost = true;
         SetSecondaryCoversVisible(true);
-        ExamBrowser.CoreWebView2.Navigate(launcher.Url);
+        ExamBrowser.CoreWebView2?.Navigate(launcher.Url);
     }
 
     private void StartAppWorkspace(KioskLauncher launcher)
@@ -246,15 +246,21 @@ public partial class MainWindow : Window
         }
 
         await ExamBrowser.EnsureCoreWebView2Async();
-        var settings = ExamBrowser.CoreWebView2.Settings;
+        var webView = ExamBrowser.CoreWebView2;
+        if (webView is null)
+        {
+            throw new InvalidOperationException("WebView2 failed to initialize.");
+        }
+
+        var settings = webView.Settings;
         settings.AreBrowserAcceleratorKeysEnabled = false;
         settings.AreDefaultContextMenusEnabled = false;
         settings.AreDevToolsEnabled = false;
         settings.IsStatusBarEnabled = false;
         settings.AreDefaultScriptDialogsEnabled = true;
-        ExamBrowser.CoreWebView2.NavigationStarting += Browser_NavigationStarting;
-        ExamBrowser.CoreWebView2.NewWindowRequested += Browser_NewWindowRequested;
-        ExamBrowser.CoreWebView2.DownloadStarting += Browser_DownloadStarting;
+        webView.NavigationStarting += Browser_NavigationStarting;
+        webView.NewWindowRequested += Browser_NewWindowRequested;
+        webView.DownloadStarting += Browser_DownloadStarting;
     }
 
     private void Browser_NavigationStarting(object? sender, CoreWebView2NavigationStartingEventArgs e)
@@ -556,10 +562,10 @@ public partial class MainWindow : Window
         NoticeText.Text = message;
         NoticeAccent.Background = kind switch
         {
-            NoticeKind.Success => new SolidColorBrush(Color.FromRgb(31, 138, 112)),
-            NoticeKind.Warning => new SolidColorBrush(Color.FromRgb(191, 120, 38)),
-            NoticeKind.Error => new SolidColorBrush(Color.FromRgb(159, 45, 45)),
-            _ => new SolidColorBrush(Color.FromRgb(23, 107, 135))
+            NoticeKind.Success => new SolidColorBrush(System.Windows.Media.Color.FromRgb(31, 138, 112)),
+            NoticeKind.Warning => new SolidColorBrush(System.Windows.Media.Color.FromRgb(191, 120, 38)),
+            NoticeKind.Error => new SolidColorBrush(System.Windows.Media.Color.FromRgb(159, 45, 45)),
+            _ => new SolidColorBrush(System.Windows.Media.Color.FromRgb(23, 107, 135))
         };
         NoticePanel.Visibility = Visibility.Visible;
         _noticeTimer.Stop();

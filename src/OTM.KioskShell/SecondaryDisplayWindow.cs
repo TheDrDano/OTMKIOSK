@@ -1,9 +1,9 @@
 using System.ComponentModel;
 using System.Windows;
-using System.Windows.Controls;
-using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using Drawing = System.Drawing;
+using Media = System.Windows.Media;
+using Controls = System.Windows.Controls;
 
 namespace Otm.Kiosk.Shell;
 
@@ -17,7 +17,7 @@ public sealed class SecondaryDisplayWindow : Window
         ResizeMode = ResizeMode.NoResize;
         Topmost = true;
         ShowInTaskbar = false;
-        Background = new SolidColorBrush(Color.FromRgb(9, 13, 18));
+        Background = new Media.SolidColorBrush(Media.Color.FromRgb(9, 13, 18));
         WindowStartupLocation = WindowStartupLocation.Manual;
         Left = bounds.Left;
         Top = bounds.Top;
@@ -44,32 +44,32 @@ public sealed class SecondaryDisplayWindow : Window
 
     private static UIElement BuildContent()
     {
-        var panel = new StackPanel
+        var panel = new Controls.StackPanel
         {
-            HorizontalAlignment = HorizontalAlignment.Center,
+            HorizontalAlignment = System.Windows.HorizontalAlignment.Center,
             VerticalAlignment = VerticalAlignment.Center
         };
 
-        panel.Children.Add(new Image
+        panel.Children.Add(new Controls.Image
         {
             Source = new BitmapImage(new Uri("pack://application:,,,/Assets/simplekioskos_bottom.png")),
             Width = 360,
             Height = 230,
-            Stretch = Stretch.Uniform
+            Stretch = Media.Stretch.Uniform
         });
-        panel.Children.Add(new TextBlock
+        panel.Children.Add(new Controls.TextBlock
         {
             Text = "Display locked by SimpleKioskOS",
-            Foreground = Brushes.White,
+            Foreground = Media.Brushes.White,
             FontSize = 28,
             FontWeight = FontWeights.SemiBold,
             TextAlignment = TextAlignment.Center,
             Margin = new Thickness(0, 18, 0, 0)
         });
-        panel.Children.Add(new TextBlock
+        panel.Children.Add(new Controls.TextBlock
         {
             Text = "This screen is reserved until an approved multi-monitor app starts.",
-            Foreground = new SolidColorBrush(Color.FromRgb(175, 193, 207)),
+            Foreground = new Media.SolidColorBrush(Media.Color.FromRgb(175, 193, 207)),
             FontSize = 15,
             TextAlignment = TextAlignment.Center
         });
