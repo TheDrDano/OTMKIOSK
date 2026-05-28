@@ -63,6 +63,14 @@
             <Setter Property="Foreground" Value="#1D2935" />
             <Setter Property="BorderBrush" Value="#C7D0DA" />
         </Style>
+        <Style x:Key="TaskbarButton" TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
+            <Setter Property="Background" Value="#151A20" />
+            <Setter Property="Foreground" Value="#F8FAFC" />
+            <Setter Property="BorderBrush" Value="#343C45" />
+            <Setter Property="HorizontalContentAlignment" Value="Left" />
+            <Setter Property="MinHeight" Value="42" />
+            <Setter Property="FontSize" Value="13" />
+        </Style>
         <Style x:Key="DangerButton" TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
             <Setter Property="Background" Value="#B42318" />
             <Setter Property="Foreground" Value="White" />
@@ -122,19 +130,29 @@
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto" />
                 <RowDefinition Height="*" />
+                <RowDefinition Height="Auto" />
             </Grid.RowDefinitions>
 
-            <DockPanel Grid.Row="0" Margin="26,22,26,14">
-                <StackPanel DockPanel.Dock="Left">
-                    <TextBlock x:Name="WorkspaceTitle" Text="Locked Workspace" Foreground="#111827" FontSize="28" FontWeight="SemiBold" />
-                    <TextBlock x:Name="WorkspaceSubtitle" Text="Choose an approved app or exam site from the left." Foreground="#526171" FontSize="14" Margin="1,4,0,0" />
-                </StackPanel>
-                <Border DockPanel.Dock="Right" Background="#FFFFFF" BorderBrush="#CBD5E1" BorderThickness="1" CornerRadius="8" Padding="12,8">
-                    <TextBlock x:Name="ClockText" Foreground="#1F2937" FontSize="14" />
-                </Border>
-            </DockPanel>
+            <Border Grid.Row="0" Margin="26,18,26,14" Background="#FFFFFF" BorderBrush="#CBD5E1" BorderThickness="1" CornerRadius="8" Padding="18,14">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <StackPanel Grid.Column="0">
+                        <TextBlock x:Name="WorkspaceTitle" Text="Locked Workspace" Foreground="#111827" FontSize="28" FontWeight="SemiBold" />
+                        <TextBlock x:Name="WorkspaceSubtitle" Text="Choose an approved app or exam site from the left." Foreground="#526171" FontSize="14" Margin="1,4,0,0" />
+                        <Border x:Name="SafeTestBanner" Visibility="Collapsed" Background="#FFF7ED" BorderBrush="#FDBA74" BorderThickness="1" CornerRadius="7" Padding="10,7" Margin="0,12,0,0">
+                            <TextBlock Text="Safe test mode: enforcement is off. Apps and websites are not actively blocked." Foreground="#9A3412" FontWeight="SemiBold" TextWrapping="Wrap" />
+                        </Border>
+                    </StackPanel>
+                    <Border Grid.Column="1" Background="#F8FAFC" BorderBrush="#E2E8F0" BorderThickness="1" CornerRadius="7" Padding="12,8" VerticalAlignment="Top" Margin="20,0,0,0">
+                        <TextBlock x:Name="ClockText" Foreground="#1F2937" FontSize="14" />
+                    </Border>
+                </Grid>
+            </Border>
 
-            <Grid Grid.Row="1" Margin="26,0,26,26">
+            <Grid Grid.Row="1" Margin="26,0,26,14">
                 <Border x:Name="IdleWorkspace" Background="#F8FAFC" BorderBrush="#CBD5E1" BorderThickness="1" CornerRadius="10">
                     <Grid>
                         <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center" MaxWidth="680">
@@ -159,6 +177,35 @@
                     </Grid>
                 </Border>
             </Grid>
+
+            <Border x:Name="ShellTaskbar" Grid.Row="2" Margin="26,0,26,18" Background="#FFFFFF" BorderBrush="#CBD5E1" BorderThickness="1" CornerRadius="8" Padding="12">
+                <DockPanel LastChildFill="True">
+                    <StackPanel DockPanel.Dock="Left" Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,14,0">
+                        <TextBlock Text="Open apps" Foreground="#111827" FontWeight="SemiBold" VerticalAlignment="Center" />
+                        <TextBlock x:Name="OpenAppsCountText" Text="0" Foreground="#64748B" VerticalAlignment="Center" Margin="8,0,0,0" />
+                    </StackPanel>
+                    <Button DockPanel.Dock="Right" Content="Show Shell" Width="112" Height="38" Margin="12,0,0,0" Style="{StaticResource SecondaryButton}" Click="ShowShell_Click" />
+                    <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled">
+                        <ItemsControl x:Name="ManagedAppsList">
+                            <ItemsControl.ItemsPanel>
+                                <ItemsPanelTemplate>
+                                    <StackPanel Orientation="Horizontal" />
+                                </ItemsPanelTemplate>
+                            </ItemsControl.ItemsPanel>
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Button Content="{Binding DisplayName}"
+                                            Style="{StaticResource TaskbarButton}"
+                                            MinWidth="150"
+                                            Margin="0,0,8,0"
+                                            Tag="{Binding}"
+                                            Click="ManagedApp_Click" />
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </ScrollViewer>
+                </DockPanel>
+            </Border>
         </Grid>
 
         <Button x:Name="AdminCornerButton"

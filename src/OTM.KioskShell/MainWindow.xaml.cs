@@ -1,5 +1,6 @@
 using System.ComponentModel;
 using System.Diagnostics;
+using System.Runtime.InteropServices;
 using System.Net.Http;
 using System.Net.Http.Json;
 using System.Text;
@@ -16,6 +17,9 @@ namespace Otm.Kiosk.Shell;
 
 public partial class MainWindow : Window
 {
+    private const int SwRestore = 9;
+    private const int SwShow = 5;
+
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
         PropertyNameCaseInsensitive = true,
@@ -28,7 +32,7 @@ public partial class MainWindow : Window
     private readonly DispatcherTimer _noticeTimer = new() { Interval = TimeSpan.FromSeconds(6) };
     private readonly DispatcherTimer _violationTimer = new() { Interval = TimeSpan.FromSeconds(4) };
     private readonly List<SecondaryDisplayWindow> _secondaryWindows = [];
-    private readonly List<Process> _managedProcesses = [];
+    private readonly List<ManagedApp> _managedApps = [];
     private List<KioskLauncher> _launchers = [];
     private List<string> _activeWebAllowedSites = [];
     private DateTimeOffset _yieldFocusUntil = DateTimeOffset.MinValue;
@@ -90,6 +94,22 @@ public partial class MainWindow : Window
         ExitShell();
     }
 
+    private void ManagedApp_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is FrameworkElement { Tag: ManagedApp app })
+        {
+            FocusManagedApp(app);
+        }
+    }
+
+    private void ShowShell_Click(object sender, RoutedEventArgs e)
+    {
+        _yieldFocusUntil = DateTimeOffset.UtcNow.AddSeconds(10);
+        Topmost = false;
+        Show();
+        Activate();
+    }
+
     private void Manager_Click(object sender, RoutedEventArgs e)
     {
         YieldFocusToAdminTool();
@@ -148,6 +168,7 @@ public partial class MainWindow : Window
             StatusText.Text = state is null
                 ? "Service status unavailable"
                 : $"{state.PolicyName}: enforcement {(state.EnforcementEnabled ? "on" : "off")}";
+            SafeTestBanner.Visibility = state?.EnforcementEnabled == false ? Visibility.Visible : Visibility.Collapsed;
             LaunchersList.ItemsSource = _launchers;
             WorkspaceSubtitle.Text = _launchers.Count == 0
                 ? "No launchers are configured. Open admin controls to apply a template."
@@ -222,7 +243,13 @@ public partial class MainWindow : Window
 
             if (process is not null)
             {
-                _managedProcesses.Add(process);
+                _managedApps.Add(new ManagedApp(launcher.DisplayName, process));
+                RefreshManagedTaskbar();
+                _ = Dispatcher.InvokeAsync(async () =>
+                {
+                    await Task.Delay(900);
+                    FocusManagedApp(_managedApps.LastOrDefault(app => app.Process.Id == process.Id));
+                });
             }
 
             WorkspaceTitle.Text = "Lab Workspace";
@@ -492,8 +519,9 @@ public partial class MainWindow : Window
     private void EnforceFullscreen()
     {
         CleanupExitedProcesses();
-        if (_appOwnsDisplays || _managedProcesses.Count > 0 || _yieldFocusUntil > DateTimeOffset.UtcNow)
+        if (_appOwnsDisplays || _managedApps.Count > 0 || _yieldFocusUntil > DateTimeOffset.UtcNow)
         {
+            RefreshManagedTaskbar();
             return;
         }
 
@@ -507,11 +535,11 @@ public partial class MainWindow : Window
 
     private void CleanupExitedProcesses()
     {
-        _managedProcesses.RemoveAll(process =>
+        _managedApps.RemoveAll(app =>
         {
             try
             {
-                return process.HasExited;
+                return app.Process.HasExited;
             }
             catch
             {
@@ -519,7 +547,9 @@ public partial class MainWindow : Window
             }
         });
 
-        if (_managedProcesses.Count == 0 && _appOwnsDisplays)
+        RefreshManagedTaskbar();
+
+        if (_managedApps.Count == 0 && _appOwnsDisplays)
         {
             _appOwnsDisplays = false;
             Show();
@@ -578,9 +608,10 @@ public partial class MainWindow : Window
 
     private void YieldDisplaysToApp(Process? process)
     {
-        if (process is not null && !_managedProcesses.Contains(process))
+        if (process is not null && !_managedApps.Any(app => app.Process.Id == process.Id))
         {
-            _managedProcesses.Add(process);
+            _managedApps.Add(new ManagedApp(process.ProcessName, process));
+            RefreshManagedTaskbar();
         }
 
         _appOwnsDisplays = true;
@@ -645,6 +676,83 @@ public partial class MainWindow : Window
         }
     }
 
+    private void RefreshManagedTaskbar()
+    {
+        ManagedAppsList.ItemsSource = _managedApps
+            .Where(app =>
+            {
+                try
+                {
+                    return !app.Process.HasExited;
+                }
+                catch
+                {
+                    return false;
+                }
+            })
+            .OrderBy(app => app.StartedAt)
+            .ToList();
+        OpenAppsCountText.Text = _managedApps.Count.ToString();
+    }
+
+    private void FocusManagedApp(ManagedApp? app)
+    {
+        if (app is null)
+        {
+            return;
+        }
+
+        try
+        {
+            if (app.Process.HasExited)
+            {
+                CleanupExitedProcesses();
+                return;
+            }
+
+            _yieldFocusUntil = DateTimeOffset.UtcNow.AddSeconds(25);
+            Topmost = false;
+            SetSecondaryCoversVisible(false);
+            app.Process.Refresh();
+            var handle = app.Process.MainWindowHandle;
+            if (handle == IntPtr.Zero)
+            {
+                handle = Process.GetProcessesByName(app.Process.ProcessName)
+                    .FirstOrDefault(process =>
+                    {
+                        try
+                        {
+                            return process.MainWindowHandle != IntPtr.Zero;
+                        }
+                        catch
+                        {
+                            return false;
+                        }
+                    })?.MainWindowHandle ?? IntPtr.Zero;
+            }
+
+            if (handle == IntPtr.Zero)
+            {
+                ShowNotice("App is starting", "The app window is not ready yet. Try the taskbar button again in a moment.", NoticeKind.Info);
+                return;
+            }
+
+            ShowWindow(handle, SwRestore);
+            ShowWindow(handle, SwShow);
+            SetForegroundWindow(handle);
+        }
+        catch (Exception ex)
+        {
+            ShowNotice("Could not focus app", ex.Message, NoticeKind.Warning);
+        }
+    }
+
+    [DllImport("user32.dll")]
+    private static extern bool SetForegroundWindow(IntPtr hWnd);
+
+    [DllImport("user32.dll")]
+    private static extern bool ShowWindow(IntPtr hWnd, int nCmdShow);
+
     private static async Task<string> ReadApiErrorAsync(HttpResponseMessage response)
     {
         var body = await response.Content.ReadAsStringAsync();
@@ -691,5 +799,10 @@ public partial class MainWindow : Window
         Success,
         Warning,
         Error
+    }
+
+    private sealed record ManagedApp(string DisplayName, Process Process)
+    {
+        public DateTimeOffset StartedAt { get; } = DateTimeOffset.UtcNow;
     }
 }

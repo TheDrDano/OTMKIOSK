@@ -78,7 +78,8 @@
                 <ColumnDefinition Width="*" />
             </Grid.ColumnDefinitions>
 
-            <StackPanel Grid.Column="0" Margin="0,0,16,0">
+            <ScrollViewer Grid.Column="0" Margin="0,0,16,0" VerticalScrollBarVisibility="Auto">
+            <StackPanel>
                 <Border Background="White" BorderBrush="#D8DEE6" BorderThickness="1" CornerRadius="8" Padding="18" Margin="0,0,0,14">
                     <StackPanel>
                         <TextBlock Text="Simple Controls" FontSize="18" FontWeight="SemiBold" Margin="0,0,0,4" />
@@ -86,6 +87,9 @@
                         <Border Background="#F8FAFC" BorderBrush="#D7E1EA" BorderThickness="1" CornerRadius="6" Padding="12" Margin="0,0,0,12">
                             <TextBlock x:Name="StatusText" Text="Service status unknown" TextWrapping="Wrap" LineHeight="20" />
                         </Border>
+                        <CheckBox x:Name="EnableEnforcementCheckBox" Content="Turn blocking on" Margin="0,0,0,8" />
+                        <CheckBox x:Name="StrictWhitelistCheckBox" Content="Only allowed apps can run" Margin="0,0,0,8" />
+                        <Button Content="Save Protection Mode" Margin="0,0,0,12" Style="{StaticResource SecondaryButton}" Click="SaveProtectionMode_Click" />
                         <UniformGrid Columns="2" Rows="2">
                             <Button Content="Unlock 15m" Margin="0,0,6,6" Click="Unlock_Click" />
                             <Button Content="Lock Now" Margin="6,0,0,6" Style="{StaticResource DangerButton}" Click="Lock_Click" />
@@ -93,6 +97,26 @@
                             <Button Content="Lab Template" Margin="6,6,0,0" Style="{StaticResource SecondaryButton}" Click="LabTemplate_Click" />
                         </UniformGrid>
                         <Button Content="Save Advanced Policy" Margin="0,14,0,0" Click="SavePolicy_Click" />
+                    </StackPanel>
+                </Border>
+
+                <Border Background="White" BorderBrush="#D8DEE6" BorderThickness="1" CornerRadius="8" Padding="18" Margin="0,0,0,14">
+                    <StackPanel>
+                        <TextBlock Text="Profiles" FontSize="16" FontWeight="SemiBold" Margin="0,0,0,8" />
+                        <TextBlock Text="Export this setup or import a saved profile. Import keeps this PC's admin PIN." Foreground="#64748B" FontSize="12" TextWrapping="Wrap" Margin="0,0,0,10" />
+                        <UniformGrid Columns="2">
+                            <Button Content="Import" Margin="0,0,6,0" Style="{StaticResource SecondaryButton}" Click="ImportProfile_Click" />
+                            <Button Content="Export" Margin="6,0,0,0" Style="{StaticResource SecondaryButton}" Click="ExportProfile_Click" />
+                        </UniformGrid>
+                    </StackPanel>
+                </Border>
+
+                <Border Background="White" BorderBrush="#D8DEE6" BorderThickness="1" CornerRadius="8" Padding="18" Margin="0,0,0,14">
+                    <StackPanel>
+                        <TextBlock Text="Remote Manager" FontSize="16" FontWeight="SemiBold" Margin="0,0,0,8" />
+                        <TextBlock x:Name="RemoteStatusText" Text="LAN pairing not loaded." Foreground="#64748B" FontSize="12" TextWrapping="Wrap" Margin="0,0,0,10" />
+                        <Button Content="Generate Pairing Code" Style="{StaticResource SecondaryButton}" Click="GeneratePairingCode_Click" />
+                        <TextBox x:Name="PairingCodeBox" IsReadOnly="True" Height="34" Margin="0,10,0,0" FontSize="15" FontWeight="SemiBold" HorizontalContentAlignment="Center" />
                     </StackPanel>
                 </Border>
 
@@ -106,8 +130,173 @@
                     </StackPanel>
                 </Border>
             </StackPanel>
+            </ScrollViewer>
 
             <TabControl Grid.Column="1" Background="White" BorderBrush="#D8DEE6">
+                <TabItem Header="Simple Apps">
+                    <Grid Margin="14">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="*" />
+                        </Grid.RowDefinitions>
+
+                        <Border Background="#F8FAFC" BorderBrush="#D7E1EA" BorderThickness="1" CornerRadius="8" Padding="14" Margin="0,0,0,14">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="1.1*" />
+                                    <ColumnDefinition Width="1.1*" />
+                                    <ColumnDefinition Width="2*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="Auto" />
+                                </Grid.RowDefinitions>
+
+                                <TextBlock Grid.ColumnSpan="4" Text="Add an app" FontSize="17" FontWeight="SemiBold" Margin="0,0,0,10" />
+
+                                <StackPanel Grid.Row="1" Grid.Column="0" Margin="0,0,10,0">
+                                    <TextBlock Text="Name" Foreground="#344756" FontWeight="SemiBold" Margin="0,0,0,4" />
+                                    <TextBox x:Name="AppDisplayNameBox" Height="34" />
+                                </StackPanel>
+                                <StackPanel Grid.Row="1" Grid.Column="1" Margin="0,0,10,0">
+                                    <TextBlock Text="Process" Foreground="#344756" FontWeight="SemiBold" Margin="0,0,0,4" />
+                                    <TextBox x:Name="AppProcessNameBox" Height="34" ToolTip="Example: chrome.exe" />
+                                </StackPanel>
+                                <StackPanel Grid.Row="1" Grid.Column="2" Margin="0,0,10,0">
+                                    <TextBlock Text="EXE path" Foreground="#344756" FontWeight="SemiBold" Margin="0,0,0,4" />
+                                    <TextBox x:Name="AppPathBox" Height="34" ToolTip="Optional full path to the app EXE" />
+                                </StackPanel>
+                                <Button Grid.Row="1" Grid.Column="3" Content="Browse" Width="92" VerticalAlignment="Bottom" Style="{StaticResource SecondaryButton}" Click="BrowseApp_Click" />
+
+                                <CheckBox x:Name="AddLauncherCheckBox" Grid.Row="2" Grid.ColumnSpan="2" Content="Show allowed app in kiosk launcher" IsChecked="True" Margin="0,12,0,0" />
+                                <StackPanel Grid.Row="2" Grid.Column="2" Grid.ColumnSpan="2" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,10,0,0">
+                                    <Button Content="Allow App" Width="112" Margin="0,0,8,0" Click="AllowApp_Click" />
+                                    <Button Content="Block App" Width="112" Style="{StaticResource DangerButton}" Click="BlockApp_Click" />
+                                </StackPanel>
+                            </Grid>
+                        </Border>
+
+                        <Grid Grid.Row="1">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="14" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+
+                            <Border Grid.Column="0" Background="White" BorderBrush="#D8DEE6" BorderThickness="1" CornerRadius="8" Padding="12">
+                                <Grid>
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="Auto" />
+                                        <RowDefinition Height="*" />
+                                        <RowDefinition Height="Auto" />
+                                    </Grid.RowDefinitions>
+                                    <TextBlock Text="Allowed Apps" FontSize="16" FontWeight="SemiBold" Margin="0,0,0,10" />
+                                    <DataGrid x:Name="AllowedAppsGrid" Grid.Row="1" AutoGenerateColumns="False" IsReadOnly="True" SelectionMode="Single">
+                                        <DataGrid.Columns>
+                                            <DataGridTextColumn Header="Name" Binding="{Binding DisplayName}" Width="*" />
+                                            <DataGridTextColumn Header="Process" Binding="{Binding ProcessName}" Width="140" />
+                                            <DataGridTextColumn Header="Path" Binding="{Binding Path}" Width="*" />
+                                        </DataGrid.Columns>
+                                    </DataGrid>
+                                    <Button Grid.Row="2" Content="Remove Selected Allowed App" Height="38" Margin="0,10,0,0" Style="{StaticResource SecondaryButton}" Click="RemoveAllowedApp_Click" />
+                                </Grid>
+                            </Border>
+
+                            <Border Grid.Column="2" Background="White" BorderBrush="#D8DEE6" BorderThickness="1" CornerRadius="8" Padding="12">
+                                <Grid>
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="Auto" />
+                                        <RowDefinition Height="*" />
+                                        <RowDefinition Height="Auto" />
+                                    </Grid.RowDefinitions>
+                                    <TextBlock Text="Blocked Apps" FontSize="16" FontWeight="SemiBold" Margin="0,0,0,10" />
+                                    <DataGrid x:Name="BlockedAppsGrid" Grid.Row="1" AutoGenerateColumns="False" IsReadOnly="True" SelectionMode="Single">
+                                        <DataGrid.Columns>
+                                            <DataGridTextColumn Header="Name" Binding="{Binding DisplayName}" Width="*" />
+                                            <DataGridTextColumn Header="Process" Binding="{Binding ProcessName}" Width="140" />
+                                            <DataGridTextColumn Header="Path" Binding="{Binding Path}" Width="*" />
+                                        </DataGrid.Columns>
+                                    </DataGrid>
+                                    <Button Grid.Row="2" Content="Remove Selected Blocked App" Height="38" Margin="0,10,0,0" Style="{StaticResource SecondaryButton}" Click="RemoveBlockedApp_Click" />
+                                </Grid>
+                            </Border>
+                        </Grid>
+                    </Grid>
+                </TabItem>
+                <TabItem Header="Websites">
+                    <Grid Margin="14">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="*" />
+                        </Grid.RowDefinitions>
+
+                        <Border Background="#F8FAFC" BorderBrush="#D7E1EA" BorderThickness="1" CornerRadius="8" Padding="14" Margin="0,0,0,14">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="Auto" />
+                                </Grid.RowDefinitions>
+
+                                <TextBlock Grid.ColumnSpan="2" Text="Add a website" FontSize="17" FontWeight="SemiBold" Margin="0,0,0,10" />
+                                <StackPanel Grid.Row="1" Grid.Column="0" Margin="0,0,10,0">
+                                    <TextBlock Text="Domain or URL" Foreground="#344756" FontWeight="SemiBold" Margin="0,0,0,4" />
+                                    <TextBox x:Name="WebsiteBox" Height="34" ToolTip="Example: testing.example.edu or youtube.com" />
+                                </StackPanel>
+                                <StackPanel Grid.Row="1" Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Bottom">
+                                    <Button Content="Allow Site" Width="112" Margin="0,0,8,0" Click="AllowWebsite_Click" />
+                                    <Button Content="Block Site" Width="112" Style="{StaticResource DangerButton}" Click="BlockWebsite_Click" />
+                                </StackPanel>
+                                <StackPanel Grid.Row="2" Grid.ColumnSpan="2" Orientation="Horizontal" Margin="0,12,0,0">
+                                    <CheckBox x:Name="BrowserEnabledCheckBox" Content="Website rules on" Margin="0,0,18,0" />
+                                    <CheckBox x:Name="WhitelistOnlyCheckBox" Content="Only allowed websites can open" Margin="0,0,18,0" />
+                                    <CheckBox x:Name="BrowserBlockDownloadsCheckBox" Content="Block browser downloads" Margin="0,0,18,0" />
+                                    <Button Content="Save Website Mode" Height="34" Style="{StaticResource SecondaryButton}" Click="SaveBrowserMode_Click" />
+                                </StackPanel>
+                            </Grid>
+                        </Border>
+
+                        <Grid Grid.Row="1">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="14" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+
+                            <Border Grid.Column="0" Background="White" BorderBrush="#D8DEE6" BorderThickness="1" CornerRadius="8" Padding="12">
+                                <Grid>
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="Auto" />
+                                        <RowDefinition Height="*" />
+                                        <RowDefinition Height="Auto" />
+                                    </Grid.RowDefinitions>
+                                    <TextBlock Text="Allowed Websites" FontSize="16" FontWeight="SemiBold" Margin="0,0,0,10" />
+                                    <ListBox x:Name="AllowedSitesList" Grid.Row="1" SelectionMode="Single" />
+                                    <Button Grid.Row="2" Content="Remove Selected Allowed Site" Height="38" Margin="0,10,0,0" Style="{StaticResource SecondaryButton}" Click="RemoveAllowedWebsite_Click" />
+                                </Grid>
+                            </Border>
+
+                            <Border Grid.Column="2" Background="White" BorderBrush="#D8DEE6" BorderThickness="1" CornerRadius="8" Padding="12">
+                                <Grid>
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="Auto" />
+                                        <RowDefinition Height="*" />
+                                        <RowDefinition Height="Auto" />
+                                    </Grid.RowDefinitions>
+                                    <TextBlock Text="Blocked Websites" FontSize="16" FontWeight="SemiBold" Margin="0,0,0,10" />
+                                    <ListBox x:Name="BlockedSitesList" Grid.Row="1" SelectionMode="Single" />
+                                    <Button Grid.Row="2" Content="Remove Selected Blocked Site" Height="38" Margin="0,10,0,0" Style="{StaticResource SecondaryButton}" Click="RemoveBlockedWebsite_Click" />
+                                </Grid>
+                            </Border>
+                        </Grid>
+                    </Grid>
+                </TabItem>
                 <TabItem Header="Advanced Policy">
                     <Grid Margin="10">
                         <TextBox x:Name="PolicyTextBox"
@@ -138,6 +327,7 @@
         </Grid>
 
         <Border x:Name="NoticePanel"
+                Panel.ZIndex="20"
                 Grid.RowSpan="2"
                 Visibility="Collapsed"
                 HorizontalAlignment="Center"
@@ -156,6 +346,25 @@
                     <TextBlock x:Name="NoticeText" Text="" Foreground="#405466" TextWrapping="Wrap" Margin="0,4,0,0" />
                 </StackPanel>
             </DockPanel>
+        </Border>
+
+        <Border x:Name="SafeTestBanner"
+                Panel.ZIndex="10"
+                Grid.RowSpan="2"
+                Visibility="Collapsed"
+                HorizontalAlignment="Center"
+                VerticalAlignment="Top"
+                MaxWidth="760"
+                Margin="24,94,24,0"
+                Background="#FFF7ED"
+                BorderBrush="#FDBA74"
+                BorderThickness="1"
+                CornerRadius="8"
+                Padding="14,10">
+            <TextBlock Text="Safe test mode: enforcement is off. This PC is not actively blocking apps or websites."
+                       Foreground="#9A3412"
+                       FontWeight="SemiBold"
+                       TextWrapping="Wrap" />
         </Border>
     </Grid>
 </Window>

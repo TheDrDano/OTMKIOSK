@@ -1,6 +1,6 @@
 param(
     [string]$Configuration = "Release",
-    [string]$Version = "4.2.3",
+    [string]$Version = "5.0.0",
     [switch]$FrameworkDependent,
     [switch]$Sign,
     [string]$CertificateThumbprint = $env:OTM_SIGN_CERT_THUMBPRINT,
@@ -78,6 +78,10 @@ try {
     Invoke-WebRequest -Uri $webView2BootstrapperUrl -OutFile $webView2Bootstrapper -UseBasicParsing
 } catch {
     throw "Could not download WebView2 Evergreen bootstrapper from Microsoft. Embedded exam/web mode requires WebView2. Error: $($_.Exception.Message)"
+}
+
+if (-not (Test-Path $webView2Bootstrapper) -or (Get-Item $webView2Bootstrapper).Length -lt 100000) {
+    throw "Downloaded WebView2 bootstrapper is missing or unexpectedly small: $webView2Bootstrapper"
 }
 
 Publish-App -Project (Join-Path $repoRoot "src\OTM.Service\OTM.Service.csproj") -Output (Join-Path $stageRoot "service")

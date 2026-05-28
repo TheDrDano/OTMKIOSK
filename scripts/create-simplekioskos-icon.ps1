@@ -1,5 +1,5 @@
 param(
-    [string]$SourcePng = "$PSScriptRoot\..\branding\simplekioskos_bottom.png",
+    [string]$SourcePng = "$PSScriptRoot\..\branding\simplekioskos.png",
     [string]$BrandingIcon = "$PSScriptRoot\..\branding\simplekioskos.ico",
     [string]$ShellIcon = "$PSScriptRoot\..\src\OTM.KioskShell\Assets\simplekioskos.ico"
 )

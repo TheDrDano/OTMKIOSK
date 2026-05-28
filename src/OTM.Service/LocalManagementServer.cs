@@ -1,4 +1,5 @@
 using System.Net;
+using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 using Otm.Kiosk.Shared.Models;
@@ -26,6 +27,8 @@ public sealed class LocalManagementServer
     private readonly KioskRuntime _runtime;
     private readonly SqliteKioskStore _logs;
     private readonly HttpListener _listener = new();
+    private string? _pairingCode;
+    private DateTimeOffset? _pairingExpiresAt;
     private bool _closed;
 
     public LocalManagementServer(KioskRuntime runtime, SqliteKioskStore logs)
@@ -118,6 +121,12 @@ public sealed class LocalManagementServer
             if (path.Equals("/api/status", StringComparison.OrdinalIgnoreCase))
             {
                 await WriteJsonAsync(response, _runtime.GetState());
+                return;
+            }
+
+            if (path.Equals("/api/device", StringComparison.OrdinalIgnoreCase))
+            {
+                await WriteJsonAsync(response, GetDeviceStatus());
                 return;
             }
 
@@ -258,6 +267,20 @@ public sealed class LocalManagementServer
                 return;
             }
 
+            if (path.Equals("/api/device/pairing-code", StringComparison.OrdinalIgnoreCase) && request.HttpMethod == "POST")
+            {
+                _pairingCode = RandomNumberGenerator.GetInt32(100000, 1000000).ToString();
+                _pairingExpiresAt = DateTimeOffset.UtcNow.AddMinutes(10);
+                _runtime.Log("Info", "LanPairingCodeGenerated", "Local pairing code generated from control panel.");
+                await WriteJsonAsync(response, new
+                {
+                    code = _pairingCode,
+                    expiresAt = _pairingExpiresAt,
+                    device = GetDeviceStatus()
+                });
+                return;
+            }
+
             if (path.Equals("/api/unlock", StringComparison.OrdinalIgnoreCase) && request.HttpMethod == "POST")
             {
                 var requestBody = await ReadJsonAsync<UnlockRequest>(request) ?? new UnlockRequest();
@@ -323,6 +346,58 @@ public sealed class LocalManagementServer
         }
 
         return authorized;
+    }
+
+    private object GetDeviceStatus()
+    {
+        var identity = LoadOrCreateDeviceIdentity();
+        var now = DateTimeOffset.UtcNow;
+        if (_pairingExpiresAt.HasValue && _pairingExpiresAt.Value <= now)
+        {
+            _pairingCode = null;
+            _pairingExpiresAt = null;
+        }
+
+        return new
+        {
+            identity.DeviceId,
+            identity.DeviceName,
+            pairingEnabled = !string.IsNullOrWhiteSpace(_pairingCode) && _pairingExpiresAt.HasValue && _pairingExpiresAt.Value > now,
+            pairingExpiresAt = _pairingExpiresAt,
+            lanApiEnabled = false,
+            localManagerUrl = "http://localhost:47821",
+            remoteFoundation = "local-only"
+        };
+    }
+
+    private static DeviceIdentity LoadOrCreateDeviceIdentity()
+    {
+        try
+        {
+            if (File.Exists(KioskPaths.DeviceIdentityPath))
+            {
+                var json = File.ReadAllText(KioskPaths.DeviceIdentityPath);
+                var existing = JsonSerializer.Deserialize<DeviceIdentity>(json, JsonOptions);
+                if (existing is not null && !string.IsNullOrWhiteSpace(existing.DeviceId))
+                {
+                    return existing;
+                }
+            }
+        }
+        catch
+        {
+            // Recreate identity if the local cache is unreadable.
+        }
+
+        var identity = new DeviceIdentity
+        {
+            DeviceId = Guid.NewGuid().ToString("N"),
+            DeviceName = Environment.MachineName,
+            CreatedAt = DateTimeOffset.UtcNow
+        };
+        Directory.CreateDirectory(KioskPaths.RootDirectory);
+        File.WriteAllText(KioskPaths.DeviceIdentityPath, JsonSerializer.Serialize(identity, JsonOptions));
+        return identity;
     }
 
     private IReadOnlyList<KioskLauncher> GetKioskLaunchers()
@@ -557,5 +632,12 @@ public sealed class LocalManagementServer
         public string? EventType { get; set; }
         public string Message { get; set; } = "";
         public string? Path { get; set; }
+    }
+
+    private sealed class DeviceIdentity
+    {
+        public string DeviceId { get; set; } = "";
+        public string DeviceName { get; set; } = "";
+        public DateTimeOffset CreatedAt { get; set; }
     }
 }

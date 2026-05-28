@@ -35,16 +35,20 @@ public static class WebManagerHtml
     th { color: #405466; font-size: 12px; text-transform: uppercase; }
     .stack { display: grid; gap: 12px; }
     .actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+    .form-grid { display: grid; grid-template-columns: 1fr 1fr 1.4fr; gap: 10px; align-items: end; }
+    .rule-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+    .rule-actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
     .status { background: #f8fafc; border: 1px solid #d7e1ea; border-radius: 7px; padding: 12px; line-height: 1.45; }
     .status-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
     .metric { background: #ffffff; border: 1px solid #e3e8ee; border-radius: 7px; padding: 12px; }
     .metric span { display: block; color: #64748b; font-size: 12px; margin-bottom: 4px; }
     .metric strong { display: block; font-size: 18px; }
     .notice { display: none; border-radius: 7px; padding: 11px 12px; background: #fff7ed; border: 1px solid #fed7aa; color: #9a3412; font-weight: 650; }
+    .safe-banner { display: none; border-radius: 7px; padding: 11px 12px; background: #fff7ed; border: 1px solid #fdba74; color: #9a3412; font-weight: 750; }
     .muted { color: #64748b; font-size: 13px; }
     .wide { grid-column: 2; }
     details summary { cursor: pointer; font-weight: 750; color: #1d2935; margin-bottom: 12px; }
-    @media (max-width: 900px) { main { grid-template-columns: 1fr; } .wide { grid-column: auto; } }
+    @media (max-width: 900px) { main { grid-template-columns: 1fr; } .wide { grid-column: auto; } .form-grid, .rule-grid { grid-template-columns: 1fr; } }
   </style>
 </head>
 <body>
@@ -69,6 +73,7 @@ public static class WebManagerHtml
     <section class="stack">
       <h2>Simple Controls</h2>
       <div class="status" id="status">Loading...</div>
+      <div id="safeBanner" class="safe-banner">Safe test mode: enforcement is off. This PC is not actively blocking apps or websites.</div>
       <div class="actions">
         <button onclick="unlock()">Unlock 15m</button>
         <button class="danger" onclick="lock()">Lock Now</button>
@@ -76,6 +81,65 @@ public static class WebManagerHtml
         <button class="secondary" onclick="applyTemplate('lab-lockdown')">Lab Template</button>
       </div>
       <p class="muted">Use templates for quick testing. The advanced policy editor is below for detailed allow/block rules.</p>
+    </section>
+    <section class="stack">
+      <h2>Remote Manager</h2>
+      <div class="status" id="remoteStatus">Loading device identity...</div>
+      <button class="secondary" onclick="generatePairingCode()">Generate Pairing Code</button>
+      <input id="pairingCode" readonly placeholder="Pairing code">
+      <p class="muted">LAN and cloud management are not opened yet. This only prepares the local pairing foundation.</p>
+    </section>
+    <section class="wide">
+      <h2>Simple App Rules</h2>
+      <div class="form-grid">
+        <label>Name <input id="appName" placeholder="Chrome"></label>
+        <label>Process <input id="appProcess" placeholder="chrome.exe"></label>
+        <label>EXE path <input id="appPath" placeholder="C:\Program Files\...\app.exe"></label>
+      </div>
+      <div class="rule-actions">
+        <label style="display:flex;align-items:center;gap:8px"><input id="enforcementEnabled" type="checkbox" style="width:auto"> Turn blocking on</label>
+        <label style="display:flex;align-items:center;gap:8px"><input id="strictWhitelist" type="checkbox" style="width:auto"> Only allowed apps can run</label>
+        <button class="secondary" onclick="saveProtectionMode()">Save Protection Mode</button>
+      </div>
+      <label style="display:flex;align-items:center;gap:8px;margin-top:10px"><input id="appLauncher" type="checkbox" checked style="width:auto"> Show allowed app in kiosk launcher</label>
+      <div class="rule-actions">
+        <button onclick="addAppRule('allow')">Allow App</button>
+        <button class="danger" onclick="addAppRule('block')">Block App</button>
+      </div>
+      <div class="rule-grid" style="margin-top:14px">
+        <div>
+          <h3>Allowed Apps</h3>
+          <table><thead><tr><th>Name</th><th>Process</th><th></th></tr></thead><tbody id="allowedApps"></tbody></table>
+        </div>
+        <div>
+          <h3>Blocked Apps</h3>
+          <table><thead><tr><th>Name</th><th>Process</th><th></th></tr></thead><tbody id="blockedApps"></tbody></table>
+        </div>
+      </div>
+    </section>
+    <section class="wide">
+      <h2>Simple Website Rules</h2>
+      <div class="form-grid" style="grid-template-columns: minmax(0, 1fr) auto auto">
+        <label>Domain or URL <input id="siteValue" placeholder="testing.example.edu or youtube.com"></label>
+        <button onclick="addSiteRule('allow')">Allow Site</button>
+        <button class="danger" onclick="addSiteRule('block')">Block Site</button>
+      </div>
+      <div class="rule-actions">
+        <label style="display:flex;align-items:center;gap:8px"><input id="browserEnabled" type="checkbox" style="width:auto"> Website rules on</label>
+        <label style="display:flex;align-items:center;gap:8px"><input id="whitelistOnly" type="checkbox" style="width:auto"> Only allowed websites can open</label>
+        <label style="display:flex;align-items:center;gap:8px"><input id="browserBlockDownloads" type="checkbox" style="width:auto"> Block browser downloads</label>
+        <button class="secondary" onclick="saveWebsiteMode()">Save Website Mode</button>
+      </div>
+      <div class="rule-grid" style="margin-top:14px">
+        <div>
+          <h3>Allowed Websites</h3>
+          <table><thead><tr><th>Site</th><th></th></tr></thead><tbody id="allowedSites"></tbody></table>
+        </div>
+        <div>
+          <h3>Blocked Websites</h3>
+          <table><thead><tr><th>Site</th><th></th></tr></thead><tbody id="blockedSites"></tbody></table>
+        </div>
+      </div>
     </section>
     <section class="wide">
       <details open>
@@ -93,6 +157,7 @@ public static class WebManagerHtml
     </section>
   </main>
   <script>
+    let currentPolicy = null;
     const pin = () => document.getElementById('pin').value;
     const headers = () => ({ 'Content-Type': 'application/json', 'X-OTM-Admin-PIN': pin() });
     const html = value => String(value ?? '').replace(/[&<>"']/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]));
@@ -117,12 +182,14 @@ public static class WebManagerHtml
       const enforcement = pick(status, 'enforcementEnabled', 'EnforcementEnabled');
       const unlocked = pick(status, 'temporaryUnlockActive', 'TemporaryUnlockActive');
       const unlockUntil = pick(status, 'temporaryUnlockUntil', 'TemporaryUnlockUntil');
+      document.getElementById('safeBanner').style.display = enforcement ? 'none' : 'block';
       document.getElementById('status').innerHTML = `<div class="status-grid">
         <div class="metric"><span>Profile</span><strong>${html(policyName)}</strong></div>
         <div class="metric"><span>Enforcement</span><strong>${enforcement ? 'ON' : 'OFF'}</strong></div>
         <div class="metric"><span>Unlock</span><strong>${unlocked ? 'Active' : 'Locked'}</strong></div>
         <div class="metric"><span>Until</span><strong>${unlocked ? html(unlockUntil) : 'N/A'}</strong></div>
       </div>`;
+      refreshDeviceStatus().catch(err => { document.getElementById('remoteStatus').textContent = err.message; });
       if (!pin()) {
         document.getElementById('policy').value = 'Enter the admin PIN above, then click Refresh.\n\nFirst-run PIN: 123456';
         document.getElementById('logs').innerHTML = '<tr><td colspan="4">Admin PIN required to view logs.</td></tr>';
@@ -130,9 +197,159 @@ public static class WebManagerHtml
         return;
       }
       const [policy, logs] = await Promise.all([authed('/api/policy'), authed('/api/logs?count=100')]);
+      currentPolicy = policy;
       document.getElementById('policy').value = JSON.stringify(policy, null, 2);
+      const enforcementPolicy = currentPolicy.enforcement ?? currentPolicy.Enforcement ?? {};
+      document.getElementById('enforcementEnabled').checked = !!(enforcementPolicy.enabled ?? enforcementPolicy.Enabled);
+      document.getElementById('strictWhitelist').checked = !!(enforcementPolicy.strictApplicationWhitelist ?? enforcementPolicy.StrictApplicationWhitelist);
+      const browserPolicy = browser();
+      document.getElementById('browserEnabled').checked = !!(browserPolicy.enabled ?? browserPolicy.Enabled);
+      document.getElementById('whitelistOnly').checked = !!(browserPolicy.whitelistOnly ?? browserPolicy.WhitelistOnly);
+      document.getElementById('browserBlockDownloads').checked = !!(browserPolicy.blockDownloads ?? browserPolicy.BlockDownloads);
+      renderAppRules();
+      renderWebsiteRules();
       document.getElementById('logs').innerHTML = logs.map(l => `<tr><td>${html(pick(l, 'timestamp', 'Timestamp'))}</td><td>${html(pick(l, 'level', 'Level'))}</td><td>${html(pick(l, 'eventType', 'EventType'))}</td><td>${html(pick(l, 'message', 'Message'))}</td></tr>`).join('');
       notice('Connected to local SimpleKioskOS service.', true);
+    }
+    async function refreshDeviceStatus() {
+      const device = await getJson('/api/device');
+      document.getElementById('remoteStatus').innerHTML = `<div><strong>${html(pick(device, 'deviceName', 'DeviceName'))}</strong></div>
+        <div class="muted">Device ID: ${html(pick(device, 'deviceId', 'DeviceId'))}</div>
+        <div class="muted">LAN access: ${pick(device, 'lanApiEnabled', 'LanApiEnabled') ? 'enabled' : 'local-only for now'}</div>
+        <div class="muted">Pairing: ${pick(device, 'pairingEnabled', 'PairingEnabled') ? 'active' : 'not active'}</div>`;
+    }
+    const allowedApps = () => currentPolicy.allowedApps ?? currentPolicy.AllowedApps ?? (currentPolicy.allowedApps = []);
+    const blockedApps = () => currentPolicy.blockedApps ?? currentPolicy.BlockedApps ?? (currentPolicy.blockedApps = []);
+    const launchers = () => currentPolicy.launchers ?? currentPolicy.Launchers ?? (currentPolicy.launchers = []);
+    const browser = () => currentPolicy.browser ?? currentPolicy.Browser ?? (currentPolicy.browser = { enabled: true, whitelistOnly: false, blockDownloads: true, allowedSites: [], blockedSites: [] });
+    const allowedSites = () => browser().allowedSites ?? browser().AllowedSites ?? (browser().allowedSites = []);
+    const blockedSites = () => browser().blockedSites ?? browser().BlockedSites ?? (browser().blockedSites = []);
+    const appValue = (app, name) => app[name] ?? app[name[0].toUpperCase() + name.slice(1)] ?? '';
+    const sameRule = (a, b) => {
+      const ap = appValue(a, 'processName').toLowerCase();
+      const bp = appValue(b, 'processName').toLowerCase();
+      const ax = appValue(a, 'path').toLowerCase();
+      const bx = appValue(b, 'path').toLowerCase();
+      return (!!ap && !!bp && ap === bp) || (!!ax && !!bx && ax === bx);
+    };
+    const launcherId = name => String(name || 'app').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+    function buildRule() {
+      const path = document.getElementById('appPath').value.trim();
+      let processName = document.getElementById('appProcess').value.trim();
+      if (!processName && path) processName = path.split(/[\\/]/).pop();
+      if (!processName && !path) throw new Error('Enter a process name or EXE path.');
+      const displayName = document.getElementById('appName').value.trim() || (processName || path.split(/[\\/]/).pop()).replace(/\.exe$/i, '');
+      return { displayName, processName, path: path || null, required: false, arguments: null };
+    }
+    function removeMatches(list, rule) {
+      for (let i = list.length - 1; i >= 0; i--) if (sameRule(list[i], rule)) list.splice(i, 1);
+    }
+    function renderAppRules() {
+      if (!currentPolicy) return;
+      document.getElementById('allowedApps').innerHTML = allowedApps().map((app, i) => `<tr><td>${html(appValue(app, 'displayName'))}</td><td>${html(appValue(app, 'processName'))}</td><td><button class="secondary" onclick="removeAppRule('allow', ${i})">Remove</button></td></tr>`).join('') || '<tr><td colspan="3">No allowed apps yet.</td></tr>';
+      document.getElementById('blockedApps').innerHTML = blockedApps().map((app, i) => `<tr><td>${html(appValue(app, 'displayName'))}</td><td>${html(appValue(app, 'processName'))}</td><td><button class="secondary" onclick="removeAppRule('block', ${i})">Remove</button></td></tr>`).join('') || '<tr><td colspan="3">No blocked apps yet.</td></tr>';
+    }
+    function normalizeSite(value) {
+      let site = String(value || '').trim();
+      try {
+        const parsed = new URL(site);
+        site = `${parsed.hostname}${parsed.pathname.replace(/\/$/, '')}`;
+      } catch {}
+      return site.replace(/^https?:\/\//i, '').replace(/\/$/, '').toLowerCase();
+    }
+    function removeSiteMatches(list, site) {
+      const normalized = normalizeSite(site);
+      for (let i = list.length - 1; i >= 0; i--) if (normalizeSite(list[i]) === normalized) list.splice(i, 1);
+    }
+    function renderWebsiteRules() {
+      if (!currentPolicy) return;
+      document.getElementById('allowedSites').innerHTML = allowedSites().map((site, i) => `<tr><td>${html(site)}</td><td><button class="secondary" onclick="removeSiteRule('allow', ${i})">Remove</button></td></tr>`).join('') || '<tr><td colspan="2">No allowed websites yet.</td></tr>';
+      document.getElementById('blockedSites').innerHTML = blockedSites().map((site, i) => `<tr><td>${html(site)}</td><td><button class="secondary" onclick="removeSiteRule('block', ${i})">Remove</button></td></tr>`).join('') || '<tr><td colspan="2">No blocked websites yet.</td></tr>';
+    }
+    async function savePolicyObject(message) {
+      await authed('/api/policy', { method: 'PUT', body: JSON.stringify(currentPolicy, null, 2) });
+      notice(message, true);
+      await refresh();
+    }
+    async function saveProtectionMode() {
+      if (!currentPolicy) { notice('Enter the admin PIN and refresh first.'); return; }
+      const enforcementPolicy = currentPolicy.enforcement ?? currentPolicy.Enforcement ?? (currentPolicy.enforcement = {});
+      if ('Enforcement' in currentPolicy) {
+        enforcementPolicy.Enabled = document.getElementById('enforcementEnabled').checked;
+        enforcementPolicy.StrictApplicationWhitelist = document.getElementById('strictWhitelist').checked;
+      } else {
+        enforcementPolicy.enabled = document.getElementById('enforcementEnabled').checked;
+        enforcementPolicy.strictApplicationWhitelist = document.getElementById('strictWhitelist').checked;
+      }
+      await savePolicyObject('Protection mode saved.');
+    }
+    async function saveWebsiteMode() {
+      if (!currentPolicy) { notice('Enter the admin PIN and refresh first.'); return; }
+      const browserPolicy = browser();
+      if ('Browser' in currentPolicy) {
+        browserPolicy.Enabled = document.getElementById('browserEnabled').checked;
+        browserPolicy.WhitelistOnly = document.getElementById('whitelistOnly').checked;
+        browserPolicy.BlockDownloads = document.getElementById('browserBlockDownloads').checked;
+      } else {
+        browserPolicy.enabled = document.getElementById('browserEnabled').checked;
+        browserPolicy.whitelistOnly = document.getElementById('whitelistOnly').checked;
+        browserPolicy.blockDownloads = document.getElementById('browserBlockDownloads').checked;
+      }
+      await savePolicyObject('Website mode saved.');
+    }
+    async function addAppRule(mode) {
+      try {
+        if (!currentPolicy) throw new Error('Enter the admin PIN and refresh first.');
+        const rule = buildRule();
+        if (mode === 'allow') {
+          removeMatches(allowedApps(), rule); removeMatches(blockedApps(), rule); allowedApps().push(rule);
+          if (document.getElementById('appLauncher').checked) {
+            const ls = launchers(); removeMatches(ls, rule);
+            ls.push({ id: launcherId(rule.displayName), displayName: rule.displayName, type: 'app', workspaceMode: 'lab', processName: rule.processName, path: rule.path, arguments: null, required: false, allowMultiMonitorOwnership: false, allowedSites: [] });
+          }
+          await savePolicyObject('Allowed app saved.');
+        } else {
+          removeMatches(blockedApps(), rule); removeMatches(allowedApps(), rule); removeMatches(launchers(), rule); blockedApps().push(rule);
+          await savePolicyObject('Blocked app saved.');
+        }
+        document.getElementById('appName').value = ''; document.getElementById('appProcess').value = ''; document.getElementById('appPath').value = '';
+      } catch (err) { notice(err.message); }
+    }
+    async function removeAppRule(mode, index) {
+      if (!currentPolicy) return;
+      const list = mode === 'allow' ? allowedApps() : blockedApps();
+      const [rule] = list.splice(index, 1);
+      if (rule) removeMatches(launchers(), rule);
+      await savePolicyObject('App rule removed.');
+    }
+    async function addSiteRule(mode) {
+      try {
+        if (!currentPolicy) throw new Error('Enter the admin PIN and refresh first.');
+        const site = normalizeSite(document.getElementById('siteValue').value);
+        if (!site) throw new Error('Enter a domain or URL.');
+        if (mode === 'allow') {
+          removeSiteMatches(allowedSites(), site); removeSiteMatches(blockedSites(), site); allowedSites().push(site);
+          await savePolicyObject('Allowed website saved.');
+        } else {
+          removeSiteMatches(blockedSites(), site); removeSiteMatches(allowedSites(), site); blockedSites().push(site);
+          await savePolicyObject('Blocked website saved.');
+        }
+        document.getElementById('siteValue').value = '';
+      } catch (err) { notice(err.message); }
+    }
+    async function removeSiteRule(mode, index) {
+      if (!currentPolicy) return;
+      const list = mode === 'allow' ? allowedSites() : blockedSites();
+      list.splice(index, 1);
+      await savePolicyObject('Website rule removed.');
+    }
+    async function generatePairingCode() {
+      try {
+        const pairing = await authed('/api/device/pairing-code', { method: 'POST', body: '{}' });
+        document.getElementById('pairingCode').value = pick(pairing, 'code', 'Code') ?? '';
+        notice('Pairing code generated. LAN access is still local-only until remote manager is enabled.', true);
+        await refreshDeviceStatus();
+      } catch (err) { notice(err.message); }
     }
     async function savePolicy() { await authed('/api/policy', { method: 'PUT', body: document.getElementById('policy').value }); notice('Policy saved.', true); await refresh(); }
     async function unlock() { await authed('/api/unlock', { method: 'POST', body: JSON.stringify({ minutes: 15 }) }); notice('Device unlocked for 15 minutes.', true); await refresh(); }

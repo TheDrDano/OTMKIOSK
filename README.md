@@ -33,13 +33,13 @@ Install prerequisites on a build machine:
 Then run:
 
 ```powershell
-.\scripts\build-installer.ps1 -Version 4.2.3
+.\scripts\build-installer.ps1 -Version 5.0.0
 ```
 
 The installer will be created in:
 
 ```txt
-artifacts\installer\OTM-Kiosk-Setup-4.2.3.exe
+artifacts\installer\OTM-Kiosk-Setup-5.0.0.exe
 ```
 
 By default the script publishes self-contained `win-x64` binaries, so the test VPS does not need the .NET runtime preinstalled. The build also downloads Microsoft's Evergreen WebView2 bootstrapper and packages it into the SimpleKioskOS installer so embedded exam/web mode can install its browser runtime dependency on clean machines. Use `-FrameworkDependent` only if you want a smaller installer and you know the target machine has the .NET 8 Desktop Runtime installed.
@@ -53,7 +53,7 @@ Windows publisher identity for an `.exe` uses **Authenticode code signing**, not
 For local signing with a certificate installed in the machine certificate store:
 
 ```powershell
-.\scripts\build-installer.ps1 -Version 4.2.3 -Sign -CertificateThumbprint "YOUR_CERT_THUMBPRINT"
+.\scripts\build-installer.ps1 -Version 5.0.0 -Sign -CertificateThumbprint "YOUR_CERT_THUMBPRINT"
 ```
 
 Use `-CertificateStore LocalMachine` if the certificate is installed in the local machine store instead of the current user store.
@@ -61,7 +61,7 @@ Use `-CertificateStore LocalMachine` if the certificate is installed in the loca
 For local signing with a PFX:
 
 ```powershell
-.\scripts\build-installer.ps1 -Version 4.2.3 -Sign -PfxPath "C:\secure\otm-signing.pfx" -PfxPassword "PFX_PASSWORD"
+.\scripts\build-installer.ps1 -Version 5.0.0 -Sign -PfxPath "C:\secure\otm-signing.pfx" -PfxPassword "PFX_PASSWORD"
 ```
 
 The build signs published EXE/DLL files before packaging and signs the final setup EXE after Inno Setup finishes. If the final setup EXE is not Authenticode-signed by a trusted certificate, Windows will show **Unknown publisher**.
@@ -91,7 +91,7 @@ For lab-only testing without buying a certificate yet, create a self-signed test
 
 ```powershell
 .\scripts\create-test-signing-cert.ps1 -Password "test-password"
-.\scripts\build-installer.ps1 -Version 4.2.3 -Sign -PfxPath ".\artifacts\signing\simplekioskos-test.pfx" -PfxPassword "test-password"
+.\scripts\build-installer.ps1 -Version 5.0.0 -Sign -PfxPath ".\artifacts\signing\simplekioskos-test.pfx" -PfxPassword "test-password"
 ```
 
 On the test machine, trust that test cert before installing:
@@ -100,7 +100,15 @@ On the test machine, trust that test cert before installing:
 .\scripts\trust-test-signing-cert.ps1 -PfxPath ".\simplekioskos-test.pfx" -Password "test-password"
 ```
 
+For UAC/elevated installer prompts on a test VPS, run PowerShell as Administrator and trust it at the machine level:
+
+```powershell
+.\scripts\trust-test-signing-cert.ps1 -PfxPath ".\simplekioskos-test.pfx" -Password "test-password" -LocalMachine
+```
+
 Self-signed certs are for machines you control only. Public production installs need an OV/EV **code-signing** certificate from a trusted certificate authority.
+
+If Windows still shows **Unknown publisher**, check the build log step named **Show installer publisher**. If it says `<unsigned>`, you downloaded an unsigned artifact or signing secrets were missing. If it shows your certificate subject but Windows still says unknown, the target PC does not trust that certificate chain. If Windows shows a SmartScreen “unrecognized app” warning while the publisher is correct, that is reputation, not a missing signature.
 
 ## Run Service Runtime During Development
 
@@ -120,9 +128,9 @@ To test the fullscreen kiosk shell after the service is running:
 dotnet run --project .\src\OTM.KioskShell\OTM.KioskShell.csproj
 ```
 
-The kiosk shell is the user-facing locked workspace. It runs fullscreen, uses the SimpleKioskOS shield/monitor logo, shows a left rail of approved launchers, renders exam websites inside embedded WebView2 with no browser controls, and keeps admin controls behind the bottom-right **Admin** button. `Ctrl+Shift+A` also toggles the admin drawer for testing. For lockout recovery during MVP testing, `Ctrl+Shift+Alt+U` disables enforcement through the local recovery endpoint and `Ctrl+Shift+Alt+End` exits the shell. Common escape shortcuts such as Alt+F4, Alt+Tab, Ctrl+Esc, and Windows keys are suppressed while the shell has focus. Ctrl+Alt+Del cannot be blocked by a normal Windows app and should be handled with Windows policy in production.
+The kiosk shell is the user-facing locked workspace. It runs fullscreen, uses the SimpleKioskOS shield/monitor logo, shows a left rail of approved launchers, renders exam websites inside embedded WebView2 with no browser controls, and includes an in-shell **Open apps** taskbar for lab mode so approved apps can be brought back above the shell. Admin controls stay behind the bottom-right **Admin** button. `Ctrl+Shift+A` also toggles the admin drawer for testing. For lockout recovery during MVP testing, `Ctrl+Shift+Alt+U` disables enforcement through the local recovery endpoint and `Ctrl+Shift+Alt+End` exits the shell. Common escape shortcuts such as Alt+F4, Alt+Tab, Ctrl+Esc, and Windows keys are suppressed while the shell has focus. Ctrl+Alt+Del cannot be blocked by a normal Windows app and should be handled with Windows policy in production.
 
-Exam mode requires Microsoft Edge WebView2 Runtime on the target PC. The installer packages the Microsoft Evergreen WebView2 bootstrapper and runs it silently if WebView2 is not detected.
+Exam mode requires Microsoft Edge WebView2 Runtime on the target PC. The installer packages the Microsoft Evergreen WebView2 bootstrapper, checks Microsoft's WebView2 EdgeUpdate registry keys, and runs the bootstrapper silently if WebView2 is not registered. The bootstrapper needs internet access on the target PC. If WebView2 does not register after the bootstrapper runs, the installer shows a clear warning before opening the control panel.
 
 Launcher policy supports:
 
@@ -180,7 +188,7 @@ Omit `-RemoveData` if you want to keep the local database and recovery files.
 
 Use a Windows VPS with a desktop experience, not Windows Server Core. Take a snapshot before installing because kiosk enforcement can intentionally block tools.
 
-1. Copy `artifacts\installer\OTM-Kiosk-Setup-4.2.3.exe` to the VPS.
+1. Copy `artifacts\installer\OTM-Kiosk-Setup-5.0.0.exe` to the VPS.
 2. Run it as Administrator.
 3. The **SimpleKioskOS Control Panel** opens after install. Start the fullscreen shell from the Start menu only after confirming the admin PIN works.
 4. First-run PIN is `123456`.
@@ -221,6 +229,10 @@ The Exam Mode and Lab Lockdown templates enable enforcement, turn on strict appl
 Templates can be applied from either the native control panel or the local web manager.
 
 Example profile JSON files are available in `profiles\`.
+
+## Simple App Rules
+
+The native control panel and local web manager both include **Simple App Rules** so admins can allow or block apps without editing policy JSON. Enter a display name, process name such as `chrome.exe`, or browse/type an EXE path, then choose **Allow App** or **Block App**. Allowed apps can also be added to the fullscreen kiosk launcher automatically.
 
 ## Security Notes
 
