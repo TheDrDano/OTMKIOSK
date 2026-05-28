@@ -92,6 +92,7 @@ public partial class MainWindow : Window
             BrowserEnabledCheckBox.IsChecked = policy?.Browser.Enabled == true;
             WhitelistOnlyCheckBox.IsChecked = policy?.Browser.WhitelistOnly == true;
             BrowserBlockDownloadsCheckBox.IsChecked = policy?.Browser.BlockDownloads == true;
+            BindRemoteSettings(policy);
             PolicyTextBox.Text = JsonSerializer.Serialize(policy, JsonOptions);
             BindAppRules();
             BindWebsiteRules();
@@ -114,7 +115,7 @@ public partial class MainWindow : Window
             var device = await _client.GetFromJsonAsync<RemoteDeviceStatus>("/api/device", JsonOptions);
             RemoteStatusText.Text = device is null
                 ? "Remote foundation unavailable."
-                : $"{device.DeviceName}{Environment.NewLine}Device ID: {device.DeviceId}{Environment.NewLine}LAN access: {(device.LanApiEnabled ? "enabled" : "local-only for now")}";
+                : $"{(string.IsNullOrWhiteSpace(device.ConfiguredName) ? device.DeviceName : device.ConfiguredName)}{Environment.NewLine}Device ID: {device.DeviceId}{Environment.NewLine}LAN access: {(device.LanApiEnabled ? "enabled" : "local-only for now")}";
         }
         catch
         {
@@ -319,6 +320,61 @@ public partial class MainWindow : Window
         }
     }
 
+    private async void SaveRemoteSettings_Click(object sender, RoutedEventArgs e)
+    {
+        if (_currentPolicy is null)
+        {
+            ShowNotice("Refresh required", "Enter the admin PIN and refresh before changing remote settings.", NoticeKind.Info);
+            return;
+        }
+
+        _currentPolicy.Remote.Enabled = RemoteEnabledCheckBox.IsChecked == true;
+        _currentPolicy.Remote.ServerUrl = RemoteServerUrlBox.Text.Trim();
+        _currentPolicy.Remote.OrganizationId = RemoteOrganizationBox.Text.Trim();
+        _currentPolicy.Remote.DeviceAlias = RemoteDeviceAliasBox.Text.Trim();
+        _currentPolicy.Remote.AllowRemotePolicyPush = AllowRemotePolicyPushCheckBox.IsChecked == true;
+        _currentPolicy.Remote.AllowRemoteUnlock = AllowRemoteUnlockCheckBox.IsChecked == true;
+        _currentPolicy.Remote.AllowRemoteUpdate = AllowRemoteUpdateCheckBox.IsChecked == true;
+        _currentPolicy.Updates.Enabled = UpdateEnabledCheckBox.IsChecked == true;
+        _currentPolicy.Updates.ManifestUrl = UpdateManifestUrlBox.Text.Trim();
+        _currentPolicy.Updates.Channel = string.IsNullOrWhiteSpace(UpdateChannelBox.Text) ? "stable" : UpdateChannelBox.Text.Trim();
+
+        await SaveCurrentPolicyAsync("Remote and update settings saved.");
+    }
+
+    private async void CheckUpdates_Click(object sender, RoutedEventArgs e)
+    {
+        try
+        {
+            if (string.IsNullOrWhiteSpace(PinBox.Password))
+            {
+                ShowNotice("Admin PIN required", "Enter the admin PIN before checking for updates.", NoticeKind.Info);
+                return;
+            }
+
+            var request = new HttpRequestMessage(HttpMethod.Post, "/api/updates/check")
+            {
+                Content = new StringContent("{}", Encoding.UTF8, "application/json")
+            };
+            request.Headers.Add("X-OTM-Admin-PIN", PinBox.Password);
+            var response = await _client.SendAsync(request);
+            if (!response.IsSuccessStatusCode)
+            {
+                ShowNotice("Update check failed", await ReadApiErrorAsync(response), NoticeKind.Warning);
+                return;
+            }
+
+            var result = await response.Content.ReadFromJsonAsync<UpdateCheckResponse>(JsonOptions);
+            UpdateStatusText.Text = result?.Message ?? "Update check completed.";
+            ShowNotice("Update check completed", UpdateStatusText.Text, result?.Available == true ? NoticeKind.Success : NoticeKind.Info);
+            await RefreshAsync();
+        }
+        catch (Exception ex)
+        {
+            ShowNotice("Update check failed", ex.Message, NoticeKind.Error);
+        }
+    }
+
     private async Task AddAppRuleAsync(bool allow)
     {
         if (_currentPolicy is null)
@@ -465,6 +521,21 @@ public partial class MainWindow : Window
     {
         AllowedSitesList.ItemsSource = _currentPolicy?.Browser.AllowedSites.OrderBy(site => site).ToList() ?? [];
         BlockedSitesList.ItemsSource = _currentPolicy?.Browser.BlockedSites.OrderBy(site => site).ToList() ?? [];
+    }
+
+    private void BindRemoteSettings(KioskPolicy? policy)
+    {
+        RemoteEnabledCheckBox.IsChecked = policy?.Remote.Enabled == true;
+        RemoteServerUrlBox.Text = policy?.Remote.ServerUrl ?? "";
+        RemoteOrganizationBox.Text = policy?.Remote.OrganizationId ?? "";
+        RemoteDeviceAliasBox.Text = policy?.Remote.DeviceAlias ?? "";
+        AllowRemotePolicyPushCheckBox.IsChecked = policy?.Remote.AllowRemotePolicyPush == true;
+        AllowRemoteUnlockCheckBox.IsChecked = policy?.Remote.AllowRemoteUnlock == true;
+        AllowRemoteUpdateCheckBox.IsChecked = policy?.Remote.AllowRemoteUpdate == true;
+        UpdateEnabledCheckBox.IsChecked = policy?.Updates.Enabled == true;
+        UpdateManifestUrlBox.Text = policy?.Updates.ManifestUrl ?? "";
+        UpdateChannelBox.Text = string.IsNullOrWhiteSpace(policy?.Updates.Channel) ? "stable" : policy.Updates.Channel;
+        UpdateStatusText.Text = policy?.Updates.LastCheckMessage ?? "";
     }
 
     private void ClearAppFields()
@@ -668,6 +739,7 @@ public partial class MainWindow : Window
     {
         public string DeviceId { get; set; } = "";
         public string DeviceName { get; set; } = "";
+        public string ConfiguredName { get; set; } = "";
         public bool PairingEnabled { get; set; }
         public bool LanApiEnabled { get; set; }
         public string LocalManagerUrl { get; set; } = "";
@@ -677,5 +749,11 @@ public partial class MainWindow : Window
     {
         public string Code { get; set; } = "";
         public DateTimeOffset ExpiresAt { get; set; }
+    }
+
+    private sealed class UpdateCheckResponse
+    {
+        public bool Available { get; set; }
+        public string Message { get; set; } = "";
     }
 }

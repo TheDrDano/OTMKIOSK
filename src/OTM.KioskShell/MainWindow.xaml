@@ -64,9 +64,9 @@
             <Setter Property="BorderBrush" Value="#C7D0DA" />
         </Style>
         <Style x:Key="TaskbarButton" TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
-            <Setter Property="Background" Value="#151A20" />
-            <Setter Property="Foreground" Value="#F8FAFC" />
-            <Setter Property="BorderBrush" Value="#343C45" />
+            <Setter Property="Background" Value="#FFFFFF" />
+            <Setter Property="Foreground" Value="#111827" />
+            <Setter Property="BorderBrush" Value="#CBD5E1" />
             <Setter Property="HorizontalContentAlignment" Value="Left" />
             <Setter Property="MinHeight" Value="42" />
             <Setter Property="FontSize" Value="13" />
@@ -178,13 +178,21 @@
                 </Border>
             </Grid>
 
-            <Border x:Name="ShellTaskbar" Grid.Row="2" Margin="26,0,26,18" Background="#FFFFFF" BorderBrush="#CBD5E1" BorderThickness="1" CornerRadius="8" Padding="12">
+            <Border x:Name="ShellTaskbar" Grid.Row="2" Margin="26,0,26,18" Background="#151A20" BorderBrush="#343C45" BorderThickness="1" CornerRadius="8" Padding="12">
                 <DockPanel LastChildFill="True">
                     <StackPanel DockPanel.Dock="Left" Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,14,0">
-                        <TextBlock Text="Open apps" Foreground="#111827" FontWeight="SemiBold" VerticalAlignment="Center" />
-                        <TextBlock x:Name="OpenAppsCountText" Text="0" Foreground="#64748B" VerticalAlignment="Center" Margin="8,0,0,0" />
+                        <Border Width="30" Height="30" Background="#242A31" BorderBrush="#3D4651" BorderThickness="1" CornerRadius="6" Margin="0,0,10,0">
+                            <Path Width="16" Height="16" Stretch="Uniform" Fill="#FF6B1A" HorizontalAlignment="Center" VerticalAlignment="Center" Data="M2,3 L14,3 L14,11 L2,11 Z M5,14 L11,14 M8,11 L8,14" />
+                        </Border>
+                        <TextBlock Text="Open apps" Foreground="#F8FAFC" FontWeight="SemiBold" VerticalAlignment="Center" />
+                        <TextBlock x:Name="OpenAppsCountText" Text="0" Foreground="#AAB6C2" VerticalAlignment="Center" Margin="8,0,0,0" />
                     </StackPanel>
-                    <Button DockPanel.Dock="Right" Content="Show Shell" Width="112" Height="38" Margin="12,0,0,0" Style="{StaticResource SecondaryButton}" Click="ShowShell_Click" />
+                    <Button DockPanel.Dock="Right" Width="132" Height="38" Margin="12,0,0,0" Style="{StaticResource SecondaryButton}" Click="ShowShell_Click">
+                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                            <Path Width="15" Height="15" Stretch="Uniform" Fill="#1D2935" Margin="0,0,8,0" Data="M2,3 L14,3 L14,11 L2,11 Z M5,14 L11,14 M8,11 L8,14" />
+                            <TextBlock Text="Show Shell" VerticalAlignment="Center" />
+                        </StackPanel>
+                    </Button>
                     <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled">
                         <ItemsControl x:Name="ManagedAppsList">
                             <ItemsControl.ItemsPanel>
@@ -210,14 +218,18 @@
 
         <Button x:Name="AdminCornerButton"
                 Grid.ColumnSpan="2"
-                Content="Admin"
-                Width="112"
+                Width="126"
                 Height="44"
                 HorizontalAlignment="Right"
                 VerticalAlignment="Bottom"
                 Margin="0,0,30,30"
                 Style="{StaticResource SecondaryButton}"
-                Click="ToggleAdmin_Click" />
+                Click="ToggleAdmin_Click">
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                <Path Width="15" Height="15" Stretch="Uniform" Fill="#1D2935" Margin="0,0,8,0" Data="M8,1 L10,3 L13,3 L13,6 L15,8 L13,10 L13,13 L10,13 L8,15 L6,13 L3,13 L3,10 L1,8 L3,6 L3,3 L6,3 Z M8,5 A3,3 0,1,0 8,11 A3,3 0,1,0 8,5" />
+                <TextBlock Text="Admin" VerticalAlignment="Center" />
+            </StackPanel>
+        </Button>
 
         <Border x:Name="AdminPanel" Grid.ColumnSpan="2" Visibility="Collapsed" HorizontalAlignment="Right" VerticalAlignment="Bottom" Width="460" Margin="0,0,30,30" Background="#F8FAFC" BorderBrush="#C8D4DE" BorderThickness="1" CornerRadius="8" Padding="18">
             <StackPanel>
@@ -226,19 +238,59 @@
                         <TextBlock Text="Admin Access" FontSize="18" FontWeight="SemiBold" Foreground="#17202A" />
                         <TextBlock Text="Manage this kiosk locally." FontSize="12" Foreground="#64748B" Margin="0,3,0,0" />
                     </StackPanel>
-                    <Button DockPanel.Dock="Right" Content="Hide" Width="82" Height="34" Style="{StaticResource SecondaryButton}" Click="ToggleAdmin_Click" />
+                    <Button DockPanel.Dock="Right" Width="82" Height="34" Style="{StaticResource SecondaryButton}" Click="ToggleAdmin_Click">
+                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                            <Path Width="13" Height="13" Stretch="Uniform" Stroke="#1D2935" StrokeThickness="2" StrokeStartLineCap="Round" StrokeEndLineCap="Round" Margin="0,0,7,0" Data="M3,3 L13,13 M13,3 L3,13" />
+                            <TextBlock Text="Hide" />
+                        </StackPanel>
+                    </Button>
                 </DockPanel>
                 <TextBlock Text="PIN" Foreground="#344756" FontWeight="SemiBold" Margin="0,0,0,4" />
                 <PasswordBox x:Name="PinBox" Height="38" Margin="0,0,0,12" />
                 <UniformGrid Columns="2" Rows="3">
-                    <Button Content="Unlock 15m" Margin="0,0,6,6" Click="Unlock_Click" />
-                    <Button Content="Lock" Margin="6,0,0,6" Style="{StaticResource DangerButton}" Click="Lock_Click" />
-                    <Button Content="Manager" Margin="0,6,6,0" Style="{StaticResource SecondaryButton}" Click="Manager_Click" />
-                    <Button Content="Control Panel" Margin="6,6,0,0" Style="{StaticResource SecondaryButton}" Click="ControlPanel_Click" />
-                    <Button Content="Emergency Unlock" Margin="0,6,6,0" Style="{StaticResource DangerButton}" Click="EmergencyUnlock_Click" />
-                    <Button Content="Exit Shell" Margin="6,6,0,0" Style="{StaticResource SecondaryButton}" Click="ExitShell_Click" />
+                    <Button Margin="0,0,6,6" Click="Unlock_Click">
+                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                            <Path Width="15" Height="15" Stretch="Uniform" Fill="White" Margin="0,0,8,0" Data="M5,7 L5,5 A3,3 0,0,1 11,5 L9.5,5 A1.5,1.5 0,0,0 6.5,5 L6.5,7 M4,7 L12,7 L12,14 L4,14 Z" />
+                            <TextBlock Text="Unlock 15m" />
+                        </StackPanel>
+                    </Button>
+                    <Button Margin="6,0,0,6" Style="{StaticResource DangerButton}" Click="Lock_Click">
+                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                            <Path Width="15" Height="15" Stretch="Uniform" Fill="White" Margin="0,0,8,0" Data="M5,7 L5,5 A3,3 0,0,1 11,5 L11,7 M4,7 L12,7 L12,14 L4,14 Z M8,10 L8,12" />
+                            <TextBlock Text="Lock" />
+                        </StackPanel>
+                    </Button>
+                    <Button Margin="0,6,6,0" Style="{StaticResource SecondaryButton}" Click="Manager_Click">
+                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                            <Path Width="15" Height="15" Stretch="Uniform" Stroke="#1D2935" StrokeThickness="1.7" StrokeStartLineCap="Round" StrokeEndLineCap="Round" Fill="Transparent" Margin="0,0,8,0" Data="M8,1 A7,7 0,1,0 8,15 A7,7 0,1,0 8,1 M1.5,8 L14.5,8 M8,1 A10,10 0,0,1 8,15 M8,1 A10,10 0,0,0 8,15" />
+                            <TextBlock Text="Manager" />
+                        </StackPanel>
+                    </Button>
+                    <Button Margin="6,6,0,0" Style="{StaticResource SecondaryButton}" Click="ControlPanel_Click">
+                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                            <Path Width="15" Height="15" Stretch="Uniform" Stroke="#1D2935" StrokeThickness="1.8" StrokeStartLineCap="Round" StrokeEndLineCap="Round" Margin="0,0,8,0" Data="M2,4 L14,4 M2,8 L14,8 M2,12 L14,12 M5,2 L5,6 M11,6 L11,10 M7,10 L7,14" />
+                            <TextBlock Text="Control Panel" />
+                        </StackPanel>
+                    </Button>
+                    <Button Margin="0,6,6,0" Style="{StaticResource DangerButton}" Click="EmergencyUnlock_Click">
+                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                            <Path Width="15" Height="15" Stretch="Uniform" Fill="White" Margin="0,0,8,0" Data="M8,1 L15,14 L1,14 Z M8,5 L8,9 M8,11 L8,12" />
+                            <TextBlock Text="Emergency" />
+                        </StackPanel>
+                    </Button>
+                    <Button Margin="6,6,0,0" Style="{StaticResource SecondaryButton}" Click="ExitShell_Click">
+                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                            <Path Width="15" Height="15" Stretch="Uniform" Stroke="#1D2935" StrokeThickness="1.7" StrokeStartLineCap="Round" StrokeEndLineCap="Round" Fill="Transparent" Margin="0,0,8,0" Data="M3,2 L9,2 L9,14 L3,14 Z M9,8 L15,8 M12,5 L15,8 L12,11" />
+                            <TextBlock Text="Exit Shell" />
+                        </StackPanel>
+                    </Button>
                 </UniformGrid>
-                <Button Content="Refresh Status" Margin="0,14,0,0" Style="{StaticResource SecondaryButton}" Click="Refresh_Click" />
+                <Button Margin="0,14,0,0" Style="{StaticResource SecondaryButton}" Click="Refresh_Click">
+                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                        <Path Width="15" Height="15" Stretch="Uniform" Stroke="#1D2935" StrokeThickness="1.7" StrokeStartLineCap="Round" StrokeEndLineCap="Round" Fill="Transparent" Margin="0,0,8,0" Data="M13,4 L13,1 L10,1 M13,1 L9.5,4.5 A5,5 0,1,0 13,8 M3,12 L3,15 L6,15 M3,15 L6.5,11.5 A5,5 0,1,0 3,8" />
+                        <TextBlock Text="Refresh Status" />
+                    </StackPanel>
+                </Button>
                 <Separator Margin="0,14,0,12" />
                 <TextBlock Text="Remote Manager" FontWeight="SemiBold" Foreground="#17202A" />
                 <TextBlock Text="Offline local mode. Pairing will be enabled when cloud management is added." Foreground="#64748B" TextWrapping="Wrap" FontSize="12" Margin="0,4,0,8" />

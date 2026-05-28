@@ -53,6 +53,10 @@ Source: "..\scripts\verify-signatures.ps1"; DestDir: "{app}\Scripts"; Flags: ign
 Source: "..\scripts\trust-test-signing-cert.ps1"; DestDir: "{app}\Scripts"; Flags: ignoreversion
 Source: "..\README.md"; DestDir: "{app}"; Flags: ignoreversion
 
+[Dirs]
+Name: "{commonappdata}\OTM Kiosk"
+Name: "{commonappdata}\OTM Kiosk\WebView2"; Permissions: users-modify
+
 [Icons]
 Name: "{group}\SimpleKioskOS"; Filename: "{app}\KioskShell\{#ShellExeName}"; IconFilename: "{app}\Branding\simplekioskos.ico"
 Name: "{group}\SimpleKioskOS Control Panel"; Filename: "{app}\ControlPanel\{#MyAppExeName}"; IconFilename: "{app}\Branding\simplekioskos.ico"

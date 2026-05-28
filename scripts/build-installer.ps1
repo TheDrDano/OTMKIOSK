@@ -43,7 +43,10 @@ function Publish-App {
         "publish", $Project,
         "-c", $Configuration,
         "-o", $Output,
-        "-r", $runtime
+        "-r", $runtime,
+        "/p:Version=$Version",
+        "/p:FileVersion=$Version",
+        "/p:AssemblyVersion=$Version"
     )
 
     if ($FrameworkDependent) {

@@ -85,8 +85,22 @@ public static class WebManagerHtml
     <section class="stack">
       <h2>Remote Manager</h2>
       <div class="status" id="remoteStatus">Loading device identity...</div>
+      <label style="display:flex;align-items:center;gap:8px"><input id="remoteEnabled" type="checkbox" style="width:auto"> Enable remote manager</label>
+      <label>Server URL <input id="remoteServerUrl" placeholder="https://manager.simplekioskos.com"></label>
+      <label>Organization ID <input id="remoteOrganizationId" placeholder="school-or-lab-id"></label>
+      <label>Device name <input id="remoteDeviceAlias" placeholder="Lab PC 01"></label>
+      <label style="display:flex;align-items:center;gap:8px"><input id="remotePolicyPush" type="checkbox" style="width:auto"> Allow remote policy changes</label>
+      <label style="display:flex;align-items:center;gap:8px"><input id="remoteUnlock" type="checkbox" style="width:auto"> Allow remote unlock</label>
+      <label style="display:flex;align-items:center;gap:8px"><input id="remoteUpdate" type="checkbox" style="width:auto"> Allow remote update approval</label>
+      <h3>Updates</h3>
+      <label style="display:flex;align-items:center;gap:8px"><input id="updatesEnabled" type="checkbox" style="width:auto"> Check for updates</label>
+      <label>Manifest URL <input id="updateManifestUrl" placeholder="https://example.com/simplekioskos/updates.json"></label>
+      <label>Channel <input id="updateChannel" placeholder="stable"></label>
+      <button class="secondary" onclick="saveRemoteSettings()">Save Remote Settings</button>
+      <button class="secondary" onclick="checkUpdates()">Check Updates</button>
       <button class="secondary" onclick="generatePairingCode()">Generate Pairing Code</button>
       <input id="pairingCode" readonly placeholder="Pairing code">
+      <div class="muted" id="updateStatus"></div>
       <p class="muted">LAN and cloud management are not opened yet. This only prepares the local pairing foundation.</p>
     </section>
     <section class="wide">
@@ -206,6 +220,7 @@ public static class WebManagerHtml
       document.getElementById('browserEnabled').checked = !!(browserPolicy.enabled ?? browserPolicy.Enabled);
       document.getElementById('whitelistOnly').checked = !!(browserPolicy.whitelistOnly ?? browserPolicy.WhitelistOnly);
       document.getElementById('browserBlockDownloads').checked = !!(browserPolicy.blockDownloads ?? browserPolicy.BlockDownloads);
+      bindRemoteSettings();
       renderAppRules();
       renderWebsiteRules();
       document.getElementById('logs').innerHTML = logs.map(l => `<tr><td>${html(pick(l, 'timestamp', 'Timestamp'))}</td><td>${html(pick(l, 'level', 'Level'))}</td><td>${html(pick(l, 'eventType', 'EventType'))}</td><td>${html(pick(l, 'message', 'Message'))}</td></tr>`).join('');
@@ -213,7 +228,7 @@ public static class WebManagerHtml
     }
     async function refreshDeviceStatus() {
       const device = await getJson('/api/device');
-      document.getElementById('remoteStatus').innerHTML = `<div><strong>${html(pick(device, 'deviceName', 'DeviceName'))}</strong></div>
+      document.getElementById('remoteStatus').innerHTML = `<div><strong>${html(pick(device, 'configuredName', 'ConfiguredName') || pick(device, 'deviceName', 'DeviceName'))}</strong></div>
         <div class="muted">Device ID: ${html(pick(device, 'deviceId', 'DeviceId'))}</div>
         <div class="muted">LAN access: ${pick(device, 'lanApiEnabled', 'LanApiEnabled') ? 'enabled' : 'local-only for now'}</div>
         <div class="muted">Pairing: ${pick(device, 'pairingEnabled', 'PairingEnabled') ? 'active' : 'not active'}</div>`;
@@ -222,6 +237,8 @@ public static class WebManagerHtml
     const blockedApps = () => currentPolicy.blockedApps ?? currentPolicy.BlockedApps ?? (currentPolicy.blockedApps = []);
     const launchers = () => currentPolicy.launchers ?? currentPolicy.Launchers ?? (currentPolicy.launchers = []);
     const browser = () => currentPolicy.browser ?? currentPolicy.Browser ?? (currentPolicy.browser = { enabled: true, whitelistOnly: false, blockDownloads: true, allowedSites: [], blockedSites: [] });
+    const remote = () => currentPolicy.remote ?? currentPolicy.Remote ?? (currentPolicy.remote = { enabled: false, serverUrl: '', organizationId: '', deviceAlias: '', allowRemotePolicyPush: false, allowRemoteUnlock: false, allowRemoteUpdate: false });
+    const updates = () => currentPolicy.updates ?? currentPolicy.Updates ?? (currentPolicy.updates = { enabled: false, channel: 'stable', manifestUrl: '', autoDownload: false, autoInstall: false, checkIntervalHours: 24 });
     const allowedSites = () => browser().allowedSites ?? browser().AllowedSites ?? (browser().allowedSites = []);
     const blockedSites = () => browser().blockedSites ?? browser().BlockedSites ?? (browser().blockedSites = []);
     const appValue = (app, name) => app[name] ?? app[name[0].toUpperCase() + name.slice(1)] ?? '';
@@ -266,6 +283,21 @@ public static class WebManagerHtml
       document.getElementById('allowedSites').innerHTML = allowedSites().map((site, i) => `<tr><td>${html(site)}</td><td><button class="secondary" onclick="removeSiteRule('allow', ${i})">Remove</button></td></tr>`).join('') || '<tr><td colspan="2">No allowed websites yet.</td></tr>';
       document.getElementById('blockedSites').innerHTML = blockedSites().map((site, i) => `<tr><td>${html(site)}</td><td><button class="secondary" onclick="removeSiteRule('block', ${i})">Remove</button></td></tr>`).join('') || '<tr><td colspan="2">No blocked websites yet.</td></tr>';
     }
+    function bindRemoteSettings() {
+      const r = remote();
+      const u = updates();
+      document.getElementById('remoteEnabled').checked = !!(r.enabled ?? r.Enabled);
+      document.getElementById('remoteServerUrl').value = r.serverUrl ?? r.ServerUrl ?? '';
+      document.getElementById('remoteOrganizationId').value = r.organizationId ?? r.OrganizationId ?? '';
+      document.getElementById('remoteDeviceAlias').value = r.deviceAlias ?? r.DeviceAlias ?? '';
+      document.getElementById('remotePolicyPush').checked = !!(r.allowRemotePolicyPush ?? r.AllowRemotePolicyPush);
+      document.getElementById('remoteUnlock').checked = !!(r.allowRemoteUnlock ?? r.AllowRemoteUnlock);
+      document.getElementById('remoteUpdate').checked = !!(r.allowRemoteUpdate ?? r.AllowRemoteUpdate);
+      document.getElementById('updatesEnabled').checked = !!(u.enabled ?? u.Enabled);
+      document.getElementById('updateManifestUrl').value = u.manifestUrl ?? u.ManifestUrl ?? '';
+      document.getElementById('updateChannel').value = u.channel ?? u.Channel ?? 'stable';
+      document.getElementById('updateStatus').textContent = u.lastCheckMessage ?? u.LastCheckMessage ?? '';
+    }
     async function savePolicyObject(message) {
       await authed('/api/policy', { method: 'PUT', body: JSON.stringify(currentPolicy, null, 2) });
       notice(message, true);
@@ -296,6 +328,35 @@ public static class WebManagerHtml
         browserPolicy.blockDownloads = document.getElementById('browserBlockDownloads').checked;
       }
       await savePolicyObject('Website mode saved.');
+    }
+    async function saveRemoteSettings() {
+      if (!currentPolicy) { notice('Enter the admin PIN and refresh first.'); return; }
+      const r = remote();
+      const u = updates();
+      if ('Remote' in currentPolicy) {
+        r.Enabled = document.getElementById('remoteEnabled').checked;
+        r.ServerUrl = document.getElementById('remoteServerUrl').value.trim();
+        r.OrganizationId = document.getElementById('remoteOrganizationId').value.trim();
+        r.DeviceAlias = document.getElementById('remoteDeviceAlias').value.trim();
+        r.AllowRemotePolicyPush = document.getElementById('remotePolicyPush').checked;
+        r.AllowRemoteUnlock = document.getElementById('remoteUnlock').checked;
+        r.AllowRemoteUpdate = document.getElementById('remoteUpdate').checked;
+        u.Enabled = document.getElementById('updatesEnabled').checked;
+        u.ManifestUrl = document.getElementById('updateManifestUrl').value.trim();
+        u.Channel = document.getElementById('updateChannel').value.trim() || 'stable';
+      } else {
+        r.enabled = document.getElementById('remoteEnabled').checked;
+        r.serverUrl = document.getElementById('remoteServerUrl').value.trim();
+        r.organizationId = document.getElementById('remoteOrganizationId').value.trim();
+        r.deviceAlias = document.getElementById('remoteDeviceAlias').value.trim();
+        r.allowRemotePolicyPush = document.getElementById('remotePolicyPush').checked;
+        r.allowRemoteUnlock = document.getElementById('remoteUnlock').checked;
+        r.allowRemoteUpdate = document.getElementById('remoteUpdate').checked;
+        u.enabled = document.getElementById('updatesEnabled').checked;
+        u.manifestUrl = document.getElementById('updateManifestUrl').value.trim();
+        u.channel = document.getElementById('updateChannel').value.trim() || 'stable';
+      }
+      await savePolicyObject('Remote settings saved.');
     }
     async function addAppRule(mode) {
       try {
@@ -349,6 +410,14 @@ public static class WebManagerHtml
         document.getElementById('pairingCode').value = pick(pairing, 'code', 'Code') ?? '';
         notice('Pairing code generated. LAN access is still local-only until remote manager is enabled.', true);
         await refreshDeviceStatus();
+      } catch (err) { notice(err.message); }
+    }
+    async function checkUpdates() {
+      try {
+        const result = await authed('/api/updates/check', { method: 'POST', body: '{}' });
+        document.getElementById('updateStatus').textContent = pick(result, 'message', 'Message') ?? 'Update check completed.';
+        notice(document.getElementById('updateStatus').textContent, !!pick(result, 'available', 'Available'));
+        await refresh();
       } catch (err) { notice(err.message); }
     }
     async function savePolicy() { await authed('/api/policy', { method: 'PUT', body: document.getElementById('policy').value }); notice('Policy saved.', true); await refresh(); }

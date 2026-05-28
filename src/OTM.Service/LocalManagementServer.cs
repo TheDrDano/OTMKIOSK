@@ -1,4 +1,5 @@
 using System.Net;
+using System.Reflection;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
@@ -281,6 +282,18 @@ public sealed class LocalManagementServer
                 return;
             }
 
+            if (path.Equals("/api/remote/status", StringComparison.OrdinalIgnoreCase) && request.HttpMethod == "GET")
+            {
+                await WriteJsonAsync(response, GetRemoteStatus());
+                return;
+            }
+
+            if (path.Equals("/api/updates/check", StringComparison.OrdinalIgnoreCase) && request.HttpMethod == "POST")
+            {
+                await WriteJsonAsync(response, await CheckForUpdatesAsync());
+                return;
+            }
+
             if (path.Equals("/api/unlock", StringComparison.OrdinalIgnoreCase) && request.HttpMethod == "POST")
             {
                 var requestBody = await ReadJsonAsync<UnlockRequest>(request) ?? new UnlockRequest();
@@ -350,6 +363,7 @@ public sealed class LocalManagementServer
 
     private object GetDeviceStatus()
     {
+        var policy = _runtime.GetPolicy();
         var identity = LoadOrCreateDeviceIdentity();
         var now = DateTimeOffset.UtcNow;
         if (_pairingExpiresAt.HasValue && _pairingExpiresAt.Value <= now)
@@ -362,12 +376,137 @@ public sealed class LocalManagementServer
         {
             identity.DeviceId,
             identity.DeviceName,
+            configuredName = GetConfiguredDeviceName(identity, policy),
             pairingEnabled = !string.IsNullOrWhiteSpace(_pairingCode) && _pairingExpiresAt.HasValue && _pairingExpiresAt.Value > now,
             pairingExpiresAt = _pairingExpiresAt,
             lanApiEnabled = false,
             localManagerUrl = "http://localhost:47821",
             remoteFoundation = "local-only"
         };
+    }
+
+    private object GetRemoteStatus()
+    {
+        var policy = _runtime.GetPolicy();
+        var identity = LoadOrCreateDeviceIdentity();
+        return new
+        {
+            deviceId = identity.DeviceId,
+            deviceName = GetConfiguredDeviceName(identity, policy),
+            remoteEnabled = policy.Remote.Enabled,
+            serverUrl = policy.Remote.ServerUrl,
+            organizationId = policy.Remote.OrganizationId,
+            allowRemotePolicyPush = policy.Remote.AllowRemotePolicyPush,
+            allowRemoteUnlock = policy.Remote.AllowRemoteUnlock,
+            allowRemoteUpdate = policy.Remote.AllowRemoteUpdate,
+            lastSyncAt = policy.Remote.LastSyncAt,
+            updatesEnabled = policy.Updates.Enabled,
+            updateChannel = policy.Updates.Channel,
+            updateManifestUrl = policy.Updates.ManifestUrl,
+            lastUpdateCheck = policy.Updates.LastCheckedAt,
+            lastUpdateMessage = policy.Updates.LastCheckMessage,
+            lastAvailableVersion = policy.Updates.LastAvailableVersion,
+            currentVersion = GetCurrentVersion(),
+            state = policy.Remote.Enabled ? "configured" : "local-only"
+        };
+    }
+
+    private async Task<object> CheckForUpdatesAsync()
+    {
+        var policy = _runtime.GetPolicy();
+        policy.Updates.LastCheckedAt = DateTimeOffset.UtcNow;
+
+        if (!policy.Updates.Enabled)
+        {
+            policy.Updates.LastCheckMessage = "Update checks are disabled.";
+            _runtime.SavePolicy(policy, "Update check skipped because updates are disabled.");
+            return BuildUpdateCheckResponse(policy, available: false);
+        }
+
+        if (!Uri.TryCreate(policy.Updates.ManifestUrl, UriKind.Absolute, out var manifestUri)
+            || (manifestUri.Scheme != Uri.UriSchemeHttps && manifestUri.Scheme != Uri.UriSchemeHttp))
+        {
+            policy.Updates.LastCheckMessage = "Enter a valid HTTP or HTTPS update manifest URL.";
+            _runtime.SavePolicy(policy, "Update check failed because manifest URL is invalid.");
+            return BuildUpdateCheckResponse(policy, available: false);
+        }
+
+        try
+        {
+            using var client = new HttpClient { Timeout = TimeSpan.FromSeconds(15) };
+            var json = await client.GetStringAsync(manifestUri);
+            var manifest = JsonSerializer.Deserialize<UpdateManifest>(json, JsonOptions);
+            if (manifest is null || string.IsNullOrWhiteSpace(manifest.Version))
+            {
+                policy.Updates.LastCheckMessage = "Update manifest did not include a version.";
+                _runtime.SavePolicy(policy, "Update check failed because manifest is invalid.");
+                return BuildUpdateCheckResponse(policy, available: false);
+            }
+
+            var currentVersion = GetCurrentVersion();
+            var available = IsNewerVersion(manifest.Version, currentVersion);
+            policy.Updates.LastAvailableVersion = available ? manifest.Version : "";
+            policy.Updates.LastCheckMessage = available
+                ? $"Version {manifest.Version} is available. Download/install is not automatic yet."
+                : $"No update available. Current version is {currentVersion}.";
+            _runtime.SavePolicy(policy, "Update check completed.");
+
+            return new
+            {
+                available,
+                currentVersion,
+                manifest.Version,
+                manifest.Channel,
+                manifest.InstallerUrl,
+                manifest.Sha256,
+                manifest.ReleaseNotes,
+                message = policy.Updates.LastCheckMessage,
+                autoInstallEnabled = false
+            };
+        }
+        catch (Exception ex)
+        {
+            policy.Updates.LastCheckMessage = $"Update check failed: {ex.Message}";
+            _runtime.SavePolicy(policy, "Update check failed.");
+            return BuildUpdateCheckResponse(policy, available: false);
+        }
+    }
+
+    private static object BuildUpdateCheckResponse(KioskPolicy policy, bool available)
+    {
+        return new
+        {
+            available,
+            currentVersion = GetCurrentVersion(),
+            version = policy.Updates.LastAvailableVersion,
+            message = policy.Updates.LastCheckMessage,
+            autoInstallEnabled = false
+        };
+    }
+
+    private static bool IsNewerVersion(string candidate, string current)
+    {
+        if (Version.TryParse(candidate, out var candidateVersion) && Version.TryParse(current, out var currentVersion))
+        {
+            return candidateVersion > currentVersion;
+        }
+
+        return !string.Equals(candidate, current, StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static string GetCurrentVersion()
+    {
+        return Assembly.GetExecutingAssembly().GetName().Version?.ToString(3) ?? "5.0.0";
+    }
+
+    private static string GetConfiguredDeviceName(DeviceIdentity identity, KioskPolicy policy)
+    {
+        if (!string.IsNullOrWhiteSpace(policy.Remote.DeviceAlias))
+        {
+            return policy.Remote.DeviceAlias;
+        }
+
+        return string.IsNullOrWhiteSpace(identity.DeviceName) ? Environment.MachineName : identity.DeviceName;
     }
 
     private static DeviceIdentity LoadOrCreateDeviceIdentity()
@@ -639,5 +778,14 @@ public sealed class LocalManagementServer
         public string DeviceId { get; set; } = "";
         public string DeviceName { get; set; } = "";
         public DateTimeOffset CreatedAt { get; set; }
+    }
+
+    private sealed class UpdateManifest
+    {
+        public string Version { get; set; } = "";
+        public string Channel { get; set; } = "";
+        public string InstallerUrl { get; set; } = "";
+        public string Sha256 { get; set; } = "";
+        public string ReleaseNotes { get; set; } = "";
     }
 }

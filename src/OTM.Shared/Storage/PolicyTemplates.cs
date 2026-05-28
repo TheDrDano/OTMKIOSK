@@ -41,9 +41,14 @@ public static class PolicyTemplates
         ];
         policy.AllowedApps =
         [
-            new AppRule { DisplayName = "Approved Testing Browser", ProcessName = "msedge.exe" },
             new AppRule { DisplayName = "Testing App", ProcessName = "testing.exe" }
         ];
+        policy.BlockedApps.AddRange(
+        [
+            new AppRule { DisplayName = "Microsoft Edge", ProcessName = "msedge.exe" },
+            new AppRule { DisplayName = "Google Chrome", ProcessName = "chrome.exe" },
+            new AppRule { DisplayName = "Firefox", ProcessName = "firefox.exe" }
+        ]);
         policy.Browser.AllowedSites =
         [
             "https://testing.example.edu/*"

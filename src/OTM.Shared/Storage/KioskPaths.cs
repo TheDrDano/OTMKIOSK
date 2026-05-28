@@ -10,4 +10,5 @@ public static class KioskPaths
     public static string RuntimePath => Path.Combine(RootDirectory, "runtime.json");
     public static string DeviceIdentityPath => Path.Combine(RootDirectory, "device-identity.json");
     public static string QuarantineDirectory => Path.Combine(RootDirectory, "Quarantine");
+    public static string WebView2UserDataDirectory => Path.Combine(RootDirectory, "WebView2");
 }

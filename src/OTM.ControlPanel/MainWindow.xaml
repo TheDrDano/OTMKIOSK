@@ -115,8 +115,27 @@
                     <StackPanel>
                         <TextBlock Text="Remote Manager" FontSize="16" FontWeight="SemiBold" Margin="0,0,0,8" />
                         <TextBlock x:Name="RemoteStatusText" Text="LAN pairing not loaded." Foreground="#64748B" FontSize="12" TextWrapping="Wrap" Margin="0,0,0,10" />
+                        <CheckBox x:Name="RemoteEnabledCheckBox" Content="Enable remote manager" Margin="0,0,0,8" />
+                        <TextBlock Text="Server URL" Foreground="#344756" FontWeight="SemiBold" FontSize="12" />
+                        <TextBox x:Name="RemoteServerUrlBox" Height="32" Margin="0,3,0,8" ToolTip="Example: https://manager.simplekioskos.com" />
+                        <TextBlock Text="Organization ID" Foreground="#344756" FontWeight="SemiBold" FontSize="12" />
+                        <TextBox x:Name="RemoteOrganizationBox" Height="32" Margin="0,3,0,8" />
+                        <TextBlock Text="Device name" Foreground="#344756" FontWeight="SemiBold" FontSize="12" />
+                        <TextBox x:Name="RemoteDeviceAliasBox" Height="32" Margin="0,3,0,8" />
+                        <CheckBox x:Name="AllowRemotePolicyPushCheckBox" Content="Allow remote policy changes" Margin="0,0,0,6" />
+                        <CheckBox x:Name="AllowRemoteUnlockCheckBox" Content="Allow remote unlock" Margin="0,0,0,6" />
+                        <CheckBox x:Name="AllowRemoteUpdateCheckBox" Content="Allow remote update approval" Margin="0,0,0,10" />
+                        <TextBlock Text="Updates" FontWeight="SemiBold" Margin="0,2,0,8" />
+                        <CheckBox x:Name="UpdateEnabledCheckBox" Content="Check for updates" Margin="0,0,0,8" />
+                        <TextBlock Text="Manifest URL" Foreground="#344756" FontWeight="SemiBold" FontSize="12" />
+                        <TextBox x:Name="UpdateManifestUrlBox" Height="32" Margin="0,3,0,8" ToolTip="HTTPS JSON manifest with version and installerUrl" />
+                        <TextBlock Text="Channel" Foreground="#344756" FontWeight="SemiBold" FontSize="12" />
+                        <TextBox x:Name="UpdateChannelBox" Height="32" Margin="0,3,0,10" />
+                        <Button Content="Save Remote Settings" Style="{StaticResource SecondaryButton}" Margin="0,0,0,8" Click="SaveRemoteSettings_Click" />
+                        <Button Content="Check Updates" Style="{StaticResource SecondaryButton}" Margin="0,0,0,8" Click="CheckUpdates_Click" />
                         <Button Content="Generate Pairing Code" Style="{StaticResource SecondaryButton}" Click="GeneratePairingCode_Click" />
                         <TextBox x:Name="PairingCodeBox" IsReadOnly="True" Height="34" Margin="0,10,0,0" FontSize="15" FontWeight="SemiBold" HorizontalContentAlignment="Center" />
+                        <TextBlock x:Name="UpdateStatusText" Text="" Foreground="#64748B" FontSize="12" TextWrapping="Wrap" Margin="0,10,0,0" />
                     </StackPanel>
                 </Border>
 

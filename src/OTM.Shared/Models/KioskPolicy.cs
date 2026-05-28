@@ -12,6 +12,8 @@ public sealed class KioskPolicy
     public EnforcementPolicy Enforcement { get; set; } = new();
     public RestrictionPolicy Restrictions { get; set; } = new();
     public BrowserPolicy Browser { get; set; } = new();
+    public RemoteManagementPolicy Remote { get; set; } = new();
+    public UpdatePolicy Updates { get; set; } = new();
     public List<KioskLauncher> Launchers { get; set; } = [];
     public List<AppRule> AllowedApps { get; set; } = [];
     public List<AppRule> BlockedApps { get; set; } = [];
@@ -65,6 +67,31 @@ public sealed class BrowserPolicy
         "youtube.com", "youtu.be", "tiktok.com", "instagram.com", "facebook.com",
         "x.com", "twitter.com", "reddit.com", "discord.com"
     ];
+}
+
+public sealed class RemoteManagementPolicy
+{
+    public bool Enabled { get; set; }
+    public string ServerUrl { get; set; } = "";
+    public string OrganizationId { get; set; } = "";
+    public string DeviceAlias { get; set; } = "";
+    public bool AllowRemotePolicyPush { get; set; }
+    public bool AllowRemoteUnlock { get; set; }
+    public bool AllowRemoteUpdate { get; set; }
+    public DateTimeOffset? LastSyncAt { get; set; }
+}
+
+public sealed class UpdatePolicy
+{
+    public bool Enabled { get; set; }
+    public string Channel { get; set; } = "stable";
+    public string ManifestUrl { get; set; } = "";
+    public bool AutoDownload { get; set; }
+    public bool AutoInstall { get; set; }
+    public int CheckIntervalHours { get; set; } = 24;
+    public DateTimeOffset? LastCheckedAt { get; set; }
+    public string LastCheckMessage { get; set; } = "";
+    public string LastAvailableVersion { get; set; } = "";
 }
 
 public sealed class AdminCredential

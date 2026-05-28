@@ -234,6 +234,22 @@ Example profile JSON files are available in `profiles\`.
 
 The native control panel and local web manager both include **Simple App Rules** so admins can allow or block apps without editing policy JSON. Enter a display name, process name such as `chrome.exe`, or browse/type an EXE path, then choose **Allow App** or **Block App**. Allowed apps can also be added to the fullscreen kiosk launcher automatically.
 
+## Remote Management and Updates
+
+Remote management is optional and off by default. The control panel and local web manager can now store a remote server URL, organization ID, device alias, and explicit permissions for remote policy changes, remote unlock, and remote update approval. The service exposes local foundation endpoints at `/api/device`, `/api/remote/status`, and `/api/device/pairing-code`.
+
+Update checks are also optional and off by default. Configure an HTTPS manifest URL, then use **Check Updates**. The MVP only checks and reports available versions; it does not automatically download or run remote installers yet. A manifest should look like:
+
+```json
+{
+  "version": "5.1.0",
+  "channel": "stable",
+  "installerUrl": "https://example.com/OTM-Kiosk-Setup-5.1.0.exe",
+  "sha256": "installer-sha256-hash",
+  "releaseNotes": "Short release notes"
+}
+```
+
 ## Security Notes
 
-This is an MVP foundation, not a complete enterprise hardening product yet. The service currently focuses on process/download enforcement and local management durability. Production hardening should add signed binaries, tamper protection, Windows policy integration, audited installer packaging, stricter recovery ceremonies, Edge/Chrome policy synchronization from SQLite policy state, USB device enforcement, and integration tests on clean Windows images.
+This is an MVP foundation, not a complete enterprise hardening product yet. The service currently focuses on process/download enforcement and local management durability. Production hardening should add signed binaries, tamper protection, Windows policy integration, audited installer packaging, stricter recovery ceremonies, Edge/Chrome policy synchronization from SQLite policy state, USB device enforcement, signed update manifest validation, remote policy audit trails, and integration tests on clean Windows images.

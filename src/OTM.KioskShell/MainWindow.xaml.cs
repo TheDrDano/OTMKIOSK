@@ -11,6 +11,7 @@ using System.Windows.Media;
 using System.Windows.Threading;
 using Microsoft.Web.WebView2.Core;
 using Otm.Kiosk.Shared.Models;
+using Otm.Kiosk.Shared.Storage;
 using Forms = System.Windows.Forms;
 
 namespace Otm.Kiosk.Shell;
@@ -79,6 +80,7 @@ public partial class MainWindow : Window
     {
         if (await AdminPostAsync("/api/lock", "{}"))
         {
+            ForceShellLock(clearManagedApps: true);
             ShowNotice("Locked", "Kiosk restrictions are active.", NoticeKind.Success);
             await RefreshAsync();
         }
@@ -104,10 +106,28 @@ public partial class MainWindow : Window
 
     private void ShowShell_Click(object sender, RoutedEventArgs e)
     {
-        _yieldFocusUntil = DateTimeOffset.UtcNow.AddSeconds(10);
-        Topmost = false;
+        ForceShellLock(clearManagedApps: false);
+    }
+
+    private void ForceShellLock(bool clearManagedApps)
+    {
+        _yieldFocusUntil = DateTimeOffset.MinValue;
+        _appOwnsDisplays = false;
+        if (clearManagedApps)
+        {
+            _managedApps.Clear();
+            RefreshManagedTaskbar();
+        }
+
+        AdminPanel.Visibility = Visibility.Collapsed;
+        AdminCornerButton.Visibility = Visibility.Visible;
         Show();
+        PlaceOnPrimaryScreen();
+        WindowState = WindowState.Maximized;
+        Topmost = true;
+        SetSecondaryCoversVisible(true);
         Activate();
+        Focus();
     }
 
     private void Manager_Click(object sender, RoutedEventArgs e)
@@ -209,7 +229,7 @@ public partial class MainWindow : Window
         }
         catch (Exception ex)
         {
-            ShowNotice("WebView2 Runtime required", $"Install Microsoft Edge WebView2 Runtime to use embedded exam sites. {ex.Message}", NoticeKind.Error);
+            ShowNotice("WebView2 unavailable", GetWebView2StartupError(ex), NoticeKind.Error);
             return;
         }
         _activeWebAllowedSites = launcher.AllowedSites.Count > 0 ? launcher.AllowedSites : [launcher.Url];
@@ -286,7 +306,11 @@ public partial class MainWindow : Window
             return;
         }
 
-        await ExamBrowser.EnsureCoreWebView2Async();
+        Directory.CreateDirectory(KioskPaths.WebView2UserDataDirectory);
+        var environment = await CoreWebView2Environment.CreateAsync(
+            browserExecutableFolder: null,
+            userDataFolder: KioskPaths.WebView2UserDataDirectory);
+        await ExamBrowser.EnsureCoreWebView2Async(environment);
         var webView = ExamBrowser.CoreWebView2;
         if (webView is null)
         {
@@ -302,6 +326,19 @@ public partial class MainWindow : Window
         webView.NavigationStarting += Browser_NavigationStarting;
         webView.NewWindowRequested += Browser_NewWindowRequested;
         webView.DownloadStarting += Browser_DownloadStarting;
+    }
+
+    private static string GetWebView2StartupError(Exception ex)
+    {
+        if (ex is UnauthorizedAccessException
+            || ex.HResult == unchecked((int)0x80070005)
+            || ex.Message.Contains("0x80070005", StringComparison.OrdinalIgnoreCase)
+            || ex.Message.Contains("E_ACCESSDENIED", StringComparison.OrdinalIgnoreCase))
+        {
+            return $"WebView2 could not access its profile folder at {KioskPaths.WebView2UserDataDirectory}. Run the installer as Administrator or make sure the current user can write to this folder. Details: {ex.Message}";
+        }
+
+        return $"Install Microsoft Edge WebView2 Runtime to use embedded exam sites. Details: {ex.Message}";
     }
 
     private void Browser_NavigationStarting(object? sender, CoreWebView2NavigationStartingEventArgs e)
