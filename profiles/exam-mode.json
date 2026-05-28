@@ -11,6 +11,16 @@
   "allowedApps": [
     { "displayName": "Approved Testing Browser", "processName": "msedge.exe" }
   ],
+  "launchers": [
+    {
+      "id": "exam-web",
+      "displayName": "Start Exam",
+      "type": "web",
+      "workspaceMode": "exam",
+      "url": "https://testing.example.edu/",
+      "allowedSites": ["https://testing.example.edu/*"]
+    }
+  ],
   "browser": {
     "enabled": true,
     "whitelistOnly": true,

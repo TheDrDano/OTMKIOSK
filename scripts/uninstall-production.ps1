@@ -34,4 +34,10 @@ if ($RemoveData) {
     Write-Host "Preserved local data at $env:ProgramData\OTM Kiosk."
 }
 
+$startupShortcut = "$env:ProgramData\Microsoft\Windows\Start Menu\Programs\Startup\OTM Kiosk Shell.lnk"
+if (Test-Path $startupShortcut) {
+    Remove-Item -LiteralPath $startupShortcut -Force
+    Write-Host "Removed kiosk shell startup shortcut."
+}
+
 Write-Host "OTM Kiosk production uninstall complete."

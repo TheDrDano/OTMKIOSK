@@ -108,6 +108,50 @@ public sealed class LocalManagementServer
                 return;
             }
 
+            if (path.Equals("/api/kiosk/launchers", StringComparison.OrdinalIgnoreCase))
+            {
+                await WriteJsonAsync(response, GetKioskLaunchers());
+                return;
+            }
+
+            if (path.Equals("/api/kiosk/launch", StringComparison.OrdinalIgnoreCase) && request.HttpMethod == "POST")
+            {
+                var launchRequest = await ReadJsonAsync<KioskLaunchRequest>(request);
+                var launcher = FindKioskLauncher(launchRequest?.Id, launchRequest?.DisplayName);
+                if (launcher is null)
+                {
+                    await BadRequest(response, "Launcher is not approved by the current policy.");
+                    return;
+                }
+
+                _runtime.Log("Info", "KioskLaunchRequested", $"Kiosk launcher selected: {launcher.DisplayName}", launcher.ProcessName, launcher.Path ?? launcher.Url);
+                await WriteJsonAsync(response, launcher);
+                return;
+            }
+
+            if (path.Equals("/api/kiosk/violations", StringComparison.OrdinalIgnoreCase) && request.HttpMethod == "GET")
+            {
+                var since = DateTimeOffset.TryParse(request.QueryString["since"], out var parsed)
+                    ? parsed
+                    : DateTimeOffset.UtcNow.AddMinutes(-5);
+                await WriteJsonAsync(response, GetKioskViolations(since));
+                return;
+            }
+
+            if (path.Equals("/api/kiosk/violation", StringComparison.OrdinalIgnoreCase) && request.HttpMethod == "POST")
+            {
+                var violation = await ReadJsonAsync<KioskViolationRequest>(request);
+                if (violation is null || string.IsNullOrWhiteSpace(violation.Message))
+                {
+                    await BadRequest(response, "Violation message required.");
+                    return;
+                }
+
+                _runtime.Log("Warning", violation.EventType ?? "KioskViolation", violation.Message, path: violation.Path);
+                await WriteJsonAsync(response, new { ok = true });
+                return;
+            }
+
             if (path.Equals("/api/templates/exam-mode", StringComparison.OrdinalIgnoreCase))
             {
                 if (request.HttpMethod == "GET")
@@ -261,6 +305,101 @@ public sealed class LocalManagementServer
         return authorized;
     }
 
+    private IReadOnlyList<KioskLauncher> GetKioskLaunchers()
+    {
+        var policy = _runtime.GetPolicy();
+        if (policy.Launchers.Count > 0)
+        {
+            return policy.Launchers
+                .Where(launcher => !string.IsNullOrWhiteSpace(launcher.DisplayName))
+                .Select(NormalizeLauncher)
+                .OrderByDescending(launcher => launcher.Required)
+                .ThenBy(launcher => launcher.DisplayName)
+                .ToList();
+        }
+
+        return policy.RequiredApps
+            .Concat(policy.AllowedApps)
+            .Where(app => !string.IsNullOrWhiteSpace(app.DisplayName) && !string.IsNullOrWhiteSpace(app.ProcessName))
+            .GroupBy(app => app.DisplayName, StringComparer.OrdinalIgnoreCase)
+            .Select(group =>
+            {
+                var app = group.First();
+                return new KioskLauncher
+                {
+                    Id = CreateLauncherId(app.DisplayName),
+                    DisplayName = app.DisplayName,
+                    Type = KioskLauncherTypes.App,
+                    WorkspaceMode = KioskWorkspaceModes.Lab,
+                    ProcessName = app.ProcessName,
+                    Path = app.Path,
+                    Arguments = app.Arguments,
+                    Required = app.Required
+                };
+            })
+            .OrderByDescending(app => app.Required)
+            .ThenBy(app => app.DisplayName)
+            .ToList();
+    }
+
+    private KioskLauncher? FindKioskLauncher(string? id, string? displayName)
+    {
+        return GetKioskLaunchers().FirstOrDefault(launcher =>
+            (!string.IsNullOrWhiteSpace(id) && string.Equals(launcher.Id, id, StringComparison.OrdinalIgnoreCase))
+            || (!string.IsNullOrWhiteSpace(displayName) && string.Equals(launcher.DisplayName, displayName, StringComparison.OrdinalIgnoreCase)));
+    }
+
+    private IReadOnlyList<LogEntry> GetKioskViolations(DateTimeOffset since)
+    {
+        var violationTypes = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+        {
+            "BlockedProcess",
+            "WhitelistViolation",
+            "DownloadDeleted",
+            "DownloadQuarantined",
+            "DownloadBlockFailed",
+            "UnauthorizedLocalRequest",
+            "BlockedWebsite",
+            "KioskViolation"
+        };
+
+        return _logs.ReadLatest(500)
+            .Where(log => log.Timestamp >= since && violationTypes.Contains(log.EventType))
+            .OrderBy(log => log.Timestamp)
+            .ToList();
+    }
+
+    private static KioskLauncher NormalizeLauncher(KioskLauncher launcher)
+    {
+        if (string.IsNullOrWhiteSpace(launcher.Id))
+        {
+            launcher.Id = CreateLauncherId(launcher.DisplayName);
+        }
+
+        if (string.IsNullOrWhiteSpace(launcher.Type))
+        {
+            launcher.Type = string.IsNullOrWhiteSpace(launcher.Url) ? KioskLauncherTypes.App : KioskLauncherTypes.Web;
+        }
+
+        if (string.IsNullOrWhiteSpace(launcher.WorkspaceMode))
+        {
+            launcher.WorkspaceMode = string.Equals(launcher.Type, KioskLauncherTypes.Web, StringComparison.OrdinalIgnoreCase)
+                ? KioskWorkspaceModes.Exam
+                : KioskWorkspaceModes.Lab;
+        }
+
+        return launcher;
+    }
+
+    private static string CreateLauncherId(string displayName)
+    {
+        var chars = displayName
+            .ToLowerInvariant()
+            .Select(ch => char.IsLetterOrDigit(ch) ? ch : '-')
+            .ToArray();
+        return new string(chars).Trim('-');
+    }
+
     private static async Task<T?> ReadJsonAsync<T>(HttpListenerRequest request)
     {
         using var reader = new StreamReader(request.InputStream, request.ContentEncoding);
@@ -318,5 +457,18 @@ public sealed class LocalManagementServer
     private sealed class PasswordChangeRequest
     {
         public string NewPassword { get; set; } = "";
+    }
+
+    private sealed class KioskLaunchRequest
+    {
+        public string? Id { get; set; }
+        public string? DisplayName { get; set; }
+    }
+
+    private sealed class KioskViolationRequest
+    {
+        public string? EventType { get; set; }
+        public string Message { get; set; } = "";
+        public string? Path { get; set; }
     }
 }

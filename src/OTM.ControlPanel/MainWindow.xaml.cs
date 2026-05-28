@@ -3,6 +3,8 @@ using System.Net.Http.Json;
 using System.Text;
 using System.Text.Json;
 using System.Windows;
+using System.Windows.Media;
+using System.Windows.Threading;
 using Otm.Kiosk.Shared.Models;
 
 namespace Otm.Kiosk.ControlPanel;
@@ -16,11 +18,17 @@ public partial class MainWindow : Window
     };
 
     private readonly HttpClient _client = new() { BaseAddress = new Uri("http://localhost:47821") };
+    private readonly DispatcherTimer _noticeTimer = new() { Interval = TimeSpan.FromSeconds(5) };
 
     public MainWindow()
     {
         InitializeComponent();
         Loaded += async (_, _) => await RefreshAsync();
+        _noticeTimer.Tick += (_, _) =>
+        {
+            NoticePanel.Visibility = Visibility.Collapsed;
+            _noticeTimer.Stop();
+        };
     }
 
     private async void Refresh_Click(object sender, RoutedEventArgs e) => await RefreshAsync();
@@ -39,7 +47,7 @@ public partial class MainWindow : Window
         var newPin = NewPinBox.Password;
         if (newPin.Length < 6)
         {
-            MessageBox.Show(this, "PIN must be at least 6 characters.", "OTM Kiosk", MessageBoxButton.OK, MessageBoxImage.Warning);
+            ShowNotice("PIN too short", "PIN must be at least 6 characters.", NoticeKind.Warning);
             return;
         }
 
@@ -78,6 +86,12 @@ public partial class MainWindow : Window
     {
         try
         {
+            if (string.IsNullOrWhiteSpace(PinBox.Password))
+            {
+                ShowNotice("Admin PIN required", "Enter the admin PIN before using admin actions.", NoticeKind.Info);
+                return;
+            }
+
             var request = new HttpRequestMessage(method, url)
             {
                 Content = new StringContent(body, Encoding.UTF8, "application/json")
@@ -87,8 +101,8 @@ public partial class MainWindow : Window
             var response = await _client.SendAsync(request);
             if (!response.IsSuccessStatusCode)
             {
-                var message = await response.Content.ReadAsStringAsync();
-                MessageBox.Show(this, message, "OTM Kiosk", MessageBoxButton.OK, MessageBoxImage.Warning);
+                var message = await ReadApiErrorAsync(response);
+                ShowNotice("Admin action blocked", message, NoticeKind.Warning);
                 return;
             }
 
@@ -96,16 +110,69 @@ public partial class MainWindow : Window
         }
         catch (Exception ex)
         {
-            MessageBox.Show(this, ex.Message, "OTM Kiosk", MessageBoxButton.OK, MessageBoxImage.Error);
+            ShowNotice("Request failed", ex.Message, NoticeKind.Error);
         }
     }
 
     private async Task<T?> GetAdminJsonAsync<T>(string url)
     {
+        if (string.IsNullOrWhiteSpace(PinBox.Password))
+        {
+            throw new HttpRequestException("Admin PIN required.", null, System.Net.HttpStatusCode.Unauthorized);
+        }
+
         var request = new HttpRequestMessage(HttpMethod.Get, url);
         request.Headers.Add("X-OTM-Admin-PIN", PinBox.Password);
         var response = await _client.SendAsync(request);
         response.EnsureSuccessStatusCode();
         return await response.Content.ReadFromJsonAsync<T>(JsonOptions);
+    }
+
+    private static async Task<string> ReadApiErrorAsync(HttpResponseMessage response)
+    {
+        var body = await response.Content.ReadAsStringAsync();
+        if (string.IsNullOrWhiteSpace(body))
+        {
+            return $"{(int)response.StatusCode} {response.ReasonPhrase}";
+        }
+
+        try
+        {
+            using var document = JsonDocument.Parse(body);
+            if (document.RootElement.TryGetProperty("error", out var error) && error.ValueKind == JsonValueKind.String)
+            {
+                return error.GetString() ?? "Request failed.";
+            }
+        }
+        catch
+        {
+            // Fall back to plain response text below.
+        }
+
+        return body.Trim();
+    }
+
+    private void ShowNotice(string title, string message, NoticeKind kind)
+    {
+        NoticeTitle.Text = title;
+        NoticeText.Text = message;
+        NoticeAccent.Background = kind switch
+        {
+            NoticeKind.Success => new SolidColorBrush(Color.FromRgb(31, 138, 112)),
+            NoticeKind.Warning => new SolidColorBrush(Color.FromRgb(191, 120, 38)),
+            NoticeKind.Error => new SolidColorBrush(Color.FromRgb(159, 45, 45)),
+            _ => new SolidColorBrush(Color.FromRgb(23, 107, 135))
+        };
+        NoticePanel.Visibility = Visibility.Visible;
+        _noticeTimer.Stop();
+        _noticeTimer.Start();
+    }
+
+    private enum NoticeKind
+    {
+        Info,
+        Success,
+        Warning,
+        Error
     }
 }

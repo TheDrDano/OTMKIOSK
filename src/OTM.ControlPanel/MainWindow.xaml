@@ -106,5 +106,26 @@
                 </TabItem>
             </TabControl>
         </Grid>
+
+        <Border x:Name="NoticePanel"
+                Grid.RowSpan="2"
+                Visibility="Collapsed"
+                HorizontalAlignment="Center"
+                VerticalAlignment="Top"
+                MaxWidth="620"
+                Margin="24"
+                Background="#F7FAFC"
+                BorderBrush="#C8D4DE"
+                BorderThickness="1"
+                CornerRadius="8"
+                Padding="16">
+            <DockPanel>
+                <Border x:Name="NoticeAccent" DockPanel.Dock="Left" Width="5" Background="#176B87" CornerRadius="3" Margin="0,0,14,0" />
+                <StackPanel>
+                    <TextBlock x:Name="NoticeTitle" Text="Notice" Foreground="#17202A" FontWeight="SemiBold" FontSize="16" />
+                    <TextBlock x:Name="NoticeText" Text="" Foreground="#405466" TextWrapping="Wrap" Margin="0,4,0,0" />
+                </StackPanel>
+            </DockPanel>
+        </Border>
     </Grid>
 </Window>

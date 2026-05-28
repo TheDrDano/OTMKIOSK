@@ -1,0 +1,180 @@
+<Window x:Class="Otm.Kiosk.Shell.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:wv2="clr-namespace:Microsoft.Web.WebView2.Wpf;assembly=Microsoft.Web.WebView2.Wpf"
+        Title="SimpleKioskOS"
+        WindowStyle="None"
+        WindowState="Maximized"
+        ResizeMode="NoResize"
+        Topmost="True"
+        Background="#090D12"
+        Closing="Window_Closing"
+        Deactivated="Window_Deactivated"
+        PreviewKeyDown="Window_PreviewKeyDown">
+    <Window.Resources>
+        <Style TargetType="Button">
+            <Setter Property="MinHeight" Value="42" />
+            <Setter Property="Padding" Value="14,0" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="Cursor" Value="Hand" />
+        </Style>
+        <Style x:Key="LauncherButton" TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
+            <Setter Property="Background" Value="#17242E" />
+            <Setter Property="Foreground" Value="#F7FAFC" />
+            <Setter Property="BorderBrush" Value="#314B5E" />
+            <Setter Property="HorizontalContentAlignment" Value="Left" />
+            <Setter Property="MinHeight" Value="58" />
+            <Setter Property="FontSize" Value="15" />
+        </Style>
+        <Style x:Key="SecondaryButton" TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
+            <Setter Property="Background" Value="#FFFFFF" />
+            <Setter Property="Foreground" Value="#176B87" />
+            <Setter Property="BorderBrush" Value="#B8C7D2" />
+        </Style>
+        <Style x:Key="DangerButton" TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
+            <Setter Property="Background" Value="#9F2D2D" />
+            <Setter Property="Foreground" Value="White" />
+            <Setter Property="BorderBrush" Value="#812424" />
+        </Style>
+    </Window.Resources>
+
+    <Grid x:Name="Root">
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="292" />
+            <ColumnDefinition Width="*" />
+        </Grid.ColumnDefinitions>
+
+        <Border Grid.Column="0" Background="#0E151C" BorderBrush="#233746" BorderThickness="0,0,1,0">
+            <Grid Margin="22">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="*" />
+                    <RowDefinition Height="Auto" />
+                </Grid.RowDefinitions>
+
+                <StackPanel>
+                    <Image Source="Assets/simplekioskos_side.png" Width="238" Height="58" Stretch="Uniform" HorizontalAlignment="Left" />
+                    <TextBlock Text="Secure workspace" Foreground="White" FontSize="19" FontWeight="SemiBold" Margin="0,16,0,0" />
+                    <TextBlock x:Name="StatusText" Text="Device locked" Foreground="#AFC1CF" FontSize="13" TextWrapping="Wrap" Margin="1,4,0,0" />
+                </StackPanel>
+
+                <Border Grid.Row="1" Background="#121D26" BorderBrush="#233746" BorderThickness="1" CornerRadius="8" Padding="12" Margin="0,22,0,14">
+                    <StackPanel>
+                        <TextBlock Text="Approved Launchers" Foreground="#D7E1EA" FontWeight="SemiBold" />
+                        <TextBlock Text="Apps and exam sites allowed by this policy." Foreground="#6F8494" FontSize="12" TextWrapping="Wrap" Margin="0,4,0,0" />
+                    </StackPanel>
+                </Border>
+
+                <ScrollViewer Grid.Row="2" VerticalScrollBarVisibility="Auto">
+                    <ItemsControl x:Name="LaunchersList">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <Button Content="{Binding DisplayName}"
+                                        Style="{StaticResource LauncherButton}"
+                                        Margin="0,0,0,10"
+                                        Tag="{Binding}"
+                                        Click="Launch_Click" />
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </ScrollViewer>
+
+                <StackPanel Grid.Row="3">
+                    <Button x:Name="AdminCornerButton"
+                            Content="Admin"
+                            Style="{StaticResource SecondaryButton}"
+                            Click="ToggleAdmin_Click" />
+                    <TextBlock Text="Local-first controls work offline." Foreground="#6F8494" FontSize="12" TextWrapping="Wrap" Margin="0,12,0,0" />
+                </StackPanel>
+            </Grid>
+        </Border>
+
+        <Grid Grid.Column="1">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="*" />
+            </Grid.RowDefinitions>
+
+            <DockPanel Grid.Row="0" Margin="26,22,26,14">
+                <StackPanel DockPanel.Dock="Left">
+                    <TextBlock x:Name="WorkspaceTitle" Text="Locked Workspace" Foreground="White" FontSize="28" FontWeight="SemiBold" />
+                    <TextBlock x:Name="WorkspaceSubtitle" Text="Choose an approved app or exam site from the left." Foreground="#AFC1CF" FontSize="14" Margin="1,4,0,0" />
+                </StackPanel>
+                <Border DockPanel.Dock="Right" Background="#17242E" BorderBrush="#28404F" BorderThickness="1" CornerRadius="8" Padding="12,8">
+                    <TextBlock x:Name="ClockText" Foreground="#D7E1EA" FontSize="14" />
+                </Border>
+            </DockPanel>
+
+            <Grid Grid.Row="1" Margin="26,0,26,26">
+                <Border x:Name="IdleWorkspace" Background="#0E151C" BorderBrush="#233746" BorderThickness="1" CornerRadius="10">
+                    <Grid>
+                        <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center" MaxWidth="680">
+                            <Image Source="Assets/simplekioskos_bottom.png" Width="410" Height="245" Stretch="Uniform" />
+                            <TextBlock Text="This station is protected" Foreground="White" FontSize="42" FontWeight="SemiBold" TextAlignment="Center" Margin="0,18,0,0" />
+                            <TextBlock Text="Start an approved application or exam site from the launcher. Blocked activity will be stopped and logged locally." Foreground="#AFC1CF" FontSize="17" TextAlignment="Center" TextWrapping="Wrap" Margin="0,12,0,0" />
+                        </StackPanel>
+                    </Grid>
+                </Border>
+
+                <Border x:Name="WebWorkspace" Visibility="Collapsed" Background="Black" BorderBrush="#233746" BorderThickness="1" CornerRadius="10" ClipToBounds="True">
+                    <wv2:WebView2 x:Name="ExamBrowser" />
+                </Border>
+
+                <Border x:Name="AppWorkspace" Visibility="Collapsed" Background="#101820" BorderBrush="#233746" BorderThickness="1" CornerRadius="10" Padding="28">
+                    <Grid>
+                        <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center" MaxWidth="760">
+                            <Image Source="Assets/simplekioskos_side.png" Width="330" Height="82" Stretch="Uniform" />
+                            <TextBlock x:Name="AppWorkspaceTitle" Text="Application workspace active" Foreground="White" FontSize="34" FontWeight="SemiBold" TextAlignment="Center" Margin="0,24,0,0" />
+                            <TextBlock x:Name="AppWorkspaceText" Text="Approved apps can remain open together. Use the launcher to start another app." Foreground="#AFC1CF" FontSize="16" TextAlignment="Center" TextWrapping="Wrap" Margin="0,10,0,0" />
+                        </StackPanel>
+                    </Grid>
+                </Border>
+            </Grid>
+        </Grid>
+
+        <Border x:Name="AdminPanel" Grid.Column="1" Visibility="Collapsed" HorizontalAlignment="Right" VerticalAlignment="Bottom" Width="380" Margin="0,0,30,30" Background="#F7FAFC" BorderBrush="#C8D4DE" BorderThickness="1" CornerRadius="8" Padding="16">
+            <StackPanel>
+                <DockPanel Margin="0,0,0,12">
+                    <TextBlock Text="Admin" FontSize="17" FontWeight="SemiBold" Foreground="#17202A" />
+                    <Button DockPanel.Dock="Right" Content="Hide" Width="76" Height="32" Style="{StaticResource SecondaryButton}" Click="ToggleAdmin_Click" />
+                </DockPanel>
+                <Button Content="Refresh Status" Margin="0,0,0,10" Style="{StaticResource SecondaryButton}" Click="Refresh_Click" />
+                <TextBlock Text="PIN" Foreground="#344756" FontWeight="SemiBold" Margin="0,0,0,4" />
+                <PasswordBox x:Name="PinBox" Height="34" Margin="0,0,0,10" />
+                <UniformGrid Columns="2" Rows="2">
+                    <Button Content="Unlock 15m" Margin="0,0,6,6" Style="{StaticResource SecondaryButton}" Click="Unlock_Click" />
+                    <Button Content="Lock" Margin="6,0,0,6" Style="{StaticResource DangerButton}" Click="Lock_Click" />
+                    <Button Content="Manager" Margin="0,6,6,0" Style="{StaticResource SecondaryButton}" Click="Manager_Click" />
+                    <Button Content="Control Panel" Margin="6,6,0,0" Style="{StaticResource SecondaryButton}" Click="ControlPanel_Click" />
+                </UniformGrid>
+                <Separator Margin="0,14,0,12" />
+                <TextBlock Text="Remote Manager" FontWeight="SemiBold" Foreground="#17202A" />
+                <TextBlock Text="Offline local mode. Pairing will be enabled when cloud management is added." Foreground="#64748B" TextWrapping="Wrap" FontSize="12" Margin="0,4,0,8" />
+                <TextBox Text="Not connected" Height="32" IsReadOnly="True" Foreground="#64748B" />
+            </StackPanel>
+        </Border>
+
+        <Border x:Name="NoticePanel"
+                Grid.ColumnSpan="2"
+                Visibility="Collapsed"
+                HorizontalAlignment="Center"
+                VerticalAlignment="Top"
+                MaxWidth="720"
+                Margin="24"
+                Background="#F7FAFC"
+                BorderBrush="#C8D4DE"
+                BorderThickness="1"
+                CornerRadius="8"
+                Padding="16">
+            <DockPanel>
+                <Border x:Name="NoticeAccent" DockPanel.Dock="Left" Width="5" Background="#176B87" CornerRadius="3" Margin="0,0,14,0" />
+                <StackPanel>
+                    <TextBlock x:Name="NoticeTitle" Text="Notice" Foreground="#17202A" FontWeight="SemiBold" FontSize="16" />
+                    <TextBlock x:Name="NoticeText" Text="" Foreground="#405466" TextWrapping="Wrap" Margin="0,4,0,0" />
+                </StackPanel>
+            </DockPanel>
+        </Border>
+    </Grid>
+</Window>

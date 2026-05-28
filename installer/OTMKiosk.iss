@@ -5,6 +5,7 @@
 #endif
 #define MyAppPublisher "OTM"
 #define MyAppExeName "OTM.ControlPanel.exe"
+#define ShellExeName "OTM.KioskShell.exe"
 #define ServiceExeName "OTM.Service.exe"
 
 [Setup]
@@ -32,21 +33,28 @@ Name: "english"; MessagesFile: "compiler:Default.isl"
 
 [Tasks]
 Name: "desktopicon"; Description: "Create a desktop shortcut"; GroupDescription: "Shortcuts:"
+Name: "startupshell"; Description: "Start fullscreen kiosk shell when Windows signs in"; GroupDescription: "Kiosk shell:"; Flags: unchecked
 
 [Files]
 Source: "..\artifacts\stage\service\*"; DestDir: "{app}\Service"; Flags: ignoreversion recursesubdirs createallsubdirs
 Source: "..\artifacts\stage\control-panel\*"; DestDir: "{app}\ControlPanel"; Flags: ignoreversion recursesubdirs createallsubdirs
+Source: "..\artifacts\stage\kiosk-shell\*"; DestDir: "{app}\KioskShell"; Flags: ignoreversion recursesubdirs createallsubdirs
 Source: "..\artifacts\stage\recovery\*"; DestDir: "{app}\Recovery"; Flags: ignoreversion recursesubdirs createallsubdirs
 Source: "..\scripts\uninstall-testing.ps1"; DestDir: "{app}\Scripts"; Flags: ignoreversion
 Source: "..\scripts\uninstall-production.ps1"; DestDir: "{app}\Scripts"; Flags: ignoreversion
+Source: "..\scripts\enable-kiosk-shell-startup.ps1"; DestDir: "{app}\Scripts"; Flags: ignoreversion
+Source: "..\scripts\disable-kiosk-shell-startup.ps1"; DestDir: "{app}\Scripts"; Flags: ignoreversion
+Source: "..\scripts\verify-signatures.ps1"; DestDir: "{app}\Scripts"; Flags: ignoreversion
 Source: "..\README.md"; DestDir: "{app}"; Flags: ignoreversion
 
 [Icons]
 Name: "{group}\OTM Kiosk Control Panel"; Filename: "{app}\ControlPanel\{#MyAppExeName}"
+Name: "{group}\OTM Kiosk Shell"; Filename: "{app}\KioskShell\{#ShellExeName}"
 Name: "{group}\OTM Kiosk Local Manager"; Filename: "http://localhost:47821"
 Name: "{group}\OTM Kiosk Recovery Tool"; Filename: "{app}\Recovery\OTM.RecoveryTool.exe"
 Name: "{group}\Uninstall OTM Kiosk"; Filename: "{uninstallexe}"
 Name: "{autodesktop}\OTM Kiosk"; Filename: "{app}\ControlPanel\{#MyAppExeName}"; Tasks: desktopicon
+Name: "{commonstartup}\OTM Kiosk Shell"; Filename: "{app}\KioskShell\{#ShellExeName}"; Tasks: startupshell
 
 [Run]
 Filename: "{cmd}"; Parameters: "/c sc.exe create OTMKioskService binPath= ""{app}\Service\{#ServiceExeName}"" start= auto DisplayName= ""OTM Kiosk Service"""; Flags: runhidden waituntilterminated
@@ -60,8 +68,20 @@ Filename: "{cmd}"; Parameters: "/c sc.exe stop OTMKioskService"; Flags: runhidde
 Filename: "{cmd}"; Parameters: "/c sc.exe delete OTMKioskService"; Flags: runhidden waituntilterminated
 
 [Code]
+function IsWebView2RuntimePresent(): Boolean;
+begin
+  Result :=
+    DirExists(ExpandConstant('{pf}\Microsoft\EdgeWebView\Application')) or
+    DirExists(ExpandConstant('{pf32}\Microsoft\EdgeWebView\Application')) or
+    FileExists(ExpandConstant('{sys}\MicrosoftEdgeWebView\msedgewebview2.exe'));
+end;
+
 function InitializeSetup(): Boolean;
 begin
+  if not IsWebView2RuntimePresent() then
+  begin
+    MsgBox('OTM Kiosk exam mode uses Microsoft Edge WebView2 Runtime. Install the Evergreen WebView2 Runtime before using embedded exam websites.', mbInformation, MB_OK);
+  end;
   Result := True;
 end;
 

@@ -12,6 +12,7 @@ public sealed class KioskPolicy
     public EnforcementPolicy Enforcement { get; set; } = new();
     public RestrictionPolicy Restrictions { get; set; } = new();
     public BrowserPolicy Browser { get; set; } = new();
+    public List<KioskLauncher> Launchers { get; set; } = [];
     public List<AppRule> AllowedApps { get; set; } = [];
     public List<AppRule> BlockedApps { get; set; } = [];
     public List<AppRule> RequiredApps { get; set; } = [];

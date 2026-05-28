@@ -77,8 +77,12 @@ public static class WebManagerHtml
   <script>
     const pin = () => document.getElementById('pin').value;
     const headers = () => ({ 'Content-Type': 'application/json', 'X-OTM-Admin-PIN': pin() });
-    async function getJson(url) { const r = await fetch(url); if (!r.ok) throw new Error(await r.text()); return r.json(); }
-    async function authed(url, options = {}) { const r = await fetch(url, { ...options, headers: headers() }); if (!r.ok) throw new Error(await r.text()); return r.json(); }
+    async function apiError(response) {
+      const text = await response.text();
+      try { return JSON.parse(text).error || text; } catch { return text || `${response.status} ${response.statusText}`; }
+    }
+    async function getJson(url) { const r = await fetch(url); if (!r.ok) throw new Error(await apiError(r)); return r.json(); }
+    async function authed(url, options = {}) { const r = await fetch(url, { ...options, headers: headers() }); if (!r.ok) throw new Error(await apiError(r)); return r.json(); }
     const pick = (obj, camel, pascal) => obj[camel] ?? obj[pascal];
     async function refresh() {
       const status = await getJson('/api/status');

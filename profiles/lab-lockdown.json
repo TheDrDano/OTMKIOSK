@@ -16,6 +16,13 @@
     { "displayName": "Microsoft PowerPoint", "processName": "powerpnt.exe" },
     { "displayName": "Approved Lab App", "processName": "labapp.exe" }
   ],
+  "launchers": [
+    { "id": "edge", "displayName": "Microsoft Edge", "type": "app", "workspaceMode": "lab", "processName": "msedge.exe", "path": "msedge.exe" },
+    { "id": "chrome", "displayName": "Google Chrome", "type": "app", "workspaceMode": "lab", "processName": "chrome.exe", "path": "chrome.exe" },
+    { "id": "word", "displayName": "Microsoft Word", "type": "app", "workspaceMode": "lab", "processName": "winword.exe", "path": "winword.exe" },
+    { "id": "excel", "displayName": "Microsoft Excel", "type": "app", "workspaceMode": "lab", "processName": "excel.exe", "path": "excel.exe" },
+    { "id": "powerpoint", "displayName": "Microsoft PowerPoint", "type": "app", "workspaceMode": "lab", "processName": "powerpnt.exe", "path": "powerpnt.exe" }
+  ],
   "blockedApps": [
     { "displayName": "Task Manager", "processName": "Taskmgr.exe" },
     { "displayName": "Command Prompt", "processName": "cmd.exe" },

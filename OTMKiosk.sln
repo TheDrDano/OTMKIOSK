@@ -10,6 +10,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "OTM.ControlPanel", "src\OTM
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "OTM.RecoveryTool", "src\OTM.RecoveryTool\OTM.RecoveryTool.csproj", "{6ED83E9C-1904-42AB-BA83-C97976788265}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "OTM.KioskShell", "src\OTM.KioskShell\OTM.KioskShell.csproj", "{F4B467DE-A6FC-4675-A89F-2E88D115AB74}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -32,5 +34,9 @@ Global
 		{6ED83E9C-1904-42AB-BA83-C97976788265}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{6ED83E9C-1904-42AB-BA83-C97976788265}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{6ED83E9C-1904-42AB-BA83-C97976788265}.Release|Any CPU.Build.0 = Release|Any CPU
+		{F4B467DE-A6FC-4675-A89F-2E88D115AB74}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F4B467DE-A6FC-4675-A89F-2E88D115AB74}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F4B467DE-A6FC-4675-A89F-2E88D115AB74}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{F4B467DE-A6FC-4675-A89F-2E88D115AB74}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal

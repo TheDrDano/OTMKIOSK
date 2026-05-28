@@ -1,7 +1,14 @@
 param(
     [string]$Configuration = "Release",
     [string]$Version = "0.1.0",
-    [switch]$FrameworkDependent
+    [switch]$FrameworkDependent,
+    [switch]$Sign,
+    [string]$CertificateThumbprint = $env:OTM_SIGN_CERT_THUMBPRINT,
+    [ValidateSet("CurrentUser", "LocalMachine")]
+    [string]$CertificateStore = $(if ($env:OTM_SIGN_CERT_STORE) { $env:OTM_SIGN_CERT_STORE } else { "CurrentUser" }),
+    [string]$PfxPath = $env:OTM_SIGN_PFX_PATH,
+    [string]$PfxPassword = $env:OTM_SIGN_PFX_PASSWORD,
+    [string]$TimestampUrl = $(if ($env:OTM_SIGN_TIMESTAMP_URL) { $env:OTM_SIGN_TIMESTAMP_URL } else { "http://timestamp.digicert.com" })
 )
 
 $ErrorActionPreference = "Stop"
@@ -60,7 +67,33 @@ New-Item -ItemType Directory -Force -Path $stageRoot, $installerRoot | Out-Null
 
 Publish-App -Project (Join-Path $repoRoot "src\OTM.Service\OTM.Service.csproj") -Output (Join-Path $stageRoot "service")
 Publish-App -Project (Join-Path $repoRoot "src\OTM.ControlPanel\OTM.ControlPanel.csproj") -Output (Join-Path $stageRoot "control-panel")
+Publish-App -Project (Join-Path $repoRoot "src\OTM.KioskShell\OTM.KioskShell.csproj") -Output (Join-Path $stageRoot "kiosk-shell")
 Publish-App -Project (Join-Path $repoRoot "src\OTM.RecoveryTool\OTM.RecoveryTool.csproj") -Output (Join-Path $stageRoot "recovery")
+
+if ($Sign) {
+    $signScript = Join-Path $repoRoot "scripts\sign-artifacts.ps1"
+    $signArgs = @(
+        "-Path", $stageRoot,
+        "-Recurse",
+        "-TimestampUrl", $TimestampUrl
+    )
+
+    if ($PfxPath) {
+        $signArgs += "-PfxPath"
+        $signArgs += $PfxPath
+        if ($PfxPassword) {
+            $signArgs += "-PfxPassword"
+            $signArgs += $PfxPassword
+        }
+    } elseif ($CertificateThumbprint) {
+        $signArgs += "-CertificateThumbprint"
+        $signArgs += $CertificateThumbprint
+        $signArgs += "-CertificateStore"
+        $signArgs += $CertificateStore
+    }
+
+    & $signScript @signArgs
+}
 
 $isccCommand = Get-Command "ISCC.exe" -ErrorAction SilentlyContinue
 $isccPath = if ($isccCommand) { $isccCommand.Source } else { $null }
@@ -83,5 +116,36 @@ if (-not $isccPath) {
 
 $env:OTM_KIOSK_VERSION = $Version
 & $isccPath (Join-Path $repoRoot "installer\OTMKiosk.iss")
+
+if ($Sign) {
+    $installerFiles = Get-ChildItem -Path $installerRoot -Filter "OTM-Kiosk-Setup-$Version*.exe" -File
+    if (-not $installerFiles) {
+        throw "Installer was built, but no setup EXE matching version $Version was found in $installerRoot."
+    }
+
+    $signScript = Join-Path $repoRoot "scripts\sign-artifacts.ps1"
+    foreach ($installer in $installerFiles) {
+        $signArgs = @(
+            "-Path", $installer.FullName,
+            "-TimestampUrl", $TimestampUrl
+        )
+
+        if ($PfxPath) {
+            $signArgs += "-PfxPath"
+            $signArgs += $PfxPath
+            if ($PfxPassword) {
+                $signArgs += "-PfxPassword"
+                $signArgs += $PfxPassword
+            }
+        } elseif ($CertificateThumbprint) {
+            $signArgs += "-CertificateThumbprint"
+            $signArgs += $CertificateThumbprint
+            $signArgs += "-CertificateStore"
+            $signArgs += $CertificateStore
+        }
+
+        & $signScript @signArgs
+    }
+}
 
 Write-Host "Installer created in $installerRoot"

@@ -11,7 +11,7 @@ public sealed class ProcessEnforcer
         "System", "Idle", "Registry", "smss", "csrss", "wininit", "winlogon", "services",
         "lsass", "svchost", "fontdrvhost", "dwm", "explorer", "sihost", "taskhostw",
         "RuntimeBroker", "SearchIndexer", "StartMenuExperienceHost", "ShellExperienceHost",
-        "SecurityHealthSystray", "OTM.Service", "OTM.ControlPanel", "OTM.RecoveryTool"
+        "SecurityHealthSystray", "OTM.Service", "OTM.ControlPanel", "OTM.RecoveryTool", "OTM.KioskShell"
     };
 
     private readonly KioskRuntime _runtime;
@@ -121,7 +121,22 @@ public sealed class ProcessEnforcer
 
     private static bool IsAllowed(KioskPolicy policy, string processName, string? path)
     {
-        return policy.AllowedApps.Any(rule => Matches(rule, processName, path));
+        return policy.AllowedApps.Any(rule => Matches(rule, processName, path))
+            || policy.Launchers.Any(launcher =>
+                string.Equals(launcher.Type, KioskLauncherTypes.App, StringComparison.OrdinalIgnoreCase)
+                && Matches(ToAppRule(launcher), processName, path));
+    }
+
+    private static AppRule ToAppRule(KioskLauncher launcher)
+    {
+        return new AppRule
+        {
+            DisplayName = launcher.DisplayName,
+            ProcessName = launcher.ProcessName,
+            Path = launcher.Path,
+            Arguments = launcher.Arguments,
+            Required = launcher.Required
+        };
     }
 
     private static bool Matches(AppRule rule, string processName, string? path)

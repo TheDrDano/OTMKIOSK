@@ -57,6 +57,7 @@ function Remove-DirectorySafe {
 function Remove-Shortcuts {
     $paths = @(
         "$env:Public\Desktop\OTM Kiosk.lnk",
+        "$env:ProgramData\Microsoft\Windows\Start Menu\Programs\Startup\OTM Kiosk Shell.lnk",
         "$env:ProgramData\Microsoft\Windows\Start Menu\Programs\OTM Kiosk"
     )
 

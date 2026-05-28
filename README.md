@@ -4,6 +4,7 @@ OTM Kiosk is a local-first native Windows lockdown and kiosk management app. The
 
 - `OTM.Service`: Windows service runtime for process enforcement, downloads quarantine/delete, SQLite policy/log persistence, and local manager API.
 - `OTM.ControlPanel`: native WPF admin UI. No Electron.
+- `OTM.KioskShell`: fullscreen user-facing kiosk screen with approved application launchers and admin access.
 - `OTM.RecoveryTool`: offline local recovery/reset utility.
 - Local web manager: `http://localhost:47821`, hosted by the service.
 
@@ -45,6 +46,47 @@ By default the script publishes self-contained `win-x64` binaries, so the test V
 
 You can also build the installer in GitHub Actions. Push the repo to GitHub, open **Actions > Build Installer > Run workflow**, then download the `OTM-Kiosk-Installer` artifact.
 
+## Code Signing
+
+Signing requires `signtool.exe`, which is installed with the Windows SDK.
+
+For local signing with a certificate installed in the machine certificate store:
+
+```powershell
+.\scripts\build-installer.ps1 -Version 0.1.0 -Sign -CertificateThumbprint "YOUR_CERT_THUMBPRINT"
+```
+
+Use `-CertificateStore LocalMachine` if the certificate is installed in the local machine store instead of the current user store.
+
+For local signing with a PFX:
+
+```powershell
+.\scripts\build-installer.ps1 -Version 0.1.0 -Sign -PfxPath "C:\secure\otm-signing.pfx" -PfxPassword "PFX_PASSWORD"
+```
+
+The build signs published EXE/DLL files before packaging and signs the final setup EXE after Inno Setup finishes.
+
+To verify signatures:
+
+```powershell
+.\scripts\verify-signatures.ps1 -Path .\artifacts\installer -Recurse
+```
+
+For GitHub Actions signing, add repository secrets:
+
+- `OTM_SIGN_PFX_BASE64`: base64 of the PFX file
+- `OTM_SIGN_PFX_PASSWORD`: PFX password
+
+Create the base64 value locally with:
+
+```powershell
+[Convert]::ToBase64String([IO.File]::ReadAllBytes("C:\secure\otm-signing.pfx")) | Set-Clipboard
+```
+
+Then run the **Build Installer** workflow. If the secrets are missing, the workflow still builds an unsigned installer.
+
+Signing reduces Defender/SmartScreen friction and changes the publisher from unknown to your verified identity. It does not guarantee that SmartScreen warnings disappear immediately for a brand-new app; reputation still builds over time.
+
 ## Run Service Runtime During Development
 
 ```powershell
@@ -56,6 +98,38 @@ Then open:
 ```txt
 http://localhost:47821
 ```
+
+To test the fullscreen kiosk shell after the service is running:
+
+```powershell
+dotnet run --project .\src\OTM.KioskShell\OTM.KioskShell.csproj
+```
+
+The kiosk shell is the user-facing locked workspace. It runs fullscreen, uses the OTM shield/monitor logo, shows a left rail of approved launchers, renders exam websites inside embedded WebView2 with no browser controls, and keeps admin controls behind the **Admin** button. Common escape shortcuts such as Alt+F4, Alt+Tab, Ctrl+Esc, and Windows keys are suppressed while the shell has focus. Ctrl+Alt+Del cannot be blocked by a normal Windows app and should be handled with Windows policy in production.
+
+Exam mode requires Microsoft Edge WebView2 Runtime on the target PC. The installer shows a warning if WebView2 is not detected.
+
+Launcher policy supports:
+
+- `type`: `web` or `app`
+- `workspaceMode`: `exam`, `lab`, or `appOwner`
+- `url` and `allowedSites` for embedded exam sites
+- `path`, `processName`, and `arguments` for native apps
+- `allowMultiMonitorOwnership` for approved apps that should own all displays until exit
+
+Installed test machines can enable the fullscreen shell at sign-in:
+
+```powershell
+.\scripts\enable-kiosk-shell-startup.ps1
+```
+
+Disable it with:
+
+```powershell
+.\scripts\disable-kiosk-shell-startup.ps1
+```
+
+Branding assets live in `branding\`. The kiosk shell currently uses the SimpleKioskOS icon, side wordmark, and bottom wordmark.
 
 ## Install As Windows Service
 

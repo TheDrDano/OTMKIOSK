@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <ProjectReference Include="..\OTM.Shared\OTM.Shared.csproj" />
+    <PackageReference Include="Microsoft.Web.WebView2" Version="1.0.2903.40" />
+    <Resource Include="Assets\simplekioskos.png" />
+    <Resource Include="Assets\simplekioskos_side.png" />
+    <Resource Include="Assets\simplekioskos_bottom.png" />
+  </ItemGroup>
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <UseWPF>true</UseWPF>
+    <UseWindowsForms>true</UseWindowsForms>
+    <RootNamespace>Otm.Kiosk.Shell</RootNamespace>
+  </PropertyGroup>
+</Project>
