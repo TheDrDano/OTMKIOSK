@@ -88,6 +88,7 @@ public partial class MainWindow : Window
             BrowserEnabledCheckBox.IsChecked = policy?.Browser.Enabled == true;
             WhitelistOnlyCheckBox.IsChecked = policy?.Browser.WhitelistOnly == true;
             BrowserBlockDownloadsCheckBox.IsChecked = policy?.Browser.BlockDownloads == true;
+            BindUpdateSettings(policy);
             PolicyTextBox.Text = JsonSerializer.Serialize(policy, JsonOptions);
             BindAppRules();
             BindWebsiteRules();
@@ -286,6 +287,64 @@ public partial class MainWindow : Window
         }
     }
 
+    private async void SaveUpdateSettings_Click(object sender, RoutedEventArgs e)
+    {
+        if (_currentPolicy is null)
+        {
+            ShowNotice("Refresh required", "Enter the admin PIN and refresh before changing update settings.", NoticeKind.Info);
+            return;
+        }
+
+        _currentPolicy.Updates.Enabled = UpdateEnabledCheckBox.IsChecked == true;
+        _currentPolicy.Updates.ManifestUrl = UpdateManifestUrlBox.Text.Trim();
+        _currentPolicy.Updates.Channel = string.IsNullOrWhiteSpace(UpdateChannelBox.Text) ? "stable" : UpdateChannelBox.Text.Trim();
+        await SaveCurrentPolicyAsync("Update settings saved.");
+    }
+
+    private async void CheckUpdates_Click(object sender, RoutedEventArgs e)
+    {
+        try
+        {
+            if (_currentPolicy is not null)
+            {
+                _currentPolicy.Updates.Enabled = UpdateEnabledCheckBox.IsChecked == true;
+                _currentPolicy.Updates.ManifestUrl = UpdateManifestUrlBox.Text.Trim();
+                _currentPolicy.Updates.Channel = string.IsNullOrWhiteSpace(UpdateChannelBox.Text) ? "stable" : UpdateChannelBox.Text.Trim();
+                if (!await SaveCurrentPolicyAsync("Update settings saved before checking."))
+                {
+                    return;
+                }
+            }
+
+            if (string.IsNullOrWhiteSpace(PinBox.Password))
+            {
+                ShowNotice("Admin PIN required", "Enter the admin PIN before checking for updates.", NoticeKind.Info);
+                return;
+            }
+
+            var request = new HttpRequestMessage(HttpMethod.Post, "/api/updates/check")
+            {
+                Content = new StringContent("{}", Encoding.UTF8, "application/json")
+            };
+            request.Headers.Add("X-OTM-Admin-PIN", PinBox.Password);
+            var response = await _client.SendAsync(request);
+            if (!response.IsSuccessStatusCode)
+            {
+                ShowNotice("Update check failed", await ReadApiErrorAsync(response), NoticeKind.Warning);
+                return;
+            }
+
+            var result = await response.Content.ReadFromJsonAsync<UpdateCheckResponse>(JsonOptions);
+            UpdateStatusText.Text = result?.Message ?? "Update check completed.";
+            ShowNotice("Update check completed", UpdateStatusText.Text, result?.Available == true ? NoticeKind.Success : NoticeKind.Info);
+            await RefreshAsync();
+        }
+        catch (Exception ex)
+        {
+            ShowNotice("Update check failed", ex.Message, NoticeKind.Error);
+        }
+    }
+
     private async Task AddAppRuleAsync(bool allow)
     {
         if (_currentPolicy is null)
@@ -440,6 +499,14 @@ public partial class MainWindow : Window
     {
         AllowedSitesList.ItemsSource = _currentPolicy?.Browser.AllowedSites.OrderBy(site => site).ToList() ?? [];
         BlockedSitesList.ItemsSource = _currentPolicy?.Browser.BlockedSites.OrderBy(site => site).ToList() ?? [];
+    }
+
+    private void BindUpdateSettings(KioskPolicy? policy)
+    {
+        UpdateEnabledCheckBox.IsChecked = policy?.Updates.Enabled == true;
+        UpdateManifestUrlBox.Text = policy?.Updates.ManifestUrl ?? "";
+        UpdateChannelBox.Text = string.IsNullOrWhiteSpace(policy?.Updates.Channel) ? "stable" : policy.Updates.Channel;
+        UpdateStatusText.Text = policy?.Updates.LastCheckMessage ?? "";
     }
 
     private void ClearAppFields()
@@ -678,6 +745,12 @@ public partial class MainWindow : Window
         Success,
         Warning,
         Error
+    }
+
+    private sealed class UpdateCheckResponse
+    {
+        public bool Available { get; set; }
+        public string Message { get; set; } = "";
     }
 
 }

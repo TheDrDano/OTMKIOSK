@@ -1,7 +1,7 @@
 #define MyAppName "SimpleKioskOS Remote Manager"
 #define MyAppVersion GetEnv("OTM_KIOSK_VERSION")
 #if MyAppVersion == ""
-  #define MyAppVersion "5.1.2"
+  #define MyAppVersion "7.0.0"
 #endif
 #define MyAppPublisher "SimpleKioskOS"
 #define ManagerExeName "OTM.Manager.exe"
@@ -15,7 +15,7 @@ DefaultDirName={autopf}\SimpleKioskOS Remote Manager
 DefaultGroupName=SimpleKioskOS Remote Manager
 DisableProgramGroupPage=yes
 OutputDir=..\artifacts\manager-installer
-OutputBaseFilename=SimpleKioskOS-Remote-Manager-Setup-{#MyAppVersion}
+OutputBaseFilename=SimpleKioskOS-Remote-Manager-Setup
 Compression=lzma2
 SolidCompression=yes
 WizardStyle=modern

@@ -84,6 +84,7 @@ function Remove-Shortcuts {
 Stop-OtmService
 Stop-OtmProcesses
 Remove-Shortcuts
+& "$PSScriptRoot\clear-browser-policies.ps1" -Quiet
 netsh advfirewall firewall delete rule name="SimpleKioskOS Local API" | Out-Null
 
 $programFiles = [Environment]::GetFolderPath("ProgramFiles")

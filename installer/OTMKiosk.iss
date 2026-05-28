@@ -1,7 +1,7 @@
 #define MyAppName "SimpleKioskOS"
 #define MyAppVersion GetEnv("OTM_KIOSK_VERSION")
 #if MyAppVersion == ""
-  #define MyAppVersion "5.1.2"
+  #define MyAppVersion "7.0.0"
 #endif
 #define MyAppPublisher "SimpleKioskOS"
 #define MyAppExeName "OTM.ControlPanel.exe"
@@ -17,7 +17,7 @@ DefaultDirName={autopf}\SimpleKioskOS
 DefaultGroupName=SimpleKioskOS
 DisableProgramGroupPage=yes
 OutputDir=..\artifacts\installer
-OutputBaseFilename=OTM-Kiosk-Setup-{#MyAppVersion}
+OutputBaseFilename=OTM-Kiosk-Setup
 Compression=lzma2
 SolidCompression=yes
 WizardStyle=modern
@@ -49,6 +49,7 @@ Source: "..\scripts\start-testing-uninstall-admin.ps1"; DestDir: "{app}\Scripts"
 Source: "..\scripts\uninstall-production.ps1"; DestDir: "{app}\Scripts"; Flags: ignoreversion
 Source: "..\scripts\enable-kiosk-shell-startup.ps1"; DestDir: "{app}\Scripts"; Flags: ignoreversion
 Source: "..\scripts\disable-kiosk-shell-startup.ps1"; DestDir: "{app}\Scripts"; Flags: ignoreversion
+Source: "..\scripts\clear-browser-policies.ps1"; DestDir: "{app}\Scripts"; Flags: ignoreversion
 Source: "..\scripts\verify-signatures.ps1"; DestDir: "{app}\Scripts"; Flags: ignoreversion
 Source: "..\scripts\trust-test-signing-cert.ps1"; DestDir: "{app}\Scripts"; Flags: ignoreversion
 Source: "..\README.md"; DestDir: "{app}"; Flags: ignoreversion
@@ -74,11 +75,12 @@ Filename: "{tmp}\MicrosoftEdgeWebView2Setup.exe"; Parameters: "/silent /install"
 Filename: "{sys}\sc.exe"; Parameters: "create OTMKioskService binPath= ""{app}\Service\{#ServiceExeName}"" start= auto DisplayName= ""OTM Kiosk Service"""; Flags: runhidden waituntilterminated
 Filename: "{sys}\sc.exe"; Parameters: "description OTMKioskService ""Local-first Windows lockdown and kiosk enforcement service."""; Flags: runhidden waituntilterminated
 Filename: "{sys}\sc.exe"; Parameters: "failure OTMKioskService reset= 86400 actions= restart/5000/restart/10000/restart/30000"; Flags: runhidden waituntilterminated
-Filename: "{sys}\netsh.exe"; Parameters: "advfirewall firewall add rule name=""SimpleKioskOS Local API"" dir=in action=allow protocol=TCP localport=47821"; Flags: runhidden waituntilterminated
+Filename: "{sys}\netsh.exe"; Parameters: "advfirewall firewall add rule name=""SimpleKioskOS Local API"" dir=in action=allow protocol=TCP localport=47821 profile=domain,private"; Flags: runhidden waituntilterminated
 Filename: "{sys}\sc.exe"; Parameters: "start OTMKioskService"; Flags: runhidden waituntilterminated
 Filename: "{app}\ControlPanel\{#MyAppExeName}"; Description: "Open SimpleKioskOS Control Panel"; Flags: nowait postinstall skipifsilent
 
 [UninstallRun]
+Filename: "{sys}\WindowsPowerShell\v1.0\powershell.exe"; Parameters: "-ExecutionPolicy Bypass -File ""{app}\Scripts\clear-browser-policies.ps1"" -Quiet"; Flags: runhidden waituntilterminated
 Filename: "{sys}\sc.exe"; Parameters: "failure OTMKioskService reset= 0 actions= """""; Flags: runhidden waituntilterminated
 Filename: "{sys}\sc.exe"; Parameters: "stop OTMKioskService"; Flags: runhidden waituntilterminated
 Filename: "{sys}\taskkill.exe"; Parameters: "/IM OTM.KioskShell.exe /F /T"; Flags: runhidden waituntilterminated

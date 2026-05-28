@@ -28,7 +28,7 @@ if (Get-Service -Name "OTMKioskService" -ErrorAction SilentlyContinue) {
 
 sc.exe create "OTMKioskService" binPath= "`"$serviceExe`"" start= auto DisplayName= "OTM Kiosk Service" | Out-Null
 sc.exe description "OTMKioskService" "Local-first Windows lockdown and kiosk enforcement service." | Out-Null
-netsh advfirewall firewall add rule name="SimpleKioskOS Local API" dir=in action=allow protocol=TCP localport=47821 | Out-Null
+netsh advfirewall firewall add rule name="SimpleKioskOS Local API" dir=in action=allow protocol=TCP localport=47821 profile=domain,private | Out-Null
 Start-Service -Name "OTMKioskService"
 
 Write-Host "Installed OTM Kiosk Service."

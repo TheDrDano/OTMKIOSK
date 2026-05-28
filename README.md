@@ -33,18 +33,50 @@ Install prerequisites on a build machine:
 Then run:
 
 ```powershell
-.\scripts\build-installer.ps1 -Version 5.1.2
+.\scripts\build-installer.ps1 -Version 7.0.0
 ```
 
 The installer will be created in:
 
 ```txt
-artifacts\installer\OTM-Kiosk-Setup-5.1.2.exe
+artifacts\installer\OTM-Kiosk-Setup.exe
 ```
 
 By default the script publishes self-contained `win-x64` binaries, so the test VPS does not need the .NET runtime preinstalled. The build also downloads Microsoft's Evergreen WebView2 bootstrapper and packages it into the SimpleKioskOS installer so embedded exam/web mode can install its browser runtime dependency on clean machines. Use `-FrameworkDependent` only if you want a smaller installer and you know the target machine has the .NET 8 Desktop Runtime installed.
 
-You can also build the installer in GitHub Actions. Push the repo to GitHub, open **Actions > Build Installer > Run workflow**, then download the `OTM-Kiosk-Installer` artifact.
+You can also build the installer in GitHub Actions. Push the repo to GitHub, open **Actions > Build Installer > Run workflow**, then download the `OTM-Kiosk-Installer` artifact. Pushes to `main` or `master` also build test artifacts automatically.
+
+## GitHub Releases and Updates
+
+For public testing, keep the station app and Remote Manager in this repo as separate projects and separate installers. Do not use a branch as the product boundary; branches are better for development lines. The release workflow builds both installers from the same tag.
+
+To publish a release from GitHub:
+
+```powershell
+git tag v7.0.0
+git push origin v7.0.0
+```
+
+The **Release Installers** workflow creates a GitHub Release with:
+
+- `OTM-Kiosk-Setup.exe`
+- `SimpleKioskOS-Remote-Manager-Setup.exe`
+- `update-manifest.json`
+
+The stable latest download URLs are:
+
+```txt
+https://github.com/TheDrDano/OTMKIOSK/releases/latest/download/OTM-Kiosk-Setup.exe
+https://github.com/TheDrDano/OTMKIOSK/releases/latest/download/SimpleKioskOS-Remote-Manager-Setup.exe
+```
+
+After the repo is public, set the station update manifest URL in the native Control Panel to:
+
+```txt
+https://github.com/TheDrDano/OTMKIOSK/releases/latest/download/update-manifest.json
+```
+
+The current app checks and reports updates. It does not silently run installers yet; that should wait until signing, hash verification, and a recovery-safe install flow are finished.
 
 ## EXE Code Signing
 
@@ -53,7 +85,7 @@ Windows publisher identity for an `.exe` uses **Authenticode code signing**, not
 For local signing with a certificate installed in the machine certificate store:
 
 ```powershell
-.\scripts\build-installer.ps1 -Version 5.1.2 -Sign -CertificateThumbprint "YOUR_CERT_THUMBPRINT"
+.\scripts\build-installer.ps1 -Version 7.0.0 -Sign -CertificateThumbprint "YOUR_CERT_THUMBPRINT"
 ```
 
 Use `-CertificateStore LocalMachine` if the certificate is installed in the local machine store instead of the current user store.
@@ -61,7 +93,7 @@ Use `-CertificateStore LocalMachine` if the certificate is installed in the loca
 For local signing with a PFX:
 
 ```powershell
-.\scripts\build-installer.ps1 -Version 5.1.2 -Sign -PfxPath "C:\secure\otm-signing.pfx" -PfxPassword "PFX_PASSWORD"
+.\scripts\build-installer.ps1 -Version 7.0.0 -Sign -PfxPath "C:\secure\otm-signing.pfx" -PfxPassword "PFX_PASSWORD"
 ```
 
 The build signs published EXE/DLL files before packaging and signs the final setup EXE after Inno Setup finishes. If the final setup EXE is not Authenticode-signed by a trusted certificate, Windows will show **Unknown publisher**.
@@ -91,7 +123,7 @@ For lab-only testing without buying a certificate yet, create a self-signed test
 
 ```powershell
 .\scripts\create-test-signing-cert.ps1 -Password "test-password"
-.\scripts\build-installer.ps1 -Version 5.1.2 -Sign -PfxPath ".\artifacts\signing\simplekioskos-test.pfx" -PfxPassword "test-password"
+.\scripts\build-installer.ps1 -Version 7.0.0 -Sign -PfxPath ".\artifacts\signing\simplekioskos-test.pfx" -PfxPassword "test-password"
 ```
 
 On the test machine, trust that test cert before installing:
@@ -182,7 +214,7 @@ Omit `-RemoveData` if you want to keep the local database and recovery files.
 
 Use a Windows VPS with a desktop experience, not Windows Server Core. Take a snapshot before installing because kiosk enforcement can intentionally block tools.
 
-1. Copy `artifacts\installer\OTM-Kiosk-Setup-5.1.2.exe` to the VPS.
+1. Copy `artifacts\installer\OTM-Kiosk-Setup.exe` to the VPS.
 2. Run it as Administrator.
 3. The **SimpleKioskOS Control Panel** opens after install. Start the fullscreen shell from the Start menu only after confirming the admin PIN works.
 4. First-run PIN is `123456`.
@@ -215,6 +247,18 @@ The service stores browser allow/block intent in the local policy. The MVP also 
 
 Use `-WhitelistOnly -AllowedSites @("https://example.edu/*")` for whitelist mode.
 
+Uninstall now clears the Edge/Chrome URL and download policy values created by SimpleKioskOS. If an older test build left browser restrictions behind, run:
+
+```powershell
+.\scripts\clear-browser-policies.ps1
+```
+
+or:
+
+```powershell
+.\scripts\apply-browser-policies.ps1 -Clear
+```
+
 ## Simple App Rules
 
 The native control panel includes **Simple App Rules** so admins can allow or block apps without editing policy JSON. Enter a display name, process name such as `chrome.exe`, or browse/type an EXE path, then choose **Add App** or **Block App**. Allowed apps can also be added to the fullscreen kiosk launcher automatically.
@@ -223,14 +267,14 @@ The Websites tab works the same way. Add an allowed website and keep **Show allo
 
 ## Management
 
-Management is native-app first. The station installer includes the SimpleKioskOS Control Panel for setup, app rules, website rules, profiles, logs, and admin PIN changes. The service hosts a local/LAN API on port `47821` for the Control Panel, kiosk shell, and Remote Manager. There is no browser-based local manager UI.
+Management is native-app first. The station installer includes the SimpleKioskOS Control Panel for setup, app rules, website rules, profiles, logs, and admin PIN changes. The service hosts a local/LAN API on port `47821` for the Control Panel, kiosk shell, and Remote Manager. The installer firewall rule allows this port on Domain/Private networks only. There is no browser-based local manager UI.
 
 The separate **SimpleKioskOS Remote Manager** app can track multiple stations by URL, refresh their status, and send PIN-protected lock, unlock, restart, and shutdown commands.
 
 Build the Remote Manager installer with:
 
 ```powershell
-.\scripts\build-manager-installer.ps1 -Version 5.1.2
+.\scripts\build-manager-installer.ps1 -Version 7.0.0
 ```
 
 ## Security Notes

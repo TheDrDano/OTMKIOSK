@@ -1,4 +1,5 @@
 param(
+    [switch]$Clear,
     [switch]$WhitelistOnly,
     [string[]]$AllowedSites = @(),
     [string[]]$BlockedSites = @("youtube.com", "youtu.be", "tiktok.com", "instagram.com", "facebook.com", "x.com", "twitter.com", "reddit.com", "discord.com")
@@ -22,6 +23,12 @@ function Set-PolicyList {
 
 $edge = "HKLM:\SOFTWARE\Policies\Microsoft\Edge"
 $chrome = "HKLM:\SOFTWARE\Policies\Google\Chrome"
+
+if ($Clear) {
+    & "$PSScriptRoot\clear-browser-policies.ps1"
+    return
+}
+
 foreach ($root in @($edge, $chrome)) {
     New-Item -ItemType Directory -Force -Path $root | Out-Null
     New-ItemProperty -Path $root -Name "DownloadRestrictions" -Value 3 -PropertyType DWord -Force | Out-Null

@@ -1,6 +1,6 @@
 param(
     [string]$Configuration = "Release",
-    [string]$Version = "5.1.2",
+    [string]$Version = "7.0.0",
     [switch]$FrameworkDependent,
     [switch]$Sign,
     [string]$CertificateThumbprint = $env:OTM_SIGN_CERT_THUMBPRINT,
@@ -73,6 +73,7 @@ if (-not $sdkList) {
 
 Remove-Item -Path $stageRoot -Recurse -Force -ErrorAction SilentlyContinue
 New-Item -ItemType Directory -Force -Path $stageRoot, $installerRoot, $dependencyRoot | Out-Null
+Remove-Item -Path (Join-Path $installerRoot "OTM-Kiosk-Setup*.exe") -Force -ErrorAction SilentlyContinue
 
 & (Join-Path $repoRoot "scripts\create-simplekioskos-icon.ps1")
 
@@ -147,9 +148,9 @@ if ($LASTEXITCODE -ne 0) {
 }
 
 if ($Sign) {
-    $installerFiles = Get-ChildItem -Path $installerRoot -Filter "OTM-Kiosk-Setup-$Version*.exe" -File
+    $installerFiles = Get-ChildItem -Path $installerRoot -Filter "OTM-Kiosk-Setup.exe" -File
     if (-not $installerFiles) {
-        throw "Installer was built, but no setup EXE matching version $Version was found in $installerRoot."
+        throw "Installer was built, but OTM-Kiosk-Setup.exe was not found in $installerRoot."
     }
 
     $signScript = Join-Path $repoRoot "scripts\sign-artifacts.ps1"

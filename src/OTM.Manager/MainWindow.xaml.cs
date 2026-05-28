@@ -88,6 +88,7 @@ public partial class MainWindow : Window
 
     private async void Lock_Click(object sender, RoutedEventArgs e) => await PostSelectedAsync("/api/lock", "{}");
     private async void Unlock_Click(object sender, RoutedEventArgs e) => await PostSelectedAsync("/api/unlock", JsonSerializer.Serialize(new { minutes = 15 }));
+    private async void CheckUpdates_Click(object sender, RoutedEventArgs e) => await PostSelectedAsync("/api/updates/check", "{}");
     private async void Restart_Click(object sender, RoutedEventArgs e) => await PostSelectedAsync("/api/system/restart", "{}");
     private async void Shutdown_Click(object sender, RoutedEventArgs e) => await PostSelectedAsync("/api/system/shutdown", "{}");
 

@@ -91,10 +91,11 @@
                     <StackPanel>
                         <TextBlock Text="Admin PIN" Foreground="#344756" FontWeight="SemiBold" />
                         <PasswordBox x:Name="PinBox" Height="34" Margin="0,4,0,12" />
-                        <UniformGrid Columns="5">
+                        <UniformGrid Columns="6">
                             <Button Content="Refresh" Margin="0,0,6,0" Click="RefreshSelected_Click" />
                             <Button Content="Lock" Margin="6,0,6,0" Style="{StaticResource SecondaryButton}" Click="Lock_Click" />
                             <Button Content="Unlock" Margin="6,0,6,0" Style="{StaticResource SecondaryButton}" Click="Unlock_Click" />
+                            <Button Content="Updates" Margin="6,0,6,0" Style="{StaticResource SecondaryButton}" Click="CheckUpdates_Click" />
                             <Button Content="Restart" Margin="6,0,6,0" Style="{StaticResource SecondaryButton}" Click="Restart_Click" />
                             <Button Content="Shutdown" Margin="6,0,0,0" Style="{StaticResource DangerButton}" Click="Shutdown_Click" />
                         </UniformGrid>

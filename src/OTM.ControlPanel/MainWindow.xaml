@@ -109,6 +109,21 @@
                     </StackPanel>
                 </Border>
 
+                <Border Background="White" BorderBrush="#D8DEE6" BorderThickness="1" CornerRadius="8" Padding="18" Margin="0,0,0,14">
+                    <StackPanel>
+                        <TextBlock Text="Updates" FontSize="16" FontWeight="SemiBold" Margin="0,0,0,8" />
+                        <TextBlock Text="Use the GitHub release manifest after this repo is public." Foreground="#64748B" FontSize="12" TextWrapping="Wrap" Margin="0,0,0,10" />
+                        <CheckBox x:Name="UpdateEnabledCheckBox" Content="Check release manifest" Margin="0,0,0,8" />
+                        <TextBlock Text="Manifest URL" Foreground="#344756" FontWeight="SemiBold" FontSize="12" />
+                        <TextBox x:Name="UpdateManifestUrlBox" Height="32" Margin="0,3,0,8" ToolTip="https://github.com/TheDrDano/OTMKIOSK/releases/latest/download/update-manifest.json" />
+                        <TextBlock Text="Channel" Foreground="#344756" FontWeight="SemiBold" FontSize="12" />
+                        <TextBox x:Name="UpdateChannelBox" Height="32" Margin="0,3,0,10" />
+                        <Button Content="Save Update Settings" Style="{StaticResource SecondaryButton}" Margin="0,0,0,8" Click="SaveUpdateSettings_Click" />
+                        <Button Content="Check Updates" Style="{StaticResource SecondaryButton}" Click="CheckUpdates_Click" />
+                        <TextBlock x:Name="UpdateStatusText" Text="" Foreground="#64748B" FontSize="12" TextWrapping="Wrap" Margin="0,10,0,0" />
+                    </StackPanel>
+                </Border>
+
                 <Border Background="White" BorderBrush="#D8DEE6" BorderThickness="1" CornerRadius="8" Padding="18">
                     <StackPanel>
                         <TextBlock Text="Admin" FontSize="16" FontWeight="SemiBold" Margin="0,0,0,10" />

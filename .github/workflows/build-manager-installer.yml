@@ -6,11 +6,15 @@ on:
       version:
         description: "Remote Manager installer version"
         required: true
-        default: "5.1.2"
+        default: "7.0.0"
       allow_unsigned:
         description: "Allow unsigned installer artifact"
         required: true
         default: "true"
+  push:
+    branches:
+      - main
+      - master
 
 jobs:
   build-manager-installer:
@@ -53,9 +57,9 @@ jobs:
           OTM_SIGN_PFX_PASSWORD: ${{ secrets.OTM_SIGN_PFX_PASSWORD }}
         run: |
           if (Test-Path $env:OTM_SIGN_PFX_PATH) {
-            .\scripts\build-manager-installer.ps1 -Version "${{ github.event.inputs.version || '5.1.2' }}" -Sign
+            .\scripts\build-manager-installer.ps1 -Version "${{ github.event.inputs.version || '7.0.0' }}" -Sign
           } else {
-            .\scripts\build-manager-installer.ps1 -Version "${{ github.event.inputs.version || '5.1.2' }}"
+            .\scripts\build-manager-installer.ps1 -Version "${{ github.event.inputs.version || '7.0.0' }}"
           }
 
       - name: Upload Remote Manager installer

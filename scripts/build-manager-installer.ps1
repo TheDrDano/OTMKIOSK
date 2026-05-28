@@ -1,5 +1,5 @@
 param(
-    [string]$Version = "5.1.2",
+    [string]$Version = "7.0.0",
     [switch]$Sign,
     [string]$PfxPath = $env:OTM_SIGN_PFX_PATH,
     [string]$PfxPassword = $env:OTM_SIGN_PFX_PASSWORD
@@ -13,12 +13,16 @@ $managerOut = Join-Path $stageRoot "manager"
 
 Remove-Item -Recurse -Force $stageRoot -ErrorAction SilentlyContinue
 New-Item -ItemType Directory -Force -Path $managerOut, $installerRoot | Out-Null
+Remove-Item -Path (Join-Path $installerRoot "SimpleKioskOS-Remote-Manager-Setup*.exe") -Force -ErrorAction SilentlyContinue
 
 dotnet publish (Join-Path $repoRoot "src\OTM.Manager\OTM.Manager.csproj") `
     -c Release `
     -r win-x64 `
     --self-contained true `
     -p:PublishSingleFile=false `
+    -p:Version=$Version `
+    -p:FileVersion=$Version `
+    -p:AssemblyVersion=$Version `
     -p:EnableCompressionInSingleFile=true `
     -o $managerOut
 
