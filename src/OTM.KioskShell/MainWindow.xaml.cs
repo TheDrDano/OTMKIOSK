@@ -2,6 +2,7 @@ using System.ComponentModel;
 using System.Diagnostics;
 using System.IO;
 using System.Runtime.InteropServices;
+using System.Net;
 using System.Net.Http;
 using System.Net.Http.Json;
 using System.Text;
@@ -42,6 +43,7 @@ public partial class MainWindow : Window
     private bool _appOwnsDisplays;
     private bool _restoreWebWorkspaceAfterAdmin;
     private bool _allowClose;
+    private bool _webFocusMode;
 
     public MainWindow()
     {
@@ -110,10 +112,16 @@ public partial class MainWindow : Window
         ForceShellLock(clearManagedApps: false);
     }
 
+    private void ToggleWebFullscreen_Click(object sender, RoutedEventArgs e)
+    {
+        SetWebFocusMode(!_webFocusMode);
+    }
+
     private void ForceShellLock(bool clearManagedApps)
     {
         _yieldFocusUntil = DateTimeOffset.MinValue;
         _appOwnsDisplays = false;
+        SetWebFocusMode(false);
         if (clearManagedApps)
         {
             _managedApps.Clear();
@@ -244,6 +252,17 @@ public partial class MainWindow : Window
         ExamBrowser.CoreWebView2?.Navigate(launcher.Url);
     }
 
+    private void SetWebFocusMode(bool enabled)
+    {
+        _webFocusMode = enabled;
+        LeftRail.Visibility = enabled ? Visibility.Collapsed : Visibility.Visible;
+        LeftRailColumn.Width = enabled ? new GridLength(0) : new GridLength(292);
+        WorkspaceHeader.Visibility = enabled ? Visibility.Collapsed : Visibility.Visible;
+        ShellTaskbar.Visibility = enabled ? Visibility.Collapsed : Visibility.Visible;
+        WebFullscreenText.Text = enabled ? "Exit full" : "Fullscreen";
+        AdminCornerButton.Opacity = enabled ? 0.82 : 1;
+    }
+
     private void StartAppWorkspace(KioskLauncher launcher)
     {
         var target = !string.IsNullOrWhiteSpace(launcher.Path) ? launcher.Path : launcher.ProcessName;
@@ -351,21 +370,24 @@ public partial class MainWindow : Window
 
         e.Cancel = true;
         _ = ReportViolationAsync("BlockedWebsite", $"Blocked navigation to {e.Uri}", e.Uri);
-        ShowNotice("Website blocked", "That page is not allowed in this kiosk policy.", NoticeKind.Warning);
+        ShowBlockedWebsitePage(e.Uri, "This website is not included in the allowed list for this workspace.");
+        ShowNotice("Website blocked", "That page is not allowed in this workspace.", NoticeKind.Warning);
     }
 
     private void Browser_NewWindowRequested(object? sender, CoreWebView2NewWindowRequestedEventArgs e)
     {
         e.Handled = true;
         _ = ReportViolationAsync("BlockedWebsite", $"Blocked new browser window: {e.Uri}", e.Uri);
-        ShowNotice("New window blocked", "Opening additional browser windows is disabled in kiosk mode.", NoticeKind.Warning);
+        ShowBlockedWebsitePage(e.Uri, "Opening new browser windows is not allowed in this workspace.");
+        ShowNotice("New window blocked", "Opening additional browser windows is disabled in workspace mode.", NoticeKind.Warning);
     }
 
     private void Browser_DownloadStarting(object? sender, CoreWebView2DownloadStartingEventArgs e)
     {
         e.Cancel = true;
         _ = ReportViolationAsync("DownloadDeleted", $"Blocked browser download: {e.DownloadOperation.Uri}", e.DownloadOperation.Uri);
-        ShowNotice("Download blocked", "Downloads are disabled in this kiosk policy.", NoticeKind.Warning);
+        ShowBlockedWebsitePage(e.DownloadOperation.Uri, "Downloads are turned off for this workspace.");
+        ShowNotice("Download blocked", "Downloads are disabled in this workspace.", NoticeKind.Warning);
     }
 
     private bool IsUrlAllowed(string uri)
@@ -375,7 +397,96 @@ public partial class MainWindow : Window
             return false;
         }
 
+        if (candidate.Scheme is "about" or "data")
+        {
+            return true;
+        }
+
         return _activeWebAllowedSites.Any(pattern => MatchesSitePattern(candidate, pattern));
+    }
+
+    private void ShowBlockedWebsitePage(string blockedUri, string reason)
+    {
+        var html = BuildBlockedWebsiteHtml(blockedUri, reason);
+        _ = Dispatcher.InvokeAsync(() => ExamBrowser.CoreWebView2?.NavigateToString(html));
+    }
+
+    private static string BuildBlockedWebsiteHtml(string blockedUri, string reason)
+    {
+        var safeUri = WebUtility.HtmlEncode(blockedUri);
+        var safeReason = WebUtility.HtmlEncode(reason);
+        return $$"""
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Website blocked</title>
+  <style>
+    * { box-sizing: border-box; }
+    html, body { height: 100%; margin: 0; }
+    body {
+      font-family: Segoe UI, Arial, sans-serif;
+      background: #e8edf2;
+      color: #111827;
+      display: grid;
+      place-items: center;
+      padding: 32px;
+    }
+    .panel {
+      width: min(760px, 100%);
+      background: #ffffff;
+      border: 1px solid #cbd5e1;
+      border-radius: 14px;
+      padding: 34px;
+      box-shadow: 0 22px 55px rgba(15, 23, 42, .16);
+      text-align: center;
+    }
+    .mark {
+      width: 112px;
+      height: 112px;
+      border-radius: 56px;
+      display: inline-grid;
+      place-items: center;
+      background: #fff7ed;
+      border: 1px solid #fed7aa;
+      margin-bottom: 18px;
+      color: #ff6b1a;
+    }
+    svg { width: 54px; height: 54px; }
+    h1 { margin: 0; font-size: 36px; line-height: 1.12; }
+    p { margin: 13px auto 0; color: #526171; font-size: 17px; line-height: 1.45; max-width: 620px; }
+    .url {
+      margin-top: 22px;
+      padding: 13px 14px;
+      background: #f8fafc;
+      border: 1px solid #d8e1ea;
+      border-radius: 8px;
+      color: #334155;
+      overflow-wrap: anywhere;
+      font-family: Consolas, monospace;
+      font-size: 13px;
+      text-align: left;
+    }
+    .brand { margin-top: 24px; color: #64748b; font-size: 13px; }
+  </style>
+</head>
+<body>
+  <main class="panel">
+    <div class="mark" aria-hidden="true">
+      <svg viewBox="0 0 16 16" fill="currentColor">
+        <path d="M8 1.133 2.5 3.36v4.198c0 3.06 2.062 5.93 5.5 7.31 3.438-1.38 5.5-4.25 5.5-7.31V3.36L8 1.133Zm0 1.08 4.5 1.823v3.522c0 2.47-1.58 4.82-4.5 6.21-2.92-1.39-4.5-3.74-4.5-6.21V4.036L8 2.214Z"/>
+        <path d="M5.354 5.646a.5.5 0 0 0-.708.708L6.793 8.5l-2.147 2.146a.5.5 0 0 0 .708.708L7.5 9.207l2.146 2.147a.5.5 0 0 0 .708-.708L8.207 8.5l2.147-2.146a.5.5 0 0 0-.708-.708L7.5 7.793 5.354 5.646Z"/>
+      </svg>
+    </div>
+    <h1>Website blocked</h1>
+    <p>{{safeReason}}</p>
+    <div class="url">{{safeUri}}</div>
+    <div class="brand">SIMPLEKIOSKOS - A production of OTM (Oklahoma Tech Maker)</div>
+  </main>
+</body>
+</html>
+""";
     }
 
     private static bool MatchesSitePattern(Uri candidate, string pattern)

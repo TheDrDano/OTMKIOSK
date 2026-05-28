@@ -277,6 +277,7 @@
                                     <CheckBox x:Name="WhitelistOnlyCheckBox" Content="Only allowed websites can open" Margin="0,0,18,0" />
                                     <CheckBox x:Name="BrowserBlockDownloadsCheckBox" Content="Block browser downloads" Margin="0,0,18,0" />
                                     <Button Content="Save Website Mode" Height="34" Style="{StaticResource SecondaryButton}" Click="SaveBrowserMode_Click" />
+                                    <Button Content="Apply Edge/Chrome Policy" Height="34" Margin="10,0,0,0" Style="{StaticResource SecondaryButton}" Click="ApplyBrowserPolicy_Click" />
                                 </StackPanel>
                             </Grid>
                         </Border>

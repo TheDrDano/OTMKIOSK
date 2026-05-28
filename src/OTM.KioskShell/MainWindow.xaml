@@ -80,11 +80,11 @@
 
     <Grid x:Name="Root">
         <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="292" />
+            <ColumnDefinition x:Name="LeftRailColumn" Width="292" />
             <ColumnDefinition Width="*" />
         </Grid.ColumnDefinitions>
 
-        <Border Grid.Column="0" Background="#151A20" BorderBrush="#CFD7E1" BorderThickness="0,0,1,0">
+        <Border x:Name="LeftRail" Grid.Column="0" Background="#151A20" BorderBrush="#CFD7E1" BorderThickness="0,0,1,0">
             <Grid Margin="22">
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto" />
@@ -94,7 +94,7 @@
                 </Grid.RowDefinitions>
 
                 <StackPanel>
-                    <Border Background="#F8FAFC" BorderBrush="#FFFFFF" BorderThickness="1" CornerRadius="8" Padding="12">
+                    <Border Background="#FFFFFF" BorderBrush="#FFFFFF" BorderThickness="1" CornerRadius="29" Padding="10">
                         <Image Source="pack://application:,,,/Assets/simplekioskos_side.png" Width="238" Height="58" Stretch="Uniform" HorizontalAlignment="Left" />
                     </Border>
                     <TextBlock Text="Secure workspace" Foreground="White" FontSize="19" FontWeight="SemiBold" Margin="0,16,0,0" />
@@ -133,7 +133,7 @@
                 <RowDefinition Height="Auto" />
             </Grid.RowDefinitions>
 
-            <Border Grid.Row="0" Margin="26,18,26,14" Background="#FFFFFF" BorderBrush="#CBD5E1" BorderThickness="1" CornerRadius="8" Padding="18,14">
+            <Border x:Name="WorkspaceHeader" Grid.Row="0" Margin="26,18,26,14" Background="#FFFFFF" BorderBrush="#CBD5E1" BorderThickness="1" CornerRadius="8" Padding="18,14">
                 <Grid>
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="*" />
@@ -156,21 +156,44 @@
                 <Border x:Name="IdleWorkspace" Background="#F8FAFC" BorderBrush="#CBD5E1" BorderThickness="1" CornerRadius="10">
                     <Grid>
                         <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center" MaxWidth="680">
-                            <Image Source="pack://application:,,,/Assets/simplekioskos_bottom.png" Width="410" Height="245" Stretch="Uniform" />
+                            <Border Width="260" Height="260" Background="#FFFFFF" BorderBrush="#E2E8F0" BorderThickness="1" CornerRadius="130" Padding="26" HorizontalAlignment="Center">
+                                <Image Source="pack://application:,,,/Assets/simplekioskos.png" Stretch="Uniform" />
+                            </Border>
+                            <Image Source="pack://application:,,,/Assets/simplekioskos_bottom.png" Width="410" Height="112" Stretch="Uniform" Margin="0,18,0,0" />
                             <TextBlock Text="This station is protected" Foreground="#111827" FontSize="42" FontWeight="SemiBold" TextAlignment="Center" Margin="0,18,0,0" />
-                            <TextBlock Text="Start an approved application or exam site from the launcher. Blocked activity will be stopped and logged locally." Foreground="#526171" FontSize="17" TextAlignment="Center" TextWrapping="Wrap" Margin="0,12,0,0" />
+                            <TextBlock Text="Start an approved application or exam site from the launcher." Foreground="#526171" FontSize="17" TextAlignment="Center" TextWrapping="Wrap" Margin="0,12,0,0" />
+                            <TextBlock Text="A production of OTM (Oklahoma Tech Maker)" Foreground="#64748B" FontSize="13" TextAlignment="Center" Margin="0,16,0,0" />
                         </StackPanel>
                     </Grid>
                 </Border>
 
                 <Border x:Name="WebWorkspace" Visibility="Collapsed" Background="Black" BorderBrush="#233746" BorderThickness="1" CornerRadius="10" ClipToBounds="True">
-                    <wv2:WebView2 x:Name="ExamBrowser" />
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="*" />
+                        </Grid.RowDefinitions>
+                        <Border Background="#111827" BorderBrush="#1F2937" BorderThickness="0,0,0,1" Padding="10,8">
+                            <DockPanel LastChildFill="True">
+                                <TextBlock Text="Secure web workspace" Foreground="#F8FAFC" FontWeight="SemiBold" VerticalAlignment="Center" />
+                                <Button x:Name="WebFullscreenButton" DockPanel.Dock="Right" Width="126" Height="34" MinHeight="34" Padding="10,0" Style="{StaticResource SecondaryButton}" Click="ToggleWebFullscreen_Click">
+                                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                                        <Path Width="14" Height="14" Stretch="Uniform" Stroke="#1D2935" StrokeThickness="1.8" StrokeStartLineCap="Round" StrokeEndLineCap="Round" Fill="Transparent" Margin="0,0,8,0" Data="M2,6 L2,2 L6,2 M10,2 L14,2 L14,6 M14,10 L14,14 L10,14 M6,14 L2,14 L2,10" />
+                                        <TextBlock x:Name="WebFullscreenText" Text="Fullscreen" />
+                                    </StackPanel>
+                                </Button>
+                            </DockPanel>
+                        </Border>
+                        <wv2:WebView2 x:Name="ExamBrowser" Grid.Row="1" />
+                    </Grid>
                 </Border>
 
                 <Border x:Name="AppWorkspace" Visibility="Collapsed" Background="#F8FAFC" BorderBrush="#CBD5E1" BorderThickness="1" CornerRadius="10" Padding="28">
                     <Grid>
                         <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center" MaxWidth="760">
-                            <Image Source="pack://application:,,,/Assets/simplekioskos_side.png" Width="330" Height="82" Stretch="Uniform" />
+                            <Border Width="360" Height="112" Background="#FFFFFF" BorderBrush="#E2E8F0" BorderThickness="1" CornerRadius="56" Padding="18">
+                                <Image Source="pack://application:,,,/Assets/simplekioskos_side.png" Stretch="Uniform" />
+                            </Border>
                             <TextBlock x:Name="AppWorkspaceTitle" Text="Application workspace active" Foreground="#111827" FontSize="34" FontWeight="SemiBold" TextAlignment="Center" Margin="0,24,0,0" />
                             <TextBlock x:Name="AppWorkspaceText" Text="Approved apps can remain open together. Use the launcher to start another app." Foreground="#526171" FontSize="16" TextAlignment="Center" TextWrapping="Wrap" Margin="0,10,0,0" />
                         </StackPanel>
@@ -184,7 +207,10 @@
                         <Border Width="30" Height="30" Background="#242A31" BorderBrush="#3D4651" BorderThickness="1" CornerRadius="6" Margin="0,0,10,0">
                             <Path Width="16" Height="16" Stretch="Uniform" Fill="#FF6B1A" HorizontalAlignment="Center" VerticalAlignment="Center" Data="M2,3 L14,3 L14,11 L2,11 Z M5,14 L11,14 M8,11 L8,14" />
                         </Border>
-                        <TextBlock Text="Open apps" Foreground="#F8FAFC" FontWeight="SemiBold" VerticalAlignment="Center" />
+                        <StackPanel>
+                            <TextBlock Text="Open apps" Foreground="#F8FAFC" FontWeight="SemiBold" />
+                            <TextBlock Text="OTM (Oklahoma Tech Maker)" Foreground="#AAB6C2" FontSize="11" Margin="0,2,0,0" />
+                        </StackPanel>
                         <TextBlock x:Name="OpenAppsCountText" Text="0" Foreground="#AAB6C2" VerticalAlignment="Center" Margin="8,0,0,0" />
                     </StackPanel>
                     <Button DockPanel.Dock="Right" Width="132" Height="38" Margin="12,0,0,0" Style="{StaticResource SecondaryButton}" Click="ShowShell_Click">

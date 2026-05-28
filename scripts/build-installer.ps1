@@ -1,6 +1,6 @@
 param(
     [string]$Configuration = "Release",
-    [string]$Version = "5.0.0",
+    [string]$Version = "5.1.2",
     [switch]$FrameworkDependent,
     [switch]$Sign,
     [string]$CertificateThumbprint = $env:OTM_SIGN_CERT_THUMBPRINT,
@@ -91,6 +91,7 @@ Publish-App -Project (Join-Path $repoRoot "src\OTM.Service\OTM.Service.csproj") 
 Publish-App -Project (Join-Path $repoRoot "src\OTM.ControlPanel\OTM.ControlPanel.csproj") -Output (Join-Path $stageRoot "control-panel")
 Publish-App -Project (Join-Path $repoRoot "src\OTM.KioskShell\OTM.KioskShell.csproj") -Output (Join-Path $stageRoot "kiosk-shell")
 Publish-App -Project (Join-Path $repoRoot "src\OTM.RecoveryTool\OTM.RecoveryTool.csproj") -Output (Join-Path $stageRoot "recovery")
+Publish-App -Project (Join-Path $repoRoot "src\OTM.Classroom\OTM.Classroom.csproj") -Output (Join-Path $stageRoot "classroom")
 
 if ($Sign) {
     if (-not $PfxPath -and -not $CertificateThumbprint) {

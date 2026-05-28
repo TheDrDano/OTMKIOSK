@@ -1,5 +1,5 @@
 {
-  "name": "Exam Mode",
+  "name": "Library Mode",
   "enforcement": {
     "enabled": true,
     "strictApplicationWhitelist": true,
@@ -8,34 +8,30 @@
     "processScanIntervalMs": 1000,
     "temporaryUnlockMinutes": 15
   },
-  "allowedApps": [
-    { "displayName": "Testing App", "processName": "testing.exe" }
-  ],
+  "allowedApps": [],
   "launchers": [
     {
-      "id": "exam-web",
-      "displayName": "Start Exam",
+      "id": "library-browser",
+      "displayName": "Library Browser",
       "type": "web",
       "workspaceMode": "exam",
-      "url": "https://testing.example.edu/",
-      "allowedSites": ["https://testing.example.edu/*"]
+      "url": "https://www.worldcat.org/",
+      "allowedSites": ["https://www.worldcat.org/*", "https://*.overdrive.com/*"]
     }
   ],
   "blockedApps": [
-    { "displayName": "Microsoft Edge", "processName": "msedge.exe" },
-    { "displayName": "Google Chrome", "processName": "chrome.exe" },
-    { "displayName": "Firefox", "processName": "firefox.exe" },
     { "displayName": "Task Manager", "processName": "Taskmgr.exe" },
     { "displayName": "Command Prompt", "processName": "cmd.exe" },
     { "displayName": "PowerShell", "processName": "powershell.exe" },
     { "displayName": "Registry Editor", "processName": "regedit.exe" },
-    { "displayName": "Windows Settings", "processName": "SystemSettings.exe" }
+    { "displayName": "Windows Settings", "processName": "SystemSettings.exe" },
+    { "displayName": "Microsoft Store", "processName": "WinStore.App.exe" }
   ],
   "browser": {
     "enabled": true,
     "whitelistOnly": true,
     "blockDownloads": true,
-    "allowedSites": ["https://testing.example.edu/*"],
+    "allowedSites": ["https://www.worldcat.org/*", "https://*.overdrive.com/*"],
     "blockedSites": ["*"]
   }
 }

@@ -49,4 +49,10 @@ if (Test-Path $simpleStartupShortcut) {
     Write-Host "Removed SimpleKioskOS startup shortcut."
 }
 
+$runKey = "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Run"
+if (Test-Path $runKey) {
+    Remove-ItemProperty -Path $runKey -Name "SimpleKioskOS" -ErrorAction SilentlyContinue
+    Write-Host "Removed SimpleKioskOS machine Run entry."
+}
+
 Write-Host "OTM Kiosk production uninstall complete."

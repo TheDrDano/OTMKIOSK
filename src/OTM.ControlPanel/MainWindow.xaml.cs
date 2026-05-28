@@ -375,6 +375,25 @@ public partial class MainWindow : Window
         }
     }
 
+    private async void ApplyBrowserPolicy_Click(object sender, RoutedEventArgs e)
+    {
+        if (_currentPolicy is not null)
+        {
+            _currentPolicy.Browser.Enabled = BrowserEnabledCheckBox.IsChecked == true;
+            _currentPolicy.Browser.WhitelistOnly = WhitelistOnlyCheckBox.IsChecked == true;
+            _currentPolicy.Browser.BlockDownloads = BrowserBlockDownloadsCheckBox.IsChecked == true;
+            if (!await SaveCurrentPolicyAsync("Website mode saved before applying browser policy."))
+            {
+                return;
+            }
+        }
+
+        if (await RunAdminActionAsync("/api/browser/apply-policy", HttpMethod.Post, "{}"))
+        {
+            ShowNotice("Browser policy applied", "Edge/Chrome policy was updated. Restart browsers for changes to apply.", NoticeKind.Success);
+        }
+    }
+
     private async Task AddAppRuleAsync(bool allow)
     {
         if (_currentPolicy is null)
@@ -497,18 +516,21 @@ public partial class MainWindow : Window
         await SaveCurrentPolicyAsync(successMessage);
     }
 
-    private async Task SaveCurrentPolicyAsync(string successMessage)
+    private async Task<bool> SaveCurrentPolicyAsync(string successMessage)
     {
         if (_currentPolicy is null)
         {
-            return;
+            return false;
         }
 
         if (await RunAdminActionAsync("/api/policy", HttpMethod.Put, JsonSerializer.Serialize(_currentPolicy, JsonOptions)))
         {
             ClearAppFields();
             ShowNotice("Saved", successMessage, NoticeKind.Success);
+            return true;
         }
+
+        return false;
     }
 
     private void BindAppRules()

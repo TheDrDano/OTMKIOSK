@@ -73,6 +73,12 @@ function Remove-Shortcuts {
             Write-Host "Removed $path"
         }
     }
+
+    $runKey = "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Run"
+    if (Test-Path $runKey) {
+        Remove-ItemProperty -Path $runKey -Name "SimpleKioskOS" -ErrorAction SilentlyContinue
+        Write-Host "Removed SimpleKioskOS machine Run entry."
+    }
 }
 
 Stop-OtmService

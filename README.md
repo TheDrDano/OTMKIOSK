@@ -5,6 +5,7 @@ OTM Kiosk is a local-first native Windows lockdown and kiosk management app. The
 - `OTM.Service`: Windows service runtime for process enforcement, downloads quarantine/delete, SQLite policy/log persistence, and local manager API.
 - `OTM.ControlPanel`: native WPF admin UI. No Electron.
 - `OTM.KioskShell`: fullscreen user-facing kiosk screen with approved application launchers and admin access.
+- `OTM.Classroom`: separate native manager foundation for local/remote classroom and lab control.
 - `OTM.RecoveryTool`: offline local recovery/reset utility.
 - Local web manager: `http://localhost:47821`, hosted by the service.
 
@@ -33,13 +34,13 @@ Install prerequisites on a build machine:
 Then run:
 
 ```powershell
-.\scripts\build-installer.ps1 -Version 5.0.0
+.\scripts\build-installer.ps1 -Version 5.1.2
 ```
 
 The installer will be created in:
 
 ```txt
-artifacts\installer\OTM-Kiosk-Setup-5.0.0.exe
+artifacts\installer\OTM-Kiosk-Setup-5.1.2.exe
 ```
 
 By default the script publishes self-contained `win-x64` binaries, so the test VPS does not need the .NET runtime preinstalled. The build also downloads Microsoft's Evergreen WebView2 bootstrapper and packages it into the SimpleKioskOS installer so embedded exam/web mode can install its browser runtime dependency on clean machines. Use `-FrameworkDependent` only if you want a smaller installer and you know the target machine has the .NET 8 Desktop Runtime installed.
@@ -53,7 +54,7 @@ Windows publisher identity for an `.exe` uses **Authenticode code signing**, not
 For local signing with a certificate installed in the machine certificate store:
 
 ```powershell
-.\scripts\build-installer.ps1 -Version 5.0.0 -Sign -CertificateThumbprint "YOUR_CERT_THUMBPRINT"
+.\scripts\build-installer.ps1 -Version 5.1.2 -Sign -CertificateThumbprint "YOUR_CERT_THUMBPRINT"
 ```
 
 Use `-CertificateStore LocalMachine` if the certificate is installed in the local machine store instead of the current user store.
@@ -61,7 +62,7 @@ Use `-CertificateStore LocalMachine` if the certificate is installed in the loca
 For local signing with a PFX:
 
 ```powershell
-.\scripts\build-installer.ps1 -Version 5.0.0 -Sign -PfxPath "C:\secure\otm-signing.pfx" -PfxPassword "PFX_PASSWORD"
+.\scripts\build-installer.ps1 -Version 5.1.2 -Sign -PfxPath "C:\secure\otm-signing.pfx" -PfxPassword "PFX_PASSWORD"
 ```
 
 The build signs published EXE/DLL files before packaging and signs the final setup EXE after Inno Setup finishes. If the final setup EXE is not Authenticode-signed by a trusted certificate, Windows will show **Unknown publisher**.
@@ -91,7 +92,7 @@ For lab-only testing without buying a certificate yet, create a self-signed test
 
 ```powershell
 .\scripts\create-test-signing-cert.ps1 -Password "test-password"
-.\scripts\build-installer.ps1 -Version 5.0.0 -Sign -PfxPath ".\artifacts\signing\simplekioskos-test.pfx" -PfxPassword "test-password"
+.\scripts\build-installer.ps1 -Version 5.1.2 -Sign -PfxPath ".\artifacts\signing\simplekioskos-test.pfx" -PfxPassword "test-password"
 ```
 
 On the test machine, trust that test cert before installing:
@@ -188,7 +189,7 @@ Omit `-RemoveData` if you want to keep the local database and recovery files.
 
 Use a Windows VPS with a desktop experience, not Windows Server Core. Take a snapshot before installing because kiosk enforcement can intentionally block tools.
 
-1. Copy `artifacts\installer\OTM-Kiosk-Setup-5.0.0.exe` to the VPS.
+1. Copy `artifacts\installer\OTM-Kiosk-Setup-5.1.2.exe` to the VPS.
 2. Run it as Administrator.
 3. The **SimpleKioskOS Control Panel** opens after install. Start the fullscreen shell from the Start menu only after confirming the admin PIN works.
 4. First-run PIN is `123456`.
@@ -233,6 +234,8 @@ Example profile JSON files are available in `profiles\`.
 ## Simple App Rules
 
 The native control panel and local web manager both include **Simple App Rules** so admins can allow or block apps without editing policy JSON. Enter a display name, process name such as `chrome.exe`, or browse/type an EXE path, then choose **Allow App** or **Block App**. Allowed apps can also be added to the fullscreen kiosk launcher automatically.
+
+Profiles in `profiles\` include Exam Mode, Lab Lockdown, Flight Simulator, Library Mode, and Esports Mode starter policies.
 
 ## Remote Management and Updates
 

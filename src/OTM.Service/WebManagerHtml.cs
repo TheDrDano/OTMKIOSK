@@ -143,6 +143,7 @@ public static class WebManagerHtml
         <label style="display:flex;align-items:center;gap:8px"><input id="whitelistOnly" type="checkbox" style="width:auto"> Only allowed websites can open</label>
         <label style="display:flex;align-items:center;gap:8px"><input id="browserBlockDownloads" type="checkbox" style="width:auto"> Block browser downloads</label>
         <button class="secondary" onclick="saveWebsiteMode()">Save Website Mode</button>
+        <button class="secondary" onclick="applyBrowserPolicy()">Apply Edge/Chrome Policy</button>
       </div>
       <div class="rule-grid" style="margin-top:14px">
         <div>
@@ -418,6 +419,13 @@ public static class WebManagerHtml
         document.getElementById('updateStatus').textContent = pick(result, 'message', 'Message') ?? 'Update check completed.';
         notice(document.getElementById('updateStatus').textContent, !!pick(result, 'available', 'Available'));
         await refresh();
+      } catch (err) { notice(err.message); }
+    }
+    async function applyBrowserPolicy() {
+      try {
+        await saveWebsiteMode();
+        await authed('/api/browser/apply-policy', { method: 'POST', body: '{}' });
+        notice('Edge/Chrome policy applied. Restart browsers for changes to apply.', true);
       } catch (err) { notice(err.message); }
     }
     async function savePolicy() { await authed('/api/policy', { method: 'PUT', body: document.getElementById('policy').value }); notice('Policy saved.', true); await refresh(); }

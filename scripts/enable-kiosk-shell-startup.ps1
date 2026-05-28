@@ -19,4 +19,9 @@ $shortcut.WorkingDirectory = Split-Path $ShellPath
 $shortcut.Description = "Start the SimpleKioskOS fullscreen shell at sign-in."
 $shortcut.Save()
 
+$runKey = "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Run"
+New-Item -Path $runKey -Force | Out-Null
+Set-ItemProperty -Path $runKey -Name "SimpleKioskOS" -Value "`"$ShellPath`""
+
 Write-Host "Enabled SimpleKioskOS startup: $shortcutPath"
+Write-Host "Enabled SimpleKioskOS machine Run entry: $runKey\SimpleKioskOS"

@@ -1,12 +1,13 @@
 #define MyAppName "SimpleKioskOS"
 #define MyAppVersion GetEnv("OTM_KIOSK_VERSION")
 #if MyAppVersion == ""
-  #define MyAppVersion "5.0.0"
+  #define MyAppVersion "5.1.2"
 #endif
 #define MyAppPublisher "SimpleKioskOS"
 #define MyAppExeName "OTM.ControlPanel.exe"
 #define ShellExeName "OTM.KioskShell.exe"
 #define ServiceExeName "OTM.Service.exe"
+#define ClassroomExeName "OTM.Classroom.exe"
 
 [Setup]
 AppId={{8A75836D-56C9-4F00-97FB-458F32E2D6AB}
@@ -34,13 +35,14 @@ Name: "english"; MessagesFile: "compiler:Default.isl"
 
 [Tasks]
 Name: "desktopicon"; Description: "Create a desktop shortcut"; GroupDescription: "Shortcuts:"
-Name: "startupshell"; Description: "Start fullscreen kiosk shell when Windows signs in"; GroupDescription: "Kiosk shell:"; Flags: unchecked
+Name: "startupshell"; Description: "Start fullscreen kiosk shell when Windows signs in"; GroupDescription: "Kiosk shell:"
 
 [Files]
 Source: "..\artifacts\stage\service\*"; DestDir: "{app}\Service"; Flags: ignoreversion recursesubdirs createallsubdirs
 Source: "..\artifacts\stage\control-panel\*"; DestDir: "{app}\ControlPanel"; Flags: ignoreversion recursesubdirs createallsubdirs
 Source: "..\artifacts\stage\kiosk-shell\*"; DestDir: "{app}\KioskShell"; Flags: ignoreversion recursesubdirs createallsubdirs
 Source: "..\artifacts\stage\recovery\*"; DestDir: "{app}\Recovery"; Flags: ignoreversion recursesubdirs createallsubdirs
+Source: "..\artifacts\stage\classroom\*"; DestDir: "{app}\Classroom"; Flags: ignoreversion recursesubdirs createallsubdirs
 Source: "..\artifacts\stage\dependencies\MicrosoftEdgeWebView2Setup.exe"; DestDir: "{tmp}"; Flags: deleteafterinstall
 Source: "..\branding\*.png"; DestDir: "{app}\Branding"; Flags: ignoreversion
 Source: "..\branding\*.ico"; DestDir: "{app}\Branding"; Flags: ignoreversion
@@ -60,12 +62,16 @@ Name: "{commonappdata}\OTM Kiosk\WebView2"; Permissions: users-modify
 [Icons]
 Name: "{group}\SimpleKioskOS"; Filename: "{app}\KioskShell\{#ShellExeName}"; IconFilename: "{app}\Branding\simplekioskos.ico"
 Name: "{group}\SimpleKioskOS Control Panel"; Filename: "{app}\ControlPanel\{#MyAppExeName}"; IconFilename: "{app}\Branding\simplekioskos.ico"
+Name: "{group}\SimpleKioskOS Classroom"; Filename: "{app}\Classroom\{#ClassroomExeName}"; IconFilename: "{app}\Branding\simplekioskos.ico"
 Name: "{group}\SimpleKioskOS Local Manager"; Filename: "http://localhost:47821"; IconFilename: "{app}\Branding\simplekioskos.ico"
 Name: "{group}\SimpleKioskOS Recovery Tool"; Filename: "{app}\Recovery\OTM.RecoveryTool.exe"; IconFilename: "{app}\Branding\simplekioskos.ico"
 Name: "{group}\Emergency Testing Uninstall"; Filename: "{sys}\WindowsPowerShell\v1.0\powershell.exe"; Parameters: "-ExecutionPolicy Bypass -File ""{app}\Scripts\start-testing-uninstall-admin.ps1"""; IconFilename: "{app}\Branding\simplekioskos.ico"
 Name: "{group}\Uninstall SimpleKioskOS"; Filename: "{uninstallexe}"; IconFilename: "{app}\Branding\simplekioskos.ico"
 Name: "{autodesktop}\SimpleKioskOS"; Filename: "{app}\KioskShell\{#ShellExeName}"; IconFilename: "{app}\Branding\simplekioskos.ico"; Tasks: desktopicon
 Name: "{commonstartup}\SimpleKioskOS"; Filename: "{app}\KioskShell\{#ShellExeName}"; IconFilename: "{app}\Branding\simplekioskos.ico"; Tasks: startupshell
+
+[Registry]
+Root: HKLM; Subkey: "Software\Microsoft\Windows\CurrentVersion\Run"; ValueType: string; ValueName: "SimpleKioskOS"; ValueData: """{app}\KioskShell\{#ShellExeName}"""; Tasks: startupshell; Flags: uninsdeletevalue
 
 [Run]
 Filename: "{tmp}\MicrosoftEdgeWebView2Setup.exe"; Parameters: "/silent /install"; StatusMsg: "Installing Microsoft Edge WebView2 Runtime for exam/web kiosk mode..."; Check: not IsWebView2RuntimePresent; AfterInstall: VerifyWebView2Installed; Flags: waituntilterminated runhidden
@@ -81,6 +87,7 @@ Filename: "{sys}\sc.exe"; Parameters: "stop OTMKioskService"; Flags: runhidden w
 Filename: "{sys}\taskkill.exe"; Parameters: "/IM OTM.KioskShell.exe /F /T"; Flags: runhidden waituntilterminated
 Filename: "{sys}\taskkill.exe"; Parameters: "/IM OTM.Service.exe /F /T"; Flags: runhidden waituntilterminated
 Filename: "{sys}\taskkill.exe"; Parameters: "/IM OTM.ControlPanel.exe /F /T"; Flags: runhidden waituntilterminated
+Filename: "{sys}\taskkill.exe"; Parameters: "/IM OTM.Classroom.exe /F /T"; Flags: runhidden waituntilterminated
 Filename: "{sys}\taskkill.exe"; Parameters: "/IM OTM.RecoveryTool.exe /F /T"; Flags: runhidden waituntilterminated
 Filename: "{sys}\sc.exe"; Parameters: "delete OTMKioskService"; Flags: runhidden waituntilterminated
 
@@ -143,6 +150,7 @@ begin
   Exec(ExpandConstant('{sys}\taskkill.exe'), '/IM OTM.KioskShell.exe /F /T', '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
   Exec(ExpandConstant('{sys}\taskkill.exe'), '/IM OTM.Service.exe /F /T', '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
   Exec(ExpandConstant('{sys}\taskkill.exe'), '/IM OTM.ControlPanel.exe /F /T', '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
+  Exec(ExpandConstant('{sys}\taskkill.exe'), '/IM OTM.Classroom.exe /F /T', '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
   Exec(ExpandConstant('{sys}\taskkill.exe'), '/IM OTM.RecoveryTool.exe /F /T', '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
   Exec(ExpandConstant('{sys}\sc.exe'), 'delete OTMKioskService', '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
   Sleep(1500);

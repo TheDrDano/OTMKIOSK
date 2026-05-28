@@ -3,6 +3,7 @@ using System.Reflection;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
+using Microsoft.Win32;
 using Otm.Kiosk.Shared.Models;
 using Otm.Kiosk.Shared.Security;
 using Otm.Kiosk.Shared.Storage;
@@ -294,6 +295,14 @@ public sealed class LocalManagementServer
                 return;
             }
 
+            if (path.Equals("/api/browser/apply-policy", StringComparison.OrdinalIgnoreCase) && request.HttpMethod == "POST")
+            {
+                ApplyBrowserPolicy(_runtime.GetPolicy());
+                _runtime.Log("Info", "BrowserPolicyApplied", "Edge/Chrome browser policies applied from local policy.");
+                await WriteJsonAsync(response, new { ok = true, message = "Edge/Chrome browser policies applied. Restart browsers for changes to apply." });
+                return;
+            }
+
             if (path.Equals("/api/unlock", StringComparison.OrdinalIgnoreCase) && request.HttpMethod == "POST")
             {
                 var requestBody = await ReadJsonAsync<UnlockRequest>(request) ?? new UnlockRequest();
@@ -492,6 +501,59 @@ public sealed class LocalManagementServer
         }
 
         return !string.Equals(candidate, current, StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static void ApplyBrowserPolicy(KioskPolicy policy)
+    {
+        foreach (var rootPath in new[] { @"SOFTWARE\Policies\Microsoft\Edge", @"SOFTWARE\Policies\Google\Chrome" })
+        {
+            using var root = Registry.LocalMachine.CreateSubKey(rootPath, writable: true)
+                ?? throw new InvalidOperationException($"Could not open HKLM\\{rootPath}.");
+
+            root.SetValue("DownloadRestrictions", policy.Browser.BlockDownloads ? 3 : 0, RegistryValueKind.DWord);
+
+            if (policy.Browser.WhitelistOnly)
+            {
+                SetPolicyList(rootPath, "URLBlocklist", ["*"]);
+                SetPolicyList(rootPath, "URLAllowlist", NormalizeBrowserPolicySites(policy.Browser.AllowedSites));
+            }
+            else
+            {
+                SetPolicyList(rootPath, "URLBlocklist", NormalizeBrowserPolicySites(policy.Browser.BlockedSites));
+                SetPolicyList(rootPath, "URLAllowlist", []);
+            }
+        }
+    }
+
+    private static string[] NormalizeBrowserPolicySites(IEnumerable<string> sites)
+    {
+        return sites
+            .Where(static site => !string.IsNullOrWhiteSpace(site))
+            .Select(static site => site.Contains("://", StringComparison.Ordinal) || site.Contains("*", StringComparison.Ordinal)
+                ? site
+                : $"*://*.{site.TrimStart('.').TrimEnd('/')}/*")
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToArray();
+    }
+
+    private static void SetPolicyList(string rootPath, string name, IReadOnlyList<string> values)
+    {
+        using var root = Registry.LocalMachine.OpenSubKey(rootPath, writable: true)
+            ?? Registry.LocalMachine.CreateSubKey(rootPath, writable: true)
+            ?? throw new InvalidOperationException($"Could not open HKLM\\{rootPath}.");
+
+        root.DeleteSubKeyTree(name, throwOnMissingSubKey: false);
+        if (values.Count == 0)
+        {
+            return;
+        }
+
+        using var list = root.CreateSubKey(name, writable: true)
+            ?? throw new InvalidOperationException($"Could not create HKLM\\{rootPath}\\{name}.");
+        for (var index = 0; index < values.Count; index++)
+        {
+            list.SetValue((index + 1).ToString(), values[index], RegistryValueKind.String);
+        }
     }
 
     private static string GetCurrentVersion()
