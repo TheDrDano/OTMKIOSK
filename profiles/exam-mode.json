@@ -1,0 +1,21 @@
+{
+  "name": "Exam Mode",
+  "enforcement": {
+    "enabled": true,
+    "strictApplicationWhitelist": true,
+    "restartRequiredApps": true,
+    "fullscreenOverlay": false,
+    "processScanIntervalMs": 1000,
+    "temporaryUnlockMinutes": 15
+  },
+  "allowedApps": [
+    { "displayName": "Approved Testing Browser", "processName": "msedge.exe" }
+  ],
+  "browser": {
+    "enabled": true,
+    "whitelistOnly": true,
+    "blockDownloads": true,
+    "allowedSites": ["https://testing.example.edu/*"],
+    "blockedSites": ["*"]
+  }
+}

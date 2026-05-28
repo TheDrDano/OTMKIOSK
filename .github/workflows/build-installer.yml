@@ -1,0 +1,39 @@
+name: Build Installer
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Installer version"
+        required: true
+        default: "0.1.0"
+  push:
+    branches:
+      - main
+      - master
+
+jobs:
+  build-installer:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "8.0.x"
+
+      - name: Install Inno Setup
+        run: choco install innosetup -y
+
+      - name: Build installer
+        shell: pwsh
+        run: .\scripts\build-installer.ps1 -Version "${{ github.event.inputs.version || '0.1.0' }}"
+
+      - name: Upload installer
+        uses: actions/upload-artifact@v4
+        with:
+          name: OTM-Kiosk-Installer
+          path: artifacts/installer/*.exe

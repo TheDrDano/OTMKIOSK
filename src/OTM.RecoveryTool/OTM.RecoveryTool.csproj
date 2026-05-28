@@ -1,0 +1,9 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <ProjectReference Include="..\OTM.Shared\OTM.Shared.csproj" />
+  </ItemGroup>
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <RootNamespace>Otm.Kiosk.RecoveryTool</RootNamespace>
+  </PropertyGroup>
+</Project>

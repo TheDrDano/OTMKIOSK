@@ -1,0 +1,10 @@
+<Project>
+  <PropertyGroup>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Company>OTM</Company>
+    <Product>OTM Kiosk</Product>
+    <AssemblyCopyright>Copyright OTM</AssemblyCopyright>
+  </PropertyGroup>
+</Project>

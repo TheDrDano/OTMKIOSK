@@ -1,0 +1,24 @@
+{
+  "name": "Flight Simulator Lockdown",
+  "enforcement": {
+    "enabled": true,
+    "strictApplicationWhitelist": true,
+    "restartRequiredApps": true,
+    "fullscreenOverlay": false,
+    "processScanIntervalMs": 1000,
+    "temporaryUnlockMinutes": 15
+  },
+  "allowedApps": [
+    { "displayName": "Microsoft Flight Simulator", "processName": "FlightSimulator.exe" },
+    { "displayName": "Microsoft Flight Simulator 2024", "processName": "FlightSimulator2024.exe" },
+    { "displayName": "Steam", "processName": "steam.exe" },
+    { "displayName": "Xbox App", "processName": "XboxPcApp.exe" }
+  ],
+  "browser": {
+    "enabled": true,
+    "whitelistOnly": true,
+    "blockDownloads": true,
+    "allowedSites": [],
+    "blockedSites": ["youtube.com", "youtu.be", "tiktok.com", "instagram.com", "facebook.com", "x.com", "twitter.com", "reddit.com", "discord.com"]
+  }
+}
