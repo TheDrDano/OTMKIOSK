@@ -1,9 +1,9 @@
 $ErrorActionPreference = "Stop"
 
-$shortcutPath = "$env:ProgramData\Microsoft\Windows\Start Menu\Programs\Startup\OTM Kiosk Shell.lnk"
+$shortcutPath = "$env:ProgramData\Microsoft\Windows\Start Menu\Programs\Startup\SimpleKioskOS.lnk"
 if (Test-Path $shortcutPath) {
     Remove-Item -LiteralPath $shortcutPath -Force
-    Write-Host "Disabled OTM Kiosk Shell startup."
+    Write-Host "Disabled SimpleKioskOS startup."
 } else {
-    Write-Host "OTM Kiosk Shell startup shortcut was not present."
+    Write-Host "SimpleKioskOS startup shortcut was not present."
 }

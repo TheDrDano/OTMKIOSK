@@ -1,5 +1,5 @@
 param(
-    [string]$InstallRoot = "$env:ProgramFiles\OTM Kiosk",
+    [string]$InstallRoot = "$env:ProgramFiles\SimpleKioskOS",
     [string]$DataRoot = "$env:ProgramData\OTM Kiosk",
     [switch]$RemoveData
 )
@@ -57,7 +57,10 @@ function Remove-DirectorySafe {
 function Remove-Shortcuts {
     $paths = @(
         "$env:Public\Desktop\OTM Kiosk.lnk",
+        "$env:Public\Desktop\SimpleKioskOS.lnk",
         "$env:ProgramData\Microsoft\Windows\Start Menu\Programs\Startup\OTM Kiosk Shell.lnk",
+        "$env:ProgramData\Microsoft\Windows\Start Menu\Programs\Startup\SimpleKioskOS.lnk",
+        "$env:ProgramData\Microsoft\Windows\Start Menu\Programs\SimpleKioskOS",
         "$env:ProgramData\Microsoft\Windows\Start Menu\Programs\OTM Kiosk"
     )
 

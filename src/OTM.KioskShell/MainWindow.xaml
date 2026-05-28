@@ -7,35 +7,66 @@
         WindowState="Maximized"
         ResizeMode="NoResize"
         Topmost="True"
-        Background="#090D12"
+        Background="#E8EDF2"
         Closing="Window_Closing"
         Deactivated="Window_Deactivated"
         PreviewKeyDown="Window_PreviewKeyDown">
     <Window.Resources>
         <Style TargetType="Button">
-            <Setter Property="MinHeight" Value="42" />
-            <Setter Property="Padding" Value="14,0" />
+            <Setter Property="MinHeight" Value="44" />
+            <Setter Property="Padding" Value="16,0" />
             <Setter Property="FontWeight" Value="SemiBold" />
             <Setter Property="BorderThickness" Value="1" />
             <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="Background" Value="#FF6B1A" />
+            <Setter Property="Foreground" Value="White" />
+            <Setter Property="BorderBrush" Value="#D9550D" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="Chrome"
+                                Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                CornerRadius="7"
+                                Padding="{TemplateBinding Padding}">
+                            <ContentPresenter Content="{TemplateBinding Content}"
+                                              ContentTemplate="{TemplateBinding ContentTemplate}"
+                                              HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
+                                              VerticalAlignment="Center" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Chrome" Property="Opacity" Value="0.9" />
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="Chrome" Property="Opacity" Value="0.78" />
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter TargetName="Chrome" Property="Opacity" Value="0.5" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
         </Style>
         <Style x:Key="LauncherButton" TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
-            <Setter Property="Background" Value="#17242E" />
-            <Setter Property="Foreground" Value="#F7FAFC" />
-            <Setter Property="BorderBrush" Value="#314B5E" />
+            <Setter Property="Background" Value="#FFFFFF" />
+            <Setter Property="Foreground" Value="#151A20" />
+            <Setter Property="BorderBrush" Value="#D7DEE6" />
             <Setter Property="HorizontalContentAlignment" Value="Left" />
-            <Setter Property="MinHeight" Value="58" />
+            <Setter Property="MinHeight" Value="60" />
             <Setter Property="FontSize" Value="15" />
         </Style>
         <Style x:Key="SecondaryButton" TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
             <Setter Property="Background" Value="#FFFFFF" />
-            <Setter Property="Foreground" Value="#176B87" />
-            <Setter Property="BorderBrush" Value="#B8C7D2" />
+            <Setter Property="Foreground" Value="#1D2935" />
+            <Setter Property="BorderBrush" Value="#C7D0DA" />
         </Style>
         <Style x:Key="DangerButton" TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
-            <Setter Property="Background" Value="#9F2D2D" />
+            <Setter Property="Background" Value="#B42318" />
             <Setter Property="Foreground" Value="White" />
-            <Setter Property="BorderBrush" Value="#812424" />
+            <Setter Property="BorderBrush" Value="#8F1D14" />
         </Style>
     </Window.Resources>
 
@@ -45,7 +76,7 @@
             <ColumnDefinition Width="*" />
         </Grid.ColumnDefinitions>
 
-        <Border Grid.Column="0" Background="#0E151C" BorderBrush="#233746" BorderThickness="0,0,1,0">
+        <Border Grid.Column="0" Background="#151A20" BorderBrush="#CFD7E1" BorderThickness="0,0,1,0">
             <Grid Margin="22">
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto" />
@@ -55,15 +86,17 @@
                 </Grid.RowDefinitions>
 
                 <StackPanel>
-                    <Image Source="Assets/simplekioskos_side.png" Width="238" Height="58" Stretch="Uniform" HorizontalAlignment="Left" />
+                    <Border Background="#F8FAFC" BorderBrush="#FFFFFF" BorderThickness="1" CornerRadius="8" Padding="12">
+                        <Image Source="pack://application:,,,/Assets/simplekioskos_side.png" Width="238" Height="58" Stretch="Uniform" HorizontalAlignment="Left" />
+                    </Border>
                     <TextBlock Text="Secure workspace" Foreground="White" FontSize="19" FontWeight="SemiBold" Margin="0,16,0,0" />
-                    <TextBlock x:Name="StatusText" Text="Device locked" Foreground="#AFC1CF" FontSize="13" TextWrapping="Wrap" Margin="1,4,0,0" />
+                    <TextBlock x:Name="StatusText" Text="Device locked" Foreground="#C8D3DD" FontSize="13" TextWrapping="Wrap" Margin="1,4,0,0" />
                 </StackPanel>
 
-                <Border Grid.Row="1" Background="#121D26" BorderBrush="#233746" BorderThickness="1" CornerRadius="8" Padding="12" Margin="0,22,0,14">
+                <Border Grid.Row="1" Background="#242A31" BorderBrush="#343C45" BorderThickness="1" CornerRadius="8" Padding="12" Margin="0,22,0,14">
                     <StackPanel>
-                        <TextBlock Text="Approved Launchers" Foreground="#D7E1EA" FontWeight="SemiBold" />
-                        <TextBlock Text="Apps and exam sites allowed by this policy." Foreground="#6F8494" FontSize="12" TextWrapping="Wrap" Margin="0,4,0,0" />
+                        <TextBlock Text="Approved Launchers" Foreground="#F8FAFC" FontWeight="SemiBold" />
+                        <TextBlock Text="Apps and exam sites allowed by this policy." Foreground="#AAB6C2" FontSize="12" TextWrapping="Wrap" Margin="0,4,0,0" />
                     </StackPanel>
                 </Border>
 
@@ -81,13 +114,7 @@
                     </ItemsControl>
                 </ScrollViewer>
 
-                <StackPanel Grid.Row="3">
-                    <Button x:Name="AdminCornerButton"
-                            Content="Admin"
-                            Style="{StaticResource SecondaryButton}"
-                            Click="ToggleAdmin_Click" />
-                    <TextBlock Text="Local-first controls work offline." Foreground="#6F8494" FontSize="12" TextWrapping="Wrap" Margin="0,12,0,0" />
-                </StackPanel>
+                <TextBlock Grid.Row="3" Text="Local-first controls work offline." Foreground="#AAB6C2" FontSize="12" TextWrapping="Wrap" />
             </Grid>
         </Border>
 
@@ -99,21 +126,21 @@
 
             <DockPanel Grid.Row="0" Margin="26,22,26,14">
                 <StackPanel DockPanel.Dock="Left">
-                    <TextBlock x:Name="WorkspaceTitle" Text="Locked Workspace" Foreground="White" FontSize="28" FontWeight="SemiBold" />
-                    <TextBlock x:Name="WorkspaceSubtitle" Text="Choose an approved app or exam site from the left." Foreground="#AFC1CF" FontSize="14" Margin="1,4,0,0" />
+                    <TextBlock x:Name="WorkspaceTitle" Text="Locked Workspace" Foreground="#111827" FontSize="28" FontWeight="SemiBold" />
+                    <TextBlock x:Name="WorkspaceSubtitle" Text="Choose an approved app or exam site from the left." Foreground="#526171" FontSize="14" Margin="1,4,0,0" />
                 </StackPanel>
-                <Border DockPanel.Dock="Right" Background="#17242E" BorderBrush="#28404F" BorderThickness="1" CornerRadius="8" Padding="12,8">
-                    <TextBlock x:Name="ClockText" Foreground="#D7E1EA" FontSize="14" />
+                <Border DockPanel.Dock="Right" Background="#FFFFFF" BorderBrush="#CBD5E1" BorderThickness="1" CornerRadius="8" Padding="12,8">
+                    <TextBlock x:Name="ClockText" Foreground="#1F2937" FontSize="14" />
                 </Border>
             </DockPanel>
 
             <Grid Grid.Row="1" Margin="26,0,26,26">
-                <Border x:Name="IdleWorkspace" Background="#0E151C" BorderBrush="#233746" BorderThickness="1" CornerRadius="10">
+                <Border x:Name="IdleWorkspace" Background="#F8FAFC" BorderBrush="#CBD5E1" BorderThickness="1" CornerRadius="10">
                     <Grid>
                         <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center" MaxWidth="680">
-                            <Image Source="Assets/simplekioskos_bottom.png" Width="410" Height="245" Stretch="Uniform" />
-                            <TextBlock Text="This station is protected" Foreground="White" FontSize="42" FontWeight="SemiBold" TextAlignment="Center" Margin="0,18,0,0" />
-                            <TextBlock Text="Start an approved application or exam site from the launcher. Blocked activity will be stopped and logged locally." Foreground="#AFC1CF" FontSize="17" TextAlignment="Center" TextWrapping="Wrap" Margin="0,12,0,0" />
+                            <Image Source="pack://application:,,,/Assets/simplekioskos_bottom.png" Width="410" Height="245" Stretch="Uniform" />
+                            <TextBlock Text="This station is protected" Foreground="#111827" FontSize="42" FontWeight="SemiBold" TextAlignment="Center" Margin="0,18,0,0" />
+                            <TextBlock Text="Start an approved application or exam site from the launcher. Blocked activity will be stopped and logged locally." Foreground="#526171" FontSize="17" TextAlignment="Center" TextWrapping="Wrap" Margin="0,12,0,0" />
                         </StackPanel>
                     </Grid>
                 </Border>
@@ -122,33 +149,47 @@
                     <wv2:WebView2 x:Name="ExamBrowser" />
                 </Border>
 
-                <Border x:Name="AppWorkspace" Visibility="Collapsed" Background="#101820" BorderBrush="#233746" BorderThickness="1" CornerRadius="10" Padding="28">
+                <Border x:Name="AppWorkspace" Visibility="Collapsed" Background="#F8FAFC" BorderBrush="#CBD5E1" BorderThickness="1" CornerRadius="10" Padding="28">
                     <Grid>
                         <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center" MaxWidth="760">
-                            <Image Source="Assets/simplekioskos_side.png" Width="330" Height="82" Stretch="Uniform" />
-                            <TextBlock x:Name="AppWorkspaceTitle" Text="Application workspace active" Foreground="White" FontSize="34" FontWeight="SemiBold" TextAlignment="Center" Margin="0,24,0,0" />
-                            <TextBlock x:Name="AppWorkspaceText" Text="Approved apps can remain open together. Use the launcher to start another app." Foreground="#AFC1CF" FontSize="16" TextAlignment="Center" TextWrapping="Wrap" Margin="0,10,0,0" />
+                            <Image Source="pack://application:,,,/Assets/simplekioskos_side.png" Width="330" Height="82" Stretch="Uniform" />
+                            <TextBlock x:Name="AppWorkspaceTitle" Text="Application workspace active" Foreground="#111827" FontSize="34" FontWeight="SemiBold" TextAlignment="Center" Margin="0,24,0,0" />
+                            <TextBlock x:Name="AppWorkspaceText" Text="Approved apps can remain open together. Use the launcher to start another app." Foreground="#526171" FontSize="16" TextAlignment="Center" TextWrapping="Wrap" Margin="0,10,0,0" />
                         </StackPanel>
                     </Grid>
                 </Border>
             </Grid>
         </Grid>
 
-        <Border x:Name="AdminPanel" Grid.Column="1" Visibility="Collapsed" HorizontalAlignment="Right" VerticalAlignment="Bottom" Width="380" Margin="0,0,30,30" Background="#F7FAFC" BorderBrush="#C8D4DE" BorderThickness="1" CornerRadius="8" Padding="16">
+        <Button x:Name="AdminCornerButton"
+                Grid.ColumnSpan="2"
+                Content="Admin"
+                Width="112"
+                Height="44"
+                HorizontalAlignment="Right"
+                VerticalAlignment="Bottom"
+                Margin="0,0,30,30"
+                Style="{StaticResource SecondaryButton}"
+                Click="ToggleAdmin_Click" />
+
+        <Border x:Name="AdminPanel" Grid.ColumnSpan="2" Visibility="Collapsed" HorizontalAlignment="Right" VerticalAlignment="Bottom" Width="460" Margin="0,0,30,30" Background="#F8FAFC" BorderBrush="#C8D4DE" BorderThickness="1" CornerRadius="8" Padding="18">
             <StackPanel>
                 <DockPanel Margin="0,0,0,12">
-                    <TextBlock Text="Admin" FontSize="17" FontWeight="SemiBold" Foreground="#17202A" />
-                    <Button DockPanel.Dock="Right" Content="Hide" Width="76" Height="32" Style="{StaticResource SecondaryButton}" Click="ToggleAdmin_Click" />
+                    <StackPanel>
+                        <TextBlock Text="Admin Access" FontSize="18" FontWeight="SemiBold" Foreground="#17202A" />
+                        <TextBlock Text="Manage this kiosk locally." FontSize="12" Foreground="#64748B" Margin="0,3,0,0" />
+                    </StackPanel>
+                    <Button DockPanel.Dock="Right" Content="Hide" Width="82" Height="34" Style="{StaticResource SecondaryButton}" Click="ToggleAdmin_Click" />
                 </DockPanel>
-                <Button Content="Refresh Status" Margin="0,0,0,10" Style="{StaticResource SecondaryButton}" Click="Refresh_Click" />
                 <TextBlock Text="PIN" Foreground="#344756" FontWeight="SemiBold" Margin="0,0,0,4" />
-                <PasswordBox x:Name="PinBox" Height="34" Margin="0,0,0,10" />
+                <PasswordBox x:Name="PinBox" Height="38" Margin="0,0,0,12" />
                 <UniformGrid Columns="2" Rows="2">
-                    <Button Content="Unlock 15m" Margin="0,0,6,6" Style="{StaticResource SecondaryButton}" Click="Unlock_Click" />
+                    <Button Content="Unlock 15m" Margin="0,0,6,6" Click="Unlock_Click" />
                     <Button Content="Lock" Margin="6,0,0,6" Style="{StaticResource DangerButton}" Click="Lock_Click" />
                     <Button Content="Manager" Margin="0,6,6,0" Style="{StaticResource SecondaryButton}" Click="Manager_Click" />
                     <Button Content="Control Panel" Margin="6,6,0,0" Style="{StaticResource SecondaryButton}" Click="ControlPanel_Click" />
                 </UniformGrid>
+                <Button Content="Refresh Status" Margin="0,14,0,0" Style="{StaticResource SecondaryButton}" Click="Refresh_Click" />
                 <Separator Margin="0,14,0,12" />
                 <TextBlock Text="Remote Manager" FontWeight="SemiBold" Foreground="#17202A" />
                 <TextBlock Text="Offline local mode. Pairing will be enabled when cloud management is added." Foreground="#64748B" TextWrapping="Wrap" FontSize="12" Margin="0,4,0,8" />

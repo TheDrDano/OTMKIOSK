@@ -16,6 +16,13 @@ public sealed class LocalManagementServer
         PropertyNamingPolicy = JsonNamingPolicy.CamelCase
     };
 
+    private static readonly HashSet<string> AllowedBrandingAssets = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "simplekioskos.png",
+        "simplekioskos_side.png",
+        "simplekioskos_bottom.png"
+    };
+
     private readonly KioskRuntime _runtime;
     private readonly SqliteKioskStore _logs;
     private readonly HttpListener _listener = new();
@@ -99,6 +106,12 @@ public sealed class LocalManagementServer
             if (path.Length == 0)
             {
                 await WriteHtmlAsync(response, WebManagerHtml.Page);
+                return;
+            }
+
+            if (path.StartsWith("/assets/", StringComparison.OrdinalIgnoreCase))
+            {
+                await WriteAssetAsync(response, path);
                 return;
             }
 
@@ -428,6 +441,73 @@ public sealed class LocalManagementServer
         response.ContentLength64 = bytes.Length;
         await response.OutputStream.WriteAsync(bytes);
         response.Close();
+    }
+
+    private static async Task WriteAssetAsync(HttpListenerResponse response, string path)
+    {
+        var fileName = Path.GetFileName(WebUtility.UrlDecode(path));
+        if (string.IsNullOrWhiteSpace(fileName) || !AllowedBrandingAssets.Contains(fileName))
+        {
+            response.StatusCode = 404;
+            await WriteJsonAsync(response, new { error = "Asset not found" });
+            return;
+        }
+
+        var assetPath = ResolveBrandingAssetPath(fileName);
+        if (assetPath is null)
+        {
+            response.StatusCode = 404;
+            await WriteJsonAsync(response, new { error = "Asset not found" });
+            return;
+        }
+
+        response.ContentType = "image/png";
+        var bytes = await File.ReadAllBytesAsync(assetPath);
+        response.ContentLength64 = bytes.Length;
+        await response.OutputStream.WriteAsync(bytes);
+        response.Close();
+    }
+
+    private static string? ResolveBrandingAssetPath(string fileName)
+    {
+        foreach (var candidate in EnumerateBrandingAssetCandidates(fileName))
+        {
+            if (File.Exists(candidate))
+            {
+                return candidate;
+            }
+        }
+
+        return null;
+    }
+
+    private static IEnumerable<string> EnumerateBrandingAssetCandidates(string fileName)
+    {
+        var baseDirectory = AppContext.BaseDirectory;
+        yield return Path.Combine(baseDirectory, "Branding", fileName);
+        yield return Path.GetFullPath(Path.Combine(baseDirectory, "..", "Branding", fileName));
+        yield return Path.Combine(baseDirectory, "Assets", fileName);
+
+        foreach (var candidate in EnumerateUpwardAssetCandidates(baseDirectory, fileName))
+        {
+            yield return candidate;
+        }
+
+        foreach (var candidate in EnumerateUpwardAssetCandidates(Directory.GetCurrentDirectory(), fileName))
+        {
+            yield return candidate;
+        }
+    }
+
+    private static IEnumerable<string> EnumerateUpwardAssetCandidates(string startDirectory, string fileName)
+    {
+        var directory = new DirectoryInfo(startDirectory);
+        while (directory is not null)
+        {
+            yield return Path.Combine(directory.FullName, "branding", fileName);
+            yield return Path.Combine(directory.FullName, "src", "OTM.KioskShell", "Assets", fileName);
+            directory = directory.Parent;
+        }
     }
 
     private static async Task Unauthorized(HttpListenerResponse response)

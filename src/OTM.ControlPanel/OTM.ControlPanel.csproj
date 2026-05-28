@@ -1,6 +1,9 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <ItemGroup>
     <ProjectReference Include="..\OTM.Shared\OTM.Shared.csproj" />
+    <Resource Include="..\OTM.KioskShell\Assets\simplekioskos.png" Link="Assets\simplekioskos.png" />
+    <Resource Include="..\OTM.KioskShell\Assets\simplekioskos_side.png" Link="Assets\simplekioskos_side.png" />
+    <Resource Include="..\OTM.KioskShell\Assets\simplekioskos_bottom.png" Link="Assets\simplekioskos_bottom.png" />
   </ItemGroup>
   <PropertyGroup>
     <OutputType>WinExe</OutputType>

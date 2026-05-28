@@ -1,5 +1,5 @@
 param(
-    [string]$InstallRoot = "$env:ProgramFiles\OTM Kiosk",
+    [string]$InstallRoot = "$env:ProgramFiles\SimpleKioskOS",
     [switch]$RemoveData
 )
 
@@ -38,6 +38,12 @@ $startupShortcut = "$env:ProgramData\Microsoft\Windows\Start Menu\Programs\Start
 if (Test-Path $startupShortcut) {
     Remove-Item -LiteralPath $startupShortcut -Force
     Write-Host "Removed kiosk shell startup shortcut."
+}
+
+$simpleStartupShortcut = "$env:ProgramData\Microsoft\Windows\Start Menu\Programs\Startup\SimpleKioskOS.lnk"
+if (Test-Path $simpleStartupShortcut) {
+    Remove-Item -LiteralPath $simpleStartupShortcut -Force
+    Write-Host "Removed SimpleKioskOS startup shortcut."
 }
 
 Write-Host "OTM Kiosk production uninstall complete."

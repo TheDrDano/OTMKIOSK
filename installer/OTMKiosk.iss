@@ -1,9 +1,9 @@
-#define MyAppName "OTM Kiosk"
+#define MyAppName "SimpleKioskOS"
 #define MyAppVersion GetEnv("OTM_KIOSK_VERSION")
 #if MyAppVersion == ""
-  #define MyAppVersion "3.2.0"
+  #define MyAppVersion "4.0.0"
 #endif
-#define MyAppPublisher "OTM"
+#define MyAppPublisher "SimpleKioskOS"
 #define MyAppExeName "OTM.ControlPanel.exe"
 #define ShellExeName "OTM.KioskShell.exe"
 #define ServiceExeName "OTM.Service.exe"
@@ -13,8 +13,8 @@ AppId={{8A75836D-56C9-4F00-97FB-458F32E2D6AB}
 AppName={#MyAppName}
 AppVersion={#MyAppVersion}
 AppPublisher={#MyAppPublisher}
-DefaultDirName={autopf}\OTM Kiosk
-DefaultGroupName=OTM Kiosk
+DefaultDirName={autopf}\SimpleKioskOS
+DefaultGroupName=SimpleKioskOS
 DisableProgramGroupPage=yes
 OutputDir=..\artifacts\installer
 OutputBaseFilename=OTM-Kiosk-Setup-{#MyAppVersion}
@@ -24,7 +24,7 @@ WizardStyle=modern
 PrivilegesRequired=admin
 ArchitecturesAllowed=x64
 ArchitecturesInstallIn64BitMode=x64
-UninstallDisplayIcon={app}\ControlPanel\{#MyAppExeName}
+UninstallDisplayIcon={app}\KioskShell\{#ShellExeName}
 CloseApplications=force
 RestartApplications=no
 
@@ -40,28 +40,32 @@ Source: "..\artifacts\stage\service\*"; DestDir: "{app}\Service"; Flags: ignorev
 Source: "..\artifacts\stage\control-panel\*"; DestDir: "{app}\ControlPanel"; Flags: ignoreversion recursesubdirs createallsubdirs
 Source: "..\artifacts\stage\kiosk-shell\*"; DestDir: "{app}\KioskShell"; Flags: ignoreversion recursesubdirs createallsubdirs
 Source: "..\artifacts\stage\recovery\*"; DestDir: "{app}\Recovery"; Flags: ignoreversion recursesubdirs createallsubdirs
+Source: "..\artifacts\stage\dependencies\MicrosoftEdgeWebView2Setup.exe"; DestDir: "{tmp}"; Flags: deleteafterinstall
+Source: "..\branding\*.png"; DestDir: "{app}\Branding"; Flags: ignoreversion
 Source: "..\scripts\uninstall-testing.ps1"; DestDir: "{app}\Scripts"; Flags: ignoreversion
 Source: "..\scripts\uninstall-production.ps1"; DestDir: "{app}\Scripts"; Flags: ignoreversion
 Source: "..\scripts\enable-kiosk-shell-startup.ps1"; DestDir: "{app}\Scripts"; Flags: ignoreversion
 Source: "..\scripts\disable-kiosk-shell-startup.ps1"; DestDir: "{app}\Scripts"; Flags: ignoreversion
 Source: "..\scripts\verify-signatures.ps1"; DestDir: "{app}\Scripts"; Flags: ignoreversion
+Source: "..\scripts\trust-test-signing-cert.ps1"; DestDir: "{app}\Scripts"; Flags: ignoreversion
 Source: "..\README.md"; DestDir: "{app}"; Flags: ignoreversion
 
 [Icons]
-Name: "{group}\OTM Kiosk Control Panel"; Filename: "{app}\ControlPanel\{#MyAppExeName}"
-Name: "{group}\OTM Kiosk Shell"; Filename: "{app}\KioskShell\{#ShellExeName}"
-Name: "{group}\OTM Kiosk Local Manager"; Filename: "http://localhost:47821"
-Name: "{group}\OTM Kiosk Recovery Tool"; Filename: "{app}\Recovery\OTM.RecoveryTool.exe"
-Name: "{group}\Uninstall OTM Kiosk"; Filename: "{uninstallexe}"
-Name: "{autodesktop}\OTM Kiosk"; Filename: "{app}\ControlPanel\{#MyAppExeName}"; Tasks: desktopicon
-Name: "{commonstartup}\OTM Kiosk Shell"; Filename: "{app}\KioskShell\{#ShellExeName}"; Tasks: startupshell
+Name: "{group}\SimpleKioskOS"; Filename: "{app}\KioskShell\{#ShellExeName}"
+Name: "{group}\SimpleKioskOS Control Panel"; Filename: "{app}\ControlPanel\{#MyAppExeName}"
+Name: "{group}\SimpleKioskOS Local Manager"; Filename: "http://localhost:47821"
+Name: "{group}\SimpleKioskOS Recovery Tool"; Filename: "{app}\Recovery\OTM.RecoveryTool.exe"
+Name: "{group}\Uninstall SimpleKioskOS"; Filename: "{uninstallexe}"
+Name: "{autodesktop}\SimpleKioskOS"; Filename: "{app}\KioskShell\{#ShellExeName}"; Tasks: desktopicon
+Name: "{commonstartup}\SimpleKioskOS"; Filename: "{app}\KioskShell\{#ShellExeName}"; Tasks: startupshell
 
 [Run]
+Filename: "{tmp}\MicrosoftEdgeWebView2Setup.exe"; Parameters: "/silent /install"; StatusMsg: "Installing Microsoft Edge WebView2 Runtime for exam/web kiosk mode..."; Check: not IsWebView2RuntimePresent; Flags: waituntilterminated
 Filename: "{cmd}"; Parameters: "/c sc.exe create OTMKioskService binPath= ""{app}\Service\{#ServiceExeName}"" start= auto DisplayName= ""OTM Kiosk Service"""; Flags: runhidden waituntilterminated
 Filename: "{cmd}"; Parameters: "/c sc.exe description OTMKioskService ""Local-first Windows lockdown and kiosk enforcement service."""; Flags: runhidden waituntilterminated
 Filename: "{cmd}"; Parameters: "/c sc.exe failure OTMKioskService reset= 86400 actions= restart/5000/restart/10000/restart/30000"; Flags: runhidden waituntilterminated
 Filename: "{cmd}"; Parameters: "/c sc.exe start OTMKioskService"; Flags: runhidden waituntilterminated
-Filename: "{app}\ControlPanel\{#MyAppExeName}"; Description: "Open OTM Kiosk Control Panel"; Flags: nowait postinstall skipifsilent
+Filename: "{app}\KioskShell\{#ShellExeName}"; Description: "Open SimpleKioskOS fullscreen shell"; Flags: nowait postinstall skipifsilent
 
 [UninstallRun]
 Filename: "{cmd}"; Parameters: "/c sc.exe stop OTMKioskService"; Flags: runhidden waituntilterminated
@@ -80,7 +84,7 @@ function InitializeSetup(): Boolean;
 begin
   if not IsWebView2RuntimePresent() then
   begin
-    MsgBox('OTM Kiosk exam mode uses Microsoft Edge WebView2 Runtime. Install the Evergreen WebView2 Runtime before using embedded exam websites.', mbInformation, MB_OK);
+    MsgBox('SimpleKioskOS exam/web mode uses Microsoft Edge WebView2 Runtime. The installer will run the Microsoft Evergreen WebView2 installer if it is not already present.', mbInformation, MB_OK);
   end;
   Result := True;
 end;

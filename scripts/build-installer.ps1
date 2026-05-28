@@ -1,6 +1,6 @@
 param(
     [string]$Configuration = "Release",
-    [string]$Version = "3.2.0",
+    [string]$Version = "4.0.0",
     [switch]$FrameworkDependent,
     [switch]$Sign,
     [string]$CertificateThumbprint = $env:OTM_SIGN_CERT_THUMBPRINT,
@@ -17,7 +17,10 @@ $repoRoot = Resolve-Path "$PSScriptRoot\.."
 $artifacts = Join-Path $repoRoot "artifacts"
 $stageRoot = Join-Path $artifacts "stage"
 $installerRoot = Join-Path $artifacts "installer"
+$dependencyRoot = Join-Path $stageRoot "dependencies"
 $runtime = "win-x64"
+$webView2Bootstrapper = Join-Path $dependencyRoot "MicrosoftEdgeWebView2Setup.exe"
+$webView2BootstrapperUrl = "https://go.microsoft.com/fwlink/p/?LinkId=2124703"
 
 function Assert-Command {
     param(
@@ -63,7 +66,14 @@ if (-not $sdkList) {
 }
 
 Remove-Item -Path $stageRoot -Recurse -Force -ErrorAction SilentlyContinue
-New-Item -ItemType Directory -Force -Path $stageRoot, $installerRoot | Out-Null
+New-Item -ItemType Directory -Force -Path $stageRoot, $installerRoot, $dependencyRoot | Out-Null
+
+Write-Host "Downloading Microsoft Edge WebView2 Evergreen bootstrapper..."
+try {
+    Invoke-WebRequest -Uri $webView2BootstrapperUrl -OutFile $webView2Bootstrapper -UseBasicParsing
+} catch {
+    throw "Could not download WebView2 Evergreen bootstrapper from Microsoft. Embedded exam/web mode requires WebView2. Error: $($_.Exception.Message)"
+}
 
 Publish-App -Project (Join-Path $repoRoot "src\OTM.Service\OTM.Service.csproj") -Output (Join-Path $stageRoot "service")
 Publish-App -Project (Join-Path $repoRoot "src\OTM.ControlPanel\OTM.ControlPanel.csproj") -Output (Join-Path $stageRoot "control-panel")
@@ -71,6 +81,10 @@ Publish-App -Project (Join-Path $repoRoot "src\OTM.KioskShell\OTM.KioskShell.csp
 Publish-App -Project (Join-Path $repoRoot "src\OTM.RecoveryTool\OTM.RecoveryTool.csproj") -Output (Join-Path $stageRoot "recovery")
 
 if ($Sign) {
+    if (-not $PfxPath -and -not $CertificateThumbprint) {
+        throw "Signing was requested, but no Authenticode code-signing certificate was provided. Use -PfxPath or -CertificateThumbprint. This is not an SSL certificate."
+    }
+
     $signScript = Join-Path $repoRoot "scripts\sign-artifacts.ps1"
     $signArgs = @(
         "-Path", $stageRoot,

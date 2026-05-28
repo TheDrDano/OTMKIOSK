@@ -15,4 +15,4 @@ Current main logo:
 - `simplekioskos_side.png`
 - `simplekioskos_bottom.png`
 
-The fullscreen kiosk shell uses these under `src\OTM.KioskShell\Assets\`: side wordmark for the launcher rail, bottom wordmark for idle/locked displays, and icon-only for compact use.
+The fullscreen kiosk shell embeds these under `src\OTM.KioskShell\Assets\`. The installer also copies this folder to `{app}\Branding`, and the local web manager serves the PNGs from `/assets/...`.

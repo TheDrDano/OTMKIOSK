@@ -34,6 +34,7 @@ public partial class MainWindow : Window
     private DateTimeOffset _yieldFocusUntil = DateTimeOffset.MinValue;
     private DateTimeOffset _lastViolationPoll = DateTimeOffset.UtcNow.AddMinutes(-5);
     private bool _appOwnsDisplays;
+    private bool _restoreWebWorkspaceAfterAdmin;
 
     public MainWindow()
     {
@@ -80,11 +81,13 @@ public partial class MainWindow : Window
 
     private void Manager_Click(object sender, RoutedEventArgs e)
     {
+        YieldFocusToAdminTool();
         Process.Start(new ProcessStartInfo("http://localhost:47821") { UseShellExecute = true });
     }
 
     private void ControlPanel_Click(object sender, RoutedEventArgs e)
     {
+        YieldFocusToAdminTool();
         var controlPanelPath = System.IO.Path.GetFullPath(System.IO.Path.Combine(AppContext.BaseDirectory, "..", "ControlPanel", "OTM.ControlPanel.exe"));
         if (System.IO.File.Exists(controlPanelPath))
         {
@@ -373,6 +376,22 @@ public partial class MainWindow : Window
     private void ToggleAdmin_Click(object sender, RoutedEventArgs e)
     {
         var open = AdminPanel.Visibility != Visibility.Visible;
+        SetAdminPanelOpen(open);
+    }
+
+    private void SetAdminPanelOpen(bool open)
+    {
+        if (open && WebWorkspace.Visibility == Visibility.Visible)
+        {
+            _restoreWebWorkspaceAfterAdmin = true;
+            WebWorkspace.Visibility = Visibility.Collapsed;
+        }
+        else if (!open && _restoreWebWorkspaceAfterAdmin)
+        {
+            WebWorkspace.Visibility = Visibility.Visible;
+            _restoreWebWorkspaceAfterAdmin = false;
+        }
+
         AdminPanel.Visibility = open ? Visibility.Visible : Visibility.Collapsed;
         AdminCornerButton.Visibility = open ? Visibility.Collapsed : Visibility.Visible;
         if (open)
@@ -383,6 +402,21 @@ public partial class MainWindow : Window
 
     private void Window_PreviewKeyDown(object sender, System.Windows.Input.KeyEventArgs e)
     {
+        if ((Keyboard.Modifiers & (ModifierKeys.Control | ModifierKeys.Shift)) == (ModifierKeys.Control | ModifierKeys.Shift)
+            && e.Key == Key.A)
+        {
+            e.Handled = true;
+            SetAdminPanelOpen(AdminPanel.Visibility != Visibility.Visible);
+            return;
+        }
+
+        if (e.Key == Key.Escape && AdminPanel.Visibility == Visibility.Visible)
+        {
+            e.Handled = true;
+            SetAdminPanelOpen(false);
+            return;
+        }
+
         if (ShouldSuppressKey(e))
         {
             e.Handled = true;
@@ -461,6 +495,14 @@ public partial class MainWindow : Window
     {
         _yieldFocusUntil = DateTimeOffset.UtcNow.AddSeconds(20);
         Topmost = false;
+    }
+
+    private void YieldFocusToAdminTool()
+    {
+        _yieldFocusUntil = DateTimeOffset.UtcNow.AddMinutes(5);
+        Topmost = false;
+        SetSecondaryCoversVisible(false);
+        ShowNotice("Admin tool opening", "The kiosk shell is yielding focus for local administration.", NoticeKind.Info);
     }
 
     private void YieldDisplaysToApp(Process? process)

@@ -17,7 +17,7 @@ public sealed class SecondaryDisplayWindow : Window
         ResizeMode = ResizeMode.NoResize;
         Topmost = true;
         ShowInTaskbar = false;
-        Background = new Media.SolidColorBrush(Media.Color.FromRgb(9, 13, 18));
+        Background = new Media.SolidColorBrush(Media.Color.FromRgb(248, 250, 252));
         WindowStartupLocation = WindowStartupLocation.Manual;
         Left = bounds.Left;
         Top = bounds.Top;
@@ -60,7 +60,7 @@ public sealed class SecondaryDisplayWindow : Window
         panel.Children.Add(new Controls.TextBlock
         {
             Text = "Display locked by SimpleKioskOS",
-            Foreground = Media.Brushes.White,
+            Foreground = new Media.SolidColorBrush(Media.Color.FromRgb(17, 24, 39)),
             FontSize = 28,
             FontWeight = FontWeights.SemiBold,
             TextAlignment = TextAlignment.Center,
@@ -69,7 +69,7 @@ public sealed class SecondaryDisplayWindow : Window
         panel.Children.Add(new Controls.TextBlock
         {
             Text = "This screen is reserved until an approved multi-monitor app starts.",
-            Foreground = new Media.SolidColorBrush(Media.Color.FromRgb(175, 193, 207)),
+            Foreground = new Media.SolidColorBrush(Media.Color.FromRgb(82, 97, 113)),
             FontSize = 15,
             TextAlignment = TextAlignment.Center
         });
