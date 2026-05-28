@@ -33,13 +33,13 @@ Install prerequisites on a build machine:
 Then run:
 
 ```powershell
-.\scripts\build-installer.ps1 -Version 4.0.0
+.\scripts\build-installer.ps1 -Version 4.1.0
 ```
 
 The installer will be created in:
 
 ```txt
-artifacts\installer\OTM-Kiosk-Setup-4.0.0.exe
+artifacts\installer\OTM-Kiosk-Setup-4.1.0.exe
 ```
 
 By default the script publishes self-contained `win-x64` binaries, so the test VPS does not need the .NET runtime preinstalled. The build also downloads Microsoft's Evergreen WebView2 bootstrapper and packages it into the SimpleKioskOS installer so embedded exam/web mode can install its browser runtime dependency on clean machines. Use `-FrameworkDependent` only if you want a smaller installer and you know the target machine has the .NET 8 Desktop Runtime installed.
@@ -53,7 +53,7 @@ Windows publisher identity for an `.exe` uses **Authenticode code signing**, not
 For local signing with a certificate installed in the machine certificate store:
 
 ```powershell
-.\scripts\build-installer.ps1 -Version 4.0.0 -Sign -CertificateThumbprint "YOUR_CERT_THUMBPRINT"
+.\scripts\build-installer.ps1 -Version 4.1.0 -Sign -CertificateThumbprint "YOUR_CERT_THUMBPRINT"
 ```
 
 Use `-CertificateStore LocalMachine` if the certificate is installed in the local machine store instead of the current user store.
@@ -61,7 +61,7 @@ Use `-CertificateStore LocalMachine` if the certificate is installed in the loca
 For local signing with a PFX:
 
 ```powershell
-.\scripts\build-installer.ps1 -Version 4.0.0 -Sign -PfxPath "C:\secure\otm-signing.pfx" -PfxPassword "PFX_PASSWORD"
+.\scripts\build-installer.ps1 -Version 4.1.0 -Sign -PfxPath "C:\secure\otm-signing.pfx" -PfxPassword "PFX_PASSWORD"
 ```
 
 The build signs published EXE/DLL files before packaging and signs the final setup EXE after Inno Setup finishes. If the final setup EXE is not Authenticode-signed by a trusted certificate, Windows will show **Unknown publisher**.
@@ -83,7 +83,7 @@ Create the base64 value locally with:
 [Convert]::ToBase64String([IO.File]::ReadAllBytes("C:\secure\otm-signing.pfx")) | Set-Clipboard
 ```
 
-Then run the **Build Installer** workflow. By default the workflow now fails if signing secrets are missing so you do not accidentally download another unsigned installer. For a deliberately unsigned test artifact, run the workflow manually with `allow_unsigned=true`.
+Then run the **Build Installer** workflow. If signing secrets are present, the workflow signs the installer. If signing secrets are missing, the workflow builds an unsigned test installer by default. Set `allow_unsigned=false` when you want CI to fail instead of producing an unsigned artifact.
 
 Signing reduces Defender/SmartScreen friction and changes the publisher from unknown to your verified identity. It does not guarantee that SmartScreen warnings disappear immediately for a brand-new app; reputation still builds over time.
 
@@ -91,7 +91,7 @@ For lab-only testing without buying a certificate yet, create a self-signed test
 
 ```powershell
 .\scripts\create-test-signing-cert.ps1 -Password "test-password"
-.\scripts\build-installer.ps1 -Version 4.0.0 -Sign -PfxPath ".\artifacts\signing\simplekioskos-test.pfx" -PfxPassword "test-password"
+.\scripts\build-installer.ps1 -Version 4.1.0 -Sign -PfxPath ".\artifacts\signing\simplekioskos-test.pfx" -PfxPassword "test-password"
 ```
 
 On the test machine, trust that test cert before installing:
@@ -180,7 +180,7 @@ Omit `-RemoveData` if you want to keep the local database and recovery files.
 
 Use a Windows VPS with a desktop experience, not Windows Server Core. Take a snapshot before installing because kiosk enforcement can intentionally block tools.
 
-1. Copy `artifacts\installer\OTM-Kiosk-Setup-4.0.0.exe` to the VPS.
+1. Copy `artifacts\installer\OTM-Kiosk-Setup-4.1.0.exe` to the VPS.
 2. Run it as Administrator.
 3. The fullscreen **SimpleKioskOS** shell opens after install. The control panel is still available from the Start menu for admin setup.
 4. First-run PIN is `123456`.

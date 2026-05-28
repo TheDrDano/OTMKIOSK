@@ -6,11 +6,11 @@ on:
       version:
         description: "Installer version"
         required: true
-        default: "4.0.0"
+        default: "4.1.0"
       allow_unsigned:
         description: "Allow unsigned installer artifact"
         required: true
-        default: "false"
+        default: "true"
   push:
     branches:
       - main
@@ -38,7 +38,7 @@ jobs:
         shell: pwsh
         env:
           OTM_SIGN_PFX_BASE64: ${{ secrets.OTM_SIGN_PFX_BASE64 }}
-          ALLOW_UNSIGNED: ${{ github.event.inputs.allow_unsigned || 'false' }}
+          ALLOW_UNSIGNED: ${{ github.event.inputs.allow_unsigned || 'true' }}
         run: |
           if ([string]::IsNullOrWhiteSpace($env:OTM_SIGN_PFX_BASE64)) {
             if ($env:ALLOW_UNSIGNED -eq "true") {
@@ -57,9 +57,9 @@ jobs:
           OTM_SIGN_PFX_PASSWORD: ${{ secrets.OTM_SIGN_PFX_PASSWORD }}
         run: |
           if (Test-Path $env:OTM_SIGN_PFX_PATH) {
-            .\scripts\build-installer.ps1 -Version "${{ github.event.inputs.version || '4.0.0' }}" -Sign
+            .\scripts\build-installer.ps1 -Version "${{ github.event.inputs.version || '4.1.0' }}" -Sign
           } else {
-            .\scripts\build-installer.ps1 -Version "${{ github.event.inputs.version || '4.0.0' }}"
+            .\scripts\build-installer.ps1 -Version "${{ github.event.inputs.version || '4.1.0' }}"
           }
 
       - name: Verify signatures
