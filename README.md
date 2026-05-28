@@ -33,13 +33,13 @@ Install prerequisites on a build machine:
 Then run:
 
 ```powershell
-.\scripts\build-installer.ps1 -Version 0.1.0
+.\scripts\build-installer.ps1 -Version 3.2.0
 ```
 
 The installer will be created in:
 
 ```txt
-artifacts\installer\OTM-Kiosk-Setup-0.1.0.exe
+artifacts\installer\OTM-Kiosk-Setup-3.2.0.exe
 ```
 
 By default the script publishes self-contained `win-x64` binaries, so the test VPS does not need the .NET runtime preinstalled. Use `-FrameworkDependent` only if you want a smaller installer and you know the target machine has the .NET 8 Desktop Runtime installed.
@@ -53,7 +53,7 @@ Signing requires `signtool.exe`, which is installed with the Windows SDK.
 For local signing with a certificate installed in the machine certificate store:
 
 ```powershell
-.\scripts\build-installer.ps1 -Version 0.1.0 -Sign -CertificateThumbprint "YOUR_CERT_THUMBPRINT"
+.\scripts\build-installer.ps1 -Version 3.2.0 -Sign -CertificateThumbprint "YOUR_CERT_THUMBPRINT"
 ```
 
 Use `-CertificateStore LocalMachine` if the certificate is installed in the local machine store instead of the current user store.
@@ -61,7 +61,7 @@ Use `-CertificateStore LocalMachine` if the certificate is installed in the loca
 For local signing with a PFX:
 
 ```powershell
-.\scripts\build-installer.ps1 -Version 0.1.0 -Sign -PfxPath "C:\secure\otm-signing.pfx" -PfxPassword "PFX_PASSWORD"
+.\scripts\build-installer.ps1 -Version 3.2.0 -Sign -PfxPath "C:\secure\otm-signing.pfx" -PfxPassword "PFX_PASSWORD"
 ```
 
 The build signs published EXE/DLL files before packaging and signs the final setup EXE after Inno Setup finishes.
@@ -165,7 +165,7 @@ Omit `-RemoveData` if you want to keep the local database and recovery files.
 
 Use a Windows VPS with a desktop experience, not Windows Server Core. Take a snapshot before installing because kiosk enforcement can intentionally block tools.
 
-1. Copy `artifacts\installer\OTM-Kiosk-Setup-0.1.0.exe` to the VPS.
+1. Copy `artifacts\installer\OTM-Kiosk-Setup-3.2.0.exe` to the VPS.
 2. Run it as Administrator.
 3. Open **OTM Kiosk Control Panel** from the Start menu.
 4. First-run PIN is `123456`.
