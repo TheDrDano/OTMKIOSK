@@ -12,7 +12,9 @@ public sealed class KioskPolicy
     public EnforcementPolicy Enforcement { get; set; } = new();
     public RestrictionPolicy Restrictions { get; set; } = new();
     public BrowserPolicy Browser { get; set; } = new();
+    public DedicatedKioskPolicy DedicatedKiosk { get; set; } = new();
     public RemoteManagementPolicy Remote { get; set; } = new();
+    public RemoteMonitoringPolicy Monitoring { get; set; } = new();
     public UpdatePolicy Updates { get; set; } = new();
     public List<KioskLauncher> Launchers { get; set; } = [];
     public List<AppRule> AllowedApps { get; set; } = [];
@@ -69,6 +71,17 @@ public sealed class BrowserPolicy
     ];
 }
 
+public sealed class DedicatedKioskPolicy
+{
+    public bool Enabled { get; set; }
+    public string Type { get; set; } = KioskLauncherTypes.Web;
+    public string DisplayName { get; set; } = "Kiosk";
+    public string? Url { get; set; }
+    public string ProcessName { get; set; } = "";
+    public string? Path { get; set; }
+    public string? Arguments { get; set; }
+}
+
 public sealed class RemoteManagementPolicy
 {
     public bool Enabled { get; set; }
@@ -81,11 +94,22 @@ public sealed class RemoteManagementPolicy
     public DateTimeOffset? LastSyncAt { get; set; }
 }
 
-public sealed class UpdatePolicy
+public sealed class RemoteMonitoringPolicy
 {
     public bool Enabled { get; set; }
+    public bool AllowScreenView { get; set; }
+    public bool RequireAdminApproval { get; set; } = true;
+    public bool LanOnly { get; set; } = true;
+    public int ScreenRefreshSeconds { get; set; } = 5;
+    public string Transport { get; set; } = "secure-agent-planned";
+    public string Notes { get; set; } = "Disabled by default. Use only over trusted LAN/VPN until the encrypted monitor agent is installed.";
+}
+
+public sealed class UpdatePolicy
+{
+    public bool Enabled { get; set; } = true;
     public string Channel { get; set; } = "stable";
-    public string ManifestUrl { get; set; } = "";
+    public string ManifestUrl { get; set; } = "https://github.com/TheDrDano/OTMKIOSK/releases/latest/download/update-manifest.json";
     public bool AutoDownload { get; set; }
     public bool AutoInstall { get; set; }
     public int CheckIntervalHours { get; set; } = 24;

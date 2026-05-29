@@ -247,6 +247,29 @@ public sealed class LocalManagementServer
                 return;
             }
 
+            if (path.Equals("/api/monitoring/config", StringComparison.OrdinalIgnoreCase) && request.HttpMethod == "GET")
+            {
+                await WriteJsonAsync(response, GetMonitoringStatus());
+                return;
+            }
+
+            if (path.Equals("/api/monitoring/config", StringComparison.OrdinalIgnoreCase)
+                && (request.HttpMethod == "PUT" || request.HttpMethod == "POST"))
+            {
+                var monitoring = await ReadJsonAsync<RemoteMonitoringPolicy>(request);
+                if (monitoring is null)
+                {
+                    await BadRequest(response, "Invalid monitoring settings JSON.");
+                    return;
+                }
+
+                var policy = _runtime.GetPolicy();
+                policy.Monitoring = NormalizeMonitoringPolicy(monitoring);
+                _runtime.SavePolicy(policy, "Remote monitoring settings updated.");
+                await WriteJsonAsync(response, GetMonitoringStatus());
+                return;
+            }
+
             if (path.Equals("/api/updates/check", StringComparison.OrdinalIgnoreCase) && request.HttpMethod == "POST")
             {
                 await WriteJsonAsync(response, await CheckForUpdatesAsync());
@@ -388,9 +411,50 @@ public sealed class LocalManagementServer
             lastUpdateCheck = policy.Updates.LastCheckedAt,
             lastUpdateMessage = policy.Updates.LastCheckMessage,
             lastAvailableVersion = policy.Updates.LastAvailableVersion,
+            monitoringEnabled = policy.Monitoring?.Enabled == true,
+            monitoringScreenViewAllowed = policy.Monitoring?.AllowScreenView == true,
+            monitoringLanOnly = policy.Monitoring?.LanOnly != false,
             currentVersion = GetCurrentVersion(),
             state = policy.Remote.Enabled ? "configured" : "local-only"
         };
+    }
+
+    private object GetMonitoringStatus()
+    {
+        var policy = _runtime.GetPolicy();
+        policy.Monitoring ??= new RemoteMonitoringPolicy();
+        var monitoring = NormalizeMonitoringPolicy(policy.Monitoring);
+        return new
+        {
+            monitoring.Enabled,
+            monitoring.AllowScreenView,
+            monitoring.RequireAdminApproval,
+            monitoring.LanOnly,
+            monitoring.ScreenRefreshSeconds,
+            monitoring.Transport,
+            monitoring.Notes,
+            liveViewAvailable = false,
+            liveViewState = monitoring.Enabled
+                ? "Monitoring is configured. Live encrypted screen viewing requires the upcoming user-session monitor agent."
+                : "Monitoring is disabled on this station.",
+            security = "Do not expose the station API or future VNC transport directly to the public internet. Use LAN or VPN."
+        };
+    }
+
+    private static RemoteMonitoringPolicy NormalizeMonitoringPolicy(RemoteMonitoringPolicy monitoring)
+    {
+        monitoring.ScreenRefreshSeconds = Math.Clamp(monitoring.ScreenRefreshSeconds, 1, 60);
+        if (string.IsNullOrWhiteSpace(monitoring.Transport))
+        {
+            monitoring.Transport = "secure-agent-planned";
+        }
+
+        if (string.IsNullOrWhiteSpace(monitoring.Notes))
+        {
+            monitoring.Notes = "Disabled by default. Use only over trusted LAN/VPN until the encrypted monitor agent is installed.";
+        }
+
+        return monitoring;
     }
 
     private async Task<object> CheckForUpdatesAsync()
@@ -403,6 +467,11 @@ public sealed class LocalManagementServer
             policy.Updates.LastCheckMessage = "Update checks are disabled.";
             _runtime.SavePolicy(policy, "Update check skipped because updates are disabled.");
             return BuildUpdateCheckResponse(policy, available: false);
+        }
+
+        if (string.IsNullOrWhiteSpace(policy.Updates.ManifestUrl))
+        {
+            policy.Updates.ManifestUrl = new UpdatePolicy().ManifestUrl;
         }
 
         if (!Uri.TryCreate(policy.Updates.ManifestUrl, UriKind.Absolute, out var manifestUri)
@@ -571,7 +640,7 @@ public sealed class LocalManagementServer
 
     private static string GetCurrentVersion()
     {
-        return Assembly.GetExecutingAssembly().GetName().Version?.ToString(3) ?? "7.1.0";
+        return Assembly.GetExecutingAssembly().GetName().Version?.ToString(3) ?? "7.2.0";
     }
 
     private static string GetConfiguredDeviceName(DeviceIdentity identity, KioskPolicy policy)
@@ -617,9 +686,11 @@ public sealed class LocalManagementServer
     private IReadOnlyList<KioskLauncher> GetKioskLaunchers()
     {
         var policy = _runtime.GetPolicy();
+        var dedicatedKioskLauncher = CreateDedicatedKioskLauncher(policy.DedicatedKiosk ?? new DedicatedKioskPolicy());
         if (policy.Launchers.Count > 0)
         {
             return policy.Launchers
+                .Prepend(dedicatedKioskLauncher)
                 .Where(launcher => !string.IsNullOrWhiteSpace(launcher.DisplayName))
                 .Select(NormalizeLauncher)
                 .OrderByDescending(launcher => launcher.Required)
@@ -646,9 +717,35 @@ public sealed class LocalManagementServer
                     Required = app.Required
                 };
             })
+            .Prepend(dedicatedKioskLauncher)
+            .Where(launcher => !string.IsNullOrWhiteSpace(launcher.DisplayName))
             .OrderByDescending(app => app.Required)
             .ThenBy(app => app.DisplayName)
             .ToList();
+    }
+
+    private static KioskLauncher CreateDedicatedKioskLauncher(DedicatedKioskPolicy dedicatedKiosk)
+    {
+        if (!dedicatedKiosk.Enabled)
+        {
+            return new KioskLauncher();
+        }
+
+        var isWeb = string.Equals(dedicatedKiosk.Type, KioskLauncherTypes.Web, StringComparison.OrdinalIgnoreCase);
+        return new KioskLauncher
+        {
+            Id = "dedicated-kiosk",
+            DisplayName = string.IsNullOrWhiteSpace(dedicatedKiosk.DisplayName) ? "Kiosk" : dedicatedKiosk.DisplayName,
+            Type = isWeb ? KioskLauncherTypes.Web : KioskLauncherTypes.App,
+            WorkspaceMode = KioskWorkspaceModes.DedicatedKiosk,
+            Url = dedicatedKiosk.Url,
+            ProcessName = dedicatedKiosk.ProcessName,
+            Path = dedicatedKiosk.Path,
+            Arguments = dedicatedKiosk.Arguments,
+            Required = true,
+            AllowMultiMonitorOwnership = false,
+            AllowedSites = isWeb && !string.IsNullOrWhiteSpace(dedicatedKiosk.Url) ? [dedicatedKiosk.Url] : []
+        };
     }
 
     private KioskLauncher? FindKioskLauncher(string? id, string? displayName)

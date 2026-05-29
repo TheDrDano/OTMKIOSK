@@ -33,7 +33,7 @@ Install prerequisites on a build machine:
 Then run:
 
 ```powershell
-.\scripts\build-installer.ps1 -Version 7.1.0
+.\scripts\build-installer.ps1 -Version 7.2.0
 ```
 
 The installer will be created in:
@@ -53,11 +53,11 @@ For public testing, keep the station app and Remote Manager in this repo as sepa
 To publish a release from GitHub:
 
 ```powershell
-git tag v7.1.0
-git push origin v7.1.0
+git tag v7.2.0
+git push origin v7.2.0
 ```
 
-Use one lowercase release tag per version, like `v7.1.0`. The workflow normalizes manual inputs and `V...` tags back to lowercase `v...`, but old duplicate GitHub releases should be deleted from the GitHub **Releases** page once so the list stays clean.
+Use one lowercase release tag per version, like `v7.2.0`. The workflow normalizes manual inputs and `V...` tags back to lowercase `v...`, but old duplicate GitHub releases should be deleted from the GitHub **Releases** page once so the list stays clean.
 
 The **Release Installers** workflow creates a GitHub Release with:
 
@@ -87,7 +87,7 @@ Windows publisher identity for an `.exe` uses **Authenticode code signing**, not
 For local signing with a certificate installed in the machine certificate store:
 
 ```powershell
-.\scripts\build-installer.ps1 -Version 7.1.0 -Sign -CertificateThumbprint "YOUR_CERT_THUMBPRINT"
+.\scripts\build-installer.ps1 -Version 7.2.0 -Sign -CertificateThumbprint "YOUR_CERT_THUMBPRINT"
 ```
 
 Use `-CertificateStore LocalMachine` if the certificate is installed in the local machine store instead of the current user store.
@@ -95,7 +95,7 @@ Use `-CertificateStore LocalMachine` if the certificate is installed in the loca
 For local signing with a PFX:
 
 ```powershell
-.\scripts\build-installer.ps1 -Version 7.1.0 -Sign -PfxPath "C:\secure\otm-signing.pfx" -PfxPassword "PFX_PASSWORD"
+.\scripts\build-installer.ps1 -Version 7.2.0 -Sign -PfxPath "C:\secure\otm-signing.pfx" -PfxPassword "PFX_PASSWORD"
 ```
 
 The build signs published EXE/DLL files before packaging and signs the final setup EXE after Inno Setup finishes. If the final setup EXE is not Authenticode-signed by a trusted certificate, Windows will show **Unknown publisher**.
@@ -125,7 +125,7 @@ For lab-only testing without buying a certificate yet, create a self-signed test
 
 ```powershell
 .\scripts\create-test-signing-cert.ps1 -Password "test-password"
-.\scripts\build-installer.ps1 -Version 7.1.0 -Sign -PfxPath ".\artifacts\signing\simplekioskos-test.pfx" -PfxPassword "test-password"
+.\scripts\build-installer.ps1 -Version 7.2.0 -Sign -PfxPath ".\artifacts\signing\simplekioskos-test.pfx" -PfxPassword "test-password"
 ```
 
 On the test machine, trust that test cert before installing:
@@ -157,6 +157,8 @@ dotnet run --project .\src\OTM.KioskShell\OTM.KioskShell.csproj
 ```
 
 The kiosk shell is the user-facing locked workspace. It runs fullscreen, uses the SimpleKioskOS shield/monitor logo, shows a left rail of approved launchers, renders exam websites inside embedded WebView2 with no browser controls, and includes an in-shell **Open apps** taskbar for lab mode so approved apps can be brought back above the shell. Admin controls stay behind the smaller bottom-right **Admin** button. The shell hides the Windows taskbar while locked and installs a low-level keyboard hook to suppress common escape shortcuts such as Alt+F4, Alt+Tab, Ctrl+Esc, Ctrl+Shift+Esc, and Windows-key combinations. Ctrl+Alt+Del cannot be blocked by a normal Windows app and should be handled with Windows policy in production.
+
+The Control Panel also includes a **Kiosk** tab for a dedicated single-purpose station. When enabled, managed mode auto-opens one approved website fullscreen inside WebView2 or starts one approved application as the primary kiosk app. This is intended for true web kiosks, museum displays, exam sites, and single-app shared stations.
 
 Exam mode requires Microsoft Edge WebView2 Runtime on the target PC. The installer packages the Microsoft Evergreen WebView2 bootstrapper, checks Microsoft's WebView2 EdgeUpdate registry keys, and runs the bootstrapper silently if WebView2 is not registered. The bootstrapper needs internet access on the target PC. If WebView2 does not register after the bootstrapper runs, the installer shows a clear warning before opening the control panel.
 
@@ -279,14 +281,31 @@ The Websites tab works the same way. Add an allowed website and keep **Show allo
 
 ## Management
 
-Management is native-app first. The station installer includes the SimpleKioskOS Control Panel for setup, app rules, website rules, profiles, logs, and admin PIN changes. The service hosts a local/LAN API on port `47821` for the Control Panel, kiosk shell, and Remote Manager. The installer firewall rule allows this port on Domain/Private networks only. There is no browser-based local manager UI.
+Management is native-app first. The station installer includes the SimpleKioskOS Control Panel for setup, app rules, website rules, profiles, logs, and admin PIN changes. The service hosts a local/LAN API on port `47821` for the Control Panel, kiosk shell, and Remote Manager. The installer opens this port in Windows Firewall so LAN/VPN management can reach the station. There is no browser-based local manager UI.
 
-The separate **SimpleKioskOS Remote Manager** app can track multiple stations by URL, refresh their status, and send PIN-protected lock, unlock, restart, and shutdown commands.
+The separate **SimpleKioskOS Remote Manager** app can track multiple stations by URL, refresh their status, send PIN-protected lock, unlock, restart, and shutdown commands, manage allowed/blocked app and website rules remotely, and configure the V7.2 remote-monitoring foundation.
+
+Remote monitoring is disabled by default and admin-PIN protected. V7.2 stores and exposes monitoring settings through `/api/monitoring/config`, including LAN/VPN-only mode, screen-view permission, local/admin approval, and the planned secure transport. Live encrypted screen viewing should be implemented as a separate user-session monitor agent, not inside the LocalSystem service, because Windows services cannot reliably capture the interactive desktop. Do not expose the station API or a future VNC/RFB port directly to the public internet; use LAN, VPN, or a managed TLS relay.
+
+If a station times out from Remote Manager, first test this from the manager PC:
+
+```txt
+http://STATION-IP:47821/api/status
+```
+
+For older test installs, run this on the station in **PowerShell as Administrator** to reopen the LAN API firewall rule:
+
+```powershell
+netsh advfirewall firewall delete rule name="SimpleKioskOS Local API"
+netsh advfirewall firewall add rule name="SimpleKioskOS Local API" dir=in action=allow protocol=TCP localport=47821 profile=any
+```
+
+Also verify `OTMKioskService` is running on the station.
 
 Build the Remote Manager installer with:
 
 ```powershell
-.\scripts\build-manager-installer.ps1 -Version 7.1.0
+.\scripts\build-manager-installer.ps1 -Version 7.2.0
 ```
 
 ## Security Notes

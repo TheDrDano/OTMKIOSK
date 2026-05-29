@@ -92,6 +92,7 @@ public partial class MainWindow : Window
             PolicyTextBox.Text = JsonSerializer.Serialize(policy, JsonOptions);
             BindAppRules();
             BindWebsiteRules();
+            BindDedicatedKiosk();
             LogsGrid.ItemsSource = logs.OrderByDescending(log => log.Timestamp).ToList();
         }
         catch (HttpRequestException ex) when (ex.StatusCode == System.Net.HttpStatusCode.Unauthorized)
@@ -190,6 +191,75 @@ public partial class MainWindow : Window
         _currentPolicy.Browser.WhitelistOnly = WhitelistOnlyCheckBox.IsChecked == true;
         _currentPolicy.Browser.BlockDownloads = BrowserBlockDownloadsCheckBox.IsChecked == true;
         await SaveCurrentPolicyAsync("Website mode saved.");
+    }
+
+    private async void SaveDedicatedKiosk_Click(object sender, RoutedEventArgs e)
+    {
+        if (_currentPolicy is null)
+        {
+            ShowNotice("Refresh required", "Enter the admin PIN and refresh before changing kiosk mode.", NoticeKind.Info);
+            return;
+        }
+
+        var type = GetDedicatedKioskType();
+        _currentPolicy.DedicatedKiosk ??= new DedicatedKioskPolicy();
+        _currentPolicy.DedicatedKiosk.Enabled = DedicatedKioskEnabledCheckBox.IsChecked == true;
+        _currentPolicy.DedicatedKiosk.Type = type;
+        _currentPolicy.DedicatedKiosk.DisplayName = string.IsNullOrWhiteSpace(DedicatedKioskNameBox.Text) ? "Kiosk" : DedicatedKioskNameBox.Text.Trim();
+        _currentPolicy.DedicatedKiosk.Url = string.IsNullOrWhiteSpace(DedicatedKioskUrlBox.Text) ? null : ToWorkspaceUrl(DedicatedKioskUrlBox.Text);
+        _currentPolicy.DedicatedKiosk.ProcessName = DedicatedKioskProcessBox.Text.Trim();
+        _currentPolicy.DedicatedKiosk.Path = string.IsNullOrWhiteSpace(DedicatedKioskPathBox.Text) ? null : DedicatedKioskPathBox.Text.Trim();
+        _currentPolicy.DedicatedKiosk.Arguments = string.IsNullOrWhiteSpace(DedicatedKioskArgumentsBox.Text) ? null : DedicatedKioskArgumentsBox.Text.Trim();
+
+        if (type == KioskLauncherTypes.Web)
+        {
+            if (string.IsNullOrWhiteSpace(_currentPolicy.DedicatedKiosk.Url))
+            {
+                ShowNotice("Website required", "Enter the website URL for dedicated website kiosk mode.", NoticeKind.Warning);
+                return;
+            }
+
+            var site = NormalizeSite(_currentPolicy.DedicatedKiosk.Url);
+            UpsertSite(_currentPolicy.Browser.AllowedSites, site);
+            _currentPolicy.Browser.Enabled = true;
+        }
+        else
+        {
+            if (string.IsNullOrWhiteSpace(_currentPolicy.DedicatedKiosk.ProcessName) && string.IsNullOrWhiteSpace(_currentPolicy.DedicatedKiosk.Path))
+            {
+                ShowNotice("App required", "Enter an app process name or EXE path for dedicated app kiosk mode.", NoticeKind.Warning);
+                return;
+            }
+
+            if (string.IsNullOrWhiteSpace(_currentPolicy.DedicatedKiosk.ProcessName) && !string.IsNullOrWhiteSpace(_currentPolicy.DedicatedKiosk.Path))
+            {
+                _currentPolicy.DedicatedKiosk.ProcessName = System.IO.Path.GetFileName(_currentPolicy.DedicatedKiosk.Path);
+            }
+
+            UpsertRule(_currentPolicy.AllowedApps, new AppRule
+            {
+                DisplayName = _currentPolicy.DedicatedKiosk.DisplayName,
+                ProcessName = _currentPolicy.DedicatedKiosk.ProcessName,
+                Path = _currentPolicy.DedicatedKiosk.Path,
+                Arguments = _currentPolicy.DedicatedKiosk.Arguments
+            });
+        }
+
+        _currentPolicy.Enforcement.Enabled = true;
+        await SaveCurrentPolicyAsync("Dedicated kiosk saved.");
+    }
+
+    private async void DisableDedicatedKiosk_Click(object sender, RoutedEventArgs e)
+    {
+        if (_currentPolicy is null)
+        {
+            ShowNotice("Refresh required", "Enter the admin PIN and refresh before changing kiosk mode.", NoticeKind.Info);
+            return;
+        }
+
+        _currentPolicy.DedicatedKiosk ??= new DedicatedKioskPolicy();
+        _currentPolicy.DedicatedKiosk.Enabled = false;
+        await SaveCurrentPolicyAsync("Dedicated kiosk disabled.");
     }
 
     private async void ImportProfile_Click(object sender, RoutedEventArgs e)
@@ -501,12 +571,38 @@ public partial class MainWindow : Window
         BlockedSitesList.ItemsSource = _currentPolicy?.Browser.BlockedSites.OrderBy(site => site).ToList() ?? [];
     }
 
+    private void BindDedicatedKiosk()
+    {
+        var kiosk = _currentPolicy?.DedicatedKiosk ?? new DedicatedKioskPolicy();
+        DedicatedKioskEnabledCheckBox.IsChecked = kiosk.Enabled;
+        DedicatedKioskTypeBox.SelectedIndex = string.Equals(kiosk.Type, KioskLauncherTypes.App, StringComparison.OrdinalIgnoreCase) ? 1 : 0;
+        DedicatedKioskNameBox.Text = kiosk.DisplayName;
+        DedicatedKioskUrlBox.Text = kiosk.Url ?? "";
+        DedicatedKioskProcessBox.Text = kiosk.ProcessName;
+        DedicatedKioskPathBox.Text = kiosk.Path ?? "";
+        DedicatedKioskArgumentsBox.Text = kiosk.Arguments ?? "";
+    }
+
     private void BindUpdateSettings(KioskPolicy? policy)
     {
         UpdateEnabledCheckBox.IsChecked = policy?.Updates.Enabled == true;
-        UpdateManifestUrlBox.Text = policy?.Updates.ManifestUrl ?? "";
+        UpdateManifestUrlBox.Text = string.IsNullOrWhiteSpace(policy?.Updates.ManifestUrl)
+            ? new UpdatePolicy().ManifestUrl
+            : policy.Updates.ManifestUrl;
         UpdateChannelBox.Text = string.IsNullOrWhiteSpace(policy?.Updates.Channel) ? "stable" : policy.Updates.Channel;
         UpdateStatusText.Text = policy?.Updates.LastCheckMessage ?? "";
+    }
+
+    private string GetDedicatedKioskType()
+    {
+        if (DedicatedKioskTypeBox.SelectedItem is System.Windows.Controls.ComboBoxItem item
+            && item.Tag is string tag
+            && string.Equals(tag, KioskLauncherTypes.App, StringComparison.OrdinalIgnoreCase))
+        {
+            return KioskLauncherTypes.App;
+        }
+
+        return KioskLauncherTypes.Web;
     }
 
     private void ClearAppFields()

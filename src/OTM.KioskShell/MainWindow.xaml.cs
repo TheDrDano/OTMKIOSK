@@ -54,14 +54,17 @@ public partial class MainWindow : Window
     private readonly List<ManagedApp> _managedApps = [];
     private List<KioskLauncher> _launchers = [];
     private List<string> _activeWebAllowedSites = [];
+    private string _autoLaunchedKioskId = "";
     private DateTimeOffset _yieldFocusUntil = DateTimeOffset.MinValue;
     private DateTimeOffset _lastViolationPoll = DateTimeOffset.UtcNow.AddMinutes(-5);
     private bool _appOwnsDisplays;
     private bool _restoreWebWorkspaceAfterAdmin;
+    private bool _restoreBrowserAfterAdmin;
     private bool _allowClose;
     private bool _webFocusMode;
     private bool _suppressSystemShortcuts;
     private bool _taskbarHidden;
+    private string _adminSessionSecret = "";
     private IntPtr _keyboardHook;
     private LowLevelKeyboardProc? _keyboardProc;
 
@@ -91,6 +94,24 @@ public partial class MainWindow : Window
     }
 
     private async void Refresh_Click(object sender, RoutedEventArgs e) => await RefreshAsync();
+
+    private async void AdminSignIn_Click(object sender, RoutedEventArgs e) => await SignInAdminAsync();
+
+    private void AdminSignOut_Click(object sender, RoutedEventArgs e)
+    {
+        _adminSessionSecret = "";
+        PinBox.Clear();
+        SetAdminSignedIn(false);
+    }
+
+    private async void PinBox_KeyDown(object sender, System.Windows.Input.KeyEventArgs e)
+    {
+        if (e.Key == Key.Enter)
+        {
+            e.Handled = true;
+            await SignInAdminAsync();
+        }
+    }
 
     private async void Unlock_Click(object sender, RoutedEventArgs e)
     {
@@ -158,6 +179,7 @@ public partial class MainWindow : Window
     {
         _yieldFocusUntil = DateTimeOffset.MinValue;
         _appOwnsDisplays = false;
+        _autoLaunchedKioskId = "";
         SetWebFocusMode(false);
         SetSystemLockdownActive(true);
         if (clearManagedApps)
@@ -167,6 +189,8 @@ public partial class MainWindow : Window
         }
 
         AdminPanel.Visibility = Visibility.Collapsed;
+        _adminSessionSecret = "";
+        SetAdminSignedIn(false);
         AdminTaskbarButton.Visibility = Visibility.Visible;
         AdminCornerButton.Visibility = Visibility.Collapsed;
         Show();
@@ -235,6 +259,7 @@ public partial class MainWindow : Window
             WorkspaceSubtitle.Text = _launchers.Count == 0
                 ? "No launchers are configured. Open admin controls to add apps or websites."
                 : "Choose an approved app, website, or workspace from the launcher.";
+            await AutoLaunchDedicatedKioskAsync(state);
         }
         catch (Exception ex)
         {
@@ -257,6 +282,47 @@ public partial class MainWindow : Window
         return null;
     }
 
+    private async Task AutoLaunchDedicatedKioskAsync(RuntimeState? state)
+    {
+        if (state?.EnforcementEnabled != true || AdminPanel.Visibility == Visibility.Visible)
+        {
+            return;
+        }
+
+        var launcher = _launchers.FirstOrDefault(IsDedicatedKiosk);
+        if (launcher is null || string.Equals(_autoLaunchedKioskId, launcher.Id, StringComparison.OrdinalIgnoreCase))
+        {
+            return;
+        }
+
+        if (WebWorkspace.Visibility == Visibility.Visible || _managedApps.Count > 0 || _appOwnsDisplays)
+        {
+            return;
+        }
+
+        var approved = await RequestLaunchAsync(launcher);
+        if (approved is null)
+        {
+            return;
+        }
+
+        _autoLaunchedKioskId = approved.Id;
+        if (string.Equals(approved.Type, KioskLauncherTypes.Web, StringComparison.OrdinalIgnoreCase))
+        {
+            await StartWebWorkspaceAsync(approved);
+        }
+        else
+        {
+            StartAppWorkspace(approved);
+        }
+    }
+
+    private static bool IsDedicatedKiosk(KioskLauncher launcher)
+    {
+        return string.Equals(launcher.WorkspaceMode, KioskWorkspaceModes.DedicatedKiosk, StringComparison.OrdinalIgnoreCase)
+            || string.Equals(launcher.Id, "dedicated-kiosk", StringComparison.OrdinalIgnoreCase);
+    }
+
     private async Task StartWebWorkspaceAsync(KioskLauncher launcher)
     {
         if (string.IsNullOrWhiteSpace(launcher.Url))
@@ -276,13 +342,17 @@ public partial class MainWindow : Window
         }
         _activeWebAllowedSites = launcher.AllowedSites.Count > 0 ? launcher.AllowedSites : [launcher.Url];
         WorkspaceTitle.Text = launcher.DisplayName;
-        WorkspaceSubtitle.Text = "Embedded web workspace";
+        WorkspaceSubtitle.Text = IsDedicatedKiosk(launcher) ? "Dedicated fullscreen kiosk" : "Embedded web workspace";
         IdleWorkspace.Visibility = Visibility.Collapsed;
         AppWorkspace.Visibility = Visibility.Collapsed;
         WebWorkspace.Visibility = Visibility.Visible;
         Topmost = true;
         SetSecondaryCoversVisible(true);
         ExamBrowser.CoreWebView2?.Navigate(launcher.Url);
+        if (IsDedicatedKiosk(launcher))
+        {
+            SetWebFocusMode(true);
+        }
     }
 
     private void SetWebFocusMode(bool enabled)
@@ -317,12 +387,20 @@ public partial class MainWindow : Window
 
             if (process is not null)
             {
-                _managedApps.Add(new ManagedApp(launcher.DisplayName, process));
-                RefreshManagedTaskbar();
+                AddManagedApp(launcher.DisplayName, process);
                 _ = Dispatcher.InvokeAsync(async () =>
                 {
                     await Task.Delay(900);
+                    TrackLauncherProcess(launcher, process);
                     FocusManagedApp(_managedApps.LastOrDefault(app => app.Process.Id == process.Id));
+                });
+            }
+            else
+            {
+                _ = Dispatcher.InvokeAsync(async () =>
+                {
+                    await Task.Delay(900);
+                    TrackLauncherProcess(launcher, null);
                 });
             }
 
@@ -585,9 +663,11 @@ public partial class MainWindow : Window
 
     private async Task<bool> AdminPostAsync(string url, string body)
     {
-        if (string.IsNullOrWhiteSpace(PinBox.Password))
+        var secret = !string.IsNullOrWhiteSpace(_adminSessionSecret) ? _adminSessionSecret : PinBox.Password;
+        if (string.IsNullOrWhiteSpace(secret))
         {
-            ShowNotice("Admin PIN required", "Enter the admin PIN before using admin actions.", NoticeKind.Info);
+            ShowNotice("Sign in required", "Enter the admin PIN before using admin actions.", NoticeKind.Info);
+            SetAdminSignedIn(false);
             return false;
         }
 
@@ -595,7 +675,7 @@ public partial class MainWindow : Window
         {
             Content = new StringContent(body, Encoding.UTF8, "application/json")
         };
-        request.Headers.Add("X-OTM-Admin-PIN", PinBox.Password);
+        request.Headers.Add("X-OTM-Admin-PIN", secret);
 
         var response = await _client.SendAsync(request);
         if (!response.IsSuccessStatusCode)
@@ -605,6 +685,40 @@ public partial class MainWindow : Window
         }
 
         return true;
+    }
+
+    private async Task SignInAdminAsync()
+    {
+        if (string.IsNullOrWhiteSpace(PinBox.Password))
+        {
+            ShowNotice("PIN required", "Enter the admin PIN or recovery key.", NoticeKind.Warning);
+            PinBox.Focus();
+            return;
+        }
+
+        try
+        {
+            using var request = new HttpRequestMessage(HttpMethod.Get, "/api/policy");
+            request.Headers.Add("X-OTM-Admin-PIN", PinBox.Password);
+            var response = await _client.SendAsync(request);
+            if (!response.IsSuccessStatusCode)
+            {
+                _adminSessionSecret = "";
+                SetAdminSignedIn(false);
+                ShowNotice("Sign in failed", await ReadApiErrorAsync(response), NoticeKind.Warning);
+                PinBox.Focus();
+                return;
+            }
+
+            _adminSessionSecret = PinBox.Password;
+            PinBox.Clear();
+            SetAdminSignedIn(true);
+            ShowNotice("Admin signed in", "Local admin controls are available.", NoticeKind.Success);
+        }
+        catch (Exception ex)
+        {
+            ShowNotice("Service unavailable", ex.Message, NoticeKind.Error);
+        }
     }
 
     private void ToggleAdmin_Click(object sender, RoutedEventArgs e)
@@ -618,12 +732,15 @@ public partial class MainWindow : Window
         if (open && WebWorkspace.Visibility == Visibility.Visible)
         {
             _restoreWebWorkspaceAfterAdmin = true;
-            WebWorkspace.Visibility = Visibility.Collapsed;
+            _restoreBrowserAfterAdmin = ExamBrowser.Visibility == Visibility.Visible;
+            ExamBrowser.Visibility = Visibility.Hidden;
         }
         else if (!open && _restoreWebWorkspaceAfterAdmin)
         {
             WebWorkspace.Visibility = Visibility.Visible;
+            ExamBrowser.Visibility = _restoreBrowserAfterAdmin ? Visibility.Visible : Visibility.Collapsed;
             _restoreWebWorkspaceAfterAdmin = false;
+            _restoreBrowserAfterAdmin = false;
         }
 
         AdminPanel.Visibility = open ? Visibility.Visible : Visibility.Collapsed;
@@ -631,8 +748,18 @@ public partial class MainWindow : Window
         AdminCornerButton.Visibility = open || !_webFocusMode ? Visibility.Collapsed : Visibility.Visible;
         if (open)
         {
-            PinBox.Focus();
+            if (string.IsNullOrWhiteSpace(_adminSessionSecret))
+            {
+                SetAdminSignedIn(false);
+                PinBox.Focus();
+            }
         }
+    }
+
+    private void SetAdminSignedIn(bool signedIn)
+    {
+        AdminSignInPanel.Visibility = signedIn ? Visibility.Collapsed : Visibility.Visible;
+        AdminActionsPanel.Visibility = signedIn ? Visibility.Visible : Visibility.Collapsed;
     }
 
     private void Window_PreviewKeyDown(object sender, System.Windows.Input.KeyEventArgs e)
@@ -678,6 +805,11 @@ public partial class MainWindow : Window
 
     private void Window_Deactivated(object? sender, EventArgs e)
     {
+        if (AdminPanel.Visibility == Visibility.Visible)
+        {
+            return;
+        }
+
         EnforceFullscreen();
     }
 
@@ -701,6 +833,14 @@ public partial class MainWindow : Window
     private void EnforceFullscreen()
     {
         CleanupExitedProcesses();
+        if (AdminPanel.Visibility == Visibility.Visible)
+        {
+            SetSystemLockdownActive(true);
+            Topmost = true;
+            RefreshManagedTaskbar();
+            return;
+        }
+
         if (_appOwnsDisplays || _managedApps.Count > 0 || _yieldFocusUntil > DateTimeOffset.UtcNow)
         {
             RefreshManagedTaskbar();
@@ -718,23 +858,18 @@ public partial class MainWindow : Window
 
     private void CleanupExitedProcesses()
     {
-        _managedApps.RemoveAll(app =>
-        {
-            try
-            {
-                return app.Process.HasExited;
-            }
-            catch
-            {
-                return true;
-            }
-        });
+        PruneExitedManagedApps();
 
         RefreshManagedTaskbar();
+        if (_managedApps.Count == 0 && WebWorkspace.Visibility != Visibility.Visible)
+        {
+            _autoLaunchedKioskId = "";
+        }
 
         if (_managedApps.Count == 0 && _appOwnsDisplays)
         {
             _appOwnsDisplays = false;
+            _autoLaunchedKioskId = "";
             Show();
             PlaceOnPrimaryScreen();
             SetSecondaryCoversVisible(true);
@@ -797,8 +932,7 @@ public partial class MainWindow : Window
     {
         if (process is not null && !_managedApps.Any(app => app.Process.Id == process.Id))
         {
-            _managedApps.Add(new ManagedApp(process.ProcessName, process));
-            RefreshManagedTaskbar();
+            AddManagedApp(process.ProcessName, process);
         }
 
         _appOwnsDisplays = true;
@@ -865,21 +999,99 @@ public partial class MainWindow : Window
 
     private void RefreshManagedTaskbar()
     {
-        ManagedAppsList.ItemsSource = _managedApps
-            .Where(app =>
+        PruneExitedManagedApps();
+        ManagedAppsList.ItemsSource = null;
+        ManagedAppsList.ItemsSource = _managedApps.OrderBy(app => app.StartedAt).ToList();
+        OpenAppsCountText.Text = _managedApps.Count.ToString();
+    }
+
+    private void AddManagedApp(string displayName, Process process)
+    {
+        if (_managedApps.Any(app => app.Process.Id == process.Id))
+        {
+            return;
+        }
+
+        _managedApps.Add(new ManagedApp(displayName, process));
+        RefreshManagedTaskbar();
+    }
+
+    private void TrackLauncherProcess(KioskLauncher launcher, Process? startedProcess)
+    {
+        if (startedProcess is not null)
+        {
+            try
+            {
+                startedProcess.Refresh();
+                if (!startedProcess.HasExited)
+                {
+                    AddManagedApp(launcher.DisplayName, startedProcess);
+                    return;
+                }
+            }
+            catch
+            {
+                // Some launchers hand off to a child process; fall through and search by policy.
+            }
+        }
+
+        var processName = Path.GetFileNameWithoutExtension(launcher.ProcessName);
+        if (string.IsNullOrWhiteSpace(processName) && !string.IsNullOrWhiteSpace(launcher.Path))
+        {
+            processName = Path.GetFileNameWithoutExtension(launcher.Path);
+        }
+
+        if (string.IsNullOrWhiteSpace(processName))
+        {
+            return;
+        }
+
+        var process = Process.GetProcessesByName(processName)
+            .Where(candidate =>
             {
                 try
                 {
-                    return !app.Process.HasExited;
+                    return !candidate.HasExited;
                 }
                 catch
                 {
                     return false;
                 }
             })
-            .OrderBy(app => app.StartedAt)
-            .ToList();
-        OpenAppsCountText.Text = _managedApps.Count.ToString();
+            .OrderByDescending(GetProcessStartTimeSafe)
+            .FirstOrDefault();
+
+        if (process is not null)
+        {
+            AddManagedApp(launcher.DisplayName, process);
+        }
+    }
+
+    private static DateTime GetProcessStartTimeSafe(Process process)
+    {
+        try
+        {
+            return process.StartTime;
+        }
+        catch
+        {
+            return DateTime.MinValue;
+        }
+    }
+
+    private void PruneExitedManagedApps()
+    {
+        _managedApps.RemoveAll(app =>
+        {
+            try
+            {
+                return app.Process.HasExited;
+            }
+            catch
+            {
+                return true;
+            }
+        });
     }
 
     private void InstallKeyboardHook()

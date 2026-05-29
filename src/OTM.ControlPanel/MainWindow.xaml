@@ -303,6 +303,36 @@
                         </Grid>
                     </Grid>
                 </TabItem>
+                <TabItem Header="Kiosk">
+                    <Grid Margin="14">
+                        <Border Background="#F8FAFC" BorderBrush="#D7E1EA" BorderThickness="1" CornerRadius="8" Padding="18" MaxWidth="720" HorizontalAlignment="Left" VerticalAlignment="Top">
+                            <StackPanel>
+                                <TextBlock Text="Dedicated Kiosk" FontSize="20" FontWeight="SemiBold" Margin="0,0,0,4" />
+                                <TextBlock Text="Auto-open one fullscreen website or app when managed mode is active. Use this for a true single-purpose kiosk." Foreground="#64748B" TextWrapping="Wrap" Margin="0,0,0,16" />
+                                <CheckBox x:Name="DedicatedKioskEnabledCheckBox" Content="Enable dedicated kiosk mode" Margin="0,0,0,12" />
+                                <TextBlock Text="Kiosk type" Foreground="#344756" FontWeight="SemiBold" Margin="0,0,0,4" />
+                                <ComboBox x:Name="DedicatedKioskTypeBox" Height="34" Margin="0,0,0,10" SelectedIndex="0">
+                                    <ComboBoxItem Content="Website" Tag="web" />
+                                    <ComboBoxItem Content="Application" Tag="app" />
+                                </ComboBox>
+                                <TextBlock Text="Display name" Foreground="#344756" FontWeight="SemiBold" Margin="0,0,0,4" />
+                                <TextBox x:Name="DedicatedKioskNameBox" Height="34" Margin="0,0,0,10" />
+                                <TextBlock Text="Website URL" Foreground="#344756" FontWeight="SemiBold" Margin="0,0,0,4" />
+                                <TextBox x:Name="DedicatedKioskUrlBox" Height="34" Margin="0,0,0,10" ToolTip="Example: https://testing.example.edu" />
+                                <TextBlock Text="App process name" Foreground="#344756" FontWeight="SemiBold" Margin="0,0,0,4" />
+                                <TextBox x:Name="DedicatedKioskProcessBox" Height="34" Margin="0,0,0,10" ToolTip="Example: chrome.exe or FlightSimulator.exe" />
+                                <TextBlock Text="App EXE path" Foreground="#344756" FontWeight="SemiBold" Margin="0,0,0,4" />
+                                <TextBox x:Name="DedicatedKioskPathBox" Height="34" Margin="0,0,0,10" ToolTip="Optional full path to EXE" />
+                                <TextBlock Text="Arguments" Foreground="#344756" FontWeight="SemiBold" Margin="0,0,0,4" />
+                                <TextBox x:Name="DedicatedKioskArgumentsBox" Height="34" Margin="0,0,0,16" />
+                                <UniformGrid Columns="2">
+                                    <Button Content="Save Kiosk" Margin="0,0,6,0" Click="SaveDedicatedKiosk_Click" />
+                                    <Button Content="Disable Kiosk" Margin="6,0,0,0" Style="{StaticResource SecondaryButton}" Click="DisableDedicatedKiosk_Click" />
+                                </UniformGrid>
+                            </StackPanel>
+                        </Border>
+                    </Grid>
+                </TabItem>
                 <TabItem Header="Advanced Policy">
                     <Grid Margin="10">
                         <TextBox x:Name="PolicyTextBox"

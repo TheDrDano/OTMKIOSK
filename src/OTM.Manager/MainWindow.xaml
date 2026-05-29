@@ -91,26 +91,179 @@
                     <StackPanel>
                         <TextBlock Text="Admin PIN" Foreground="#344756" FontWeight="SemiBold" />
                         <PasswordBox x:Name="PinBox" Height="34" Margin="0,4,0,12" />
-                        <UniformGrid Columns="6">
+                        <UniformGrid Columns="4">
                             <Button Content="Refresh" Margin="0,0,6,0" Click="RefreshSelected_Click" />
                             <Button Content="Lock" Margin="6,0,6,0" Style="{StaticResource SecondaryButton}" Click="Lock_Click" />
                             <Button Content="Unlock" Margin="6,0,6,0" Style="{StaticResource SecondaryButton}" Click="Unlock_Click" />
-                            <Button Content="Updates" Margin="6,0,6,0" Style="{StaticResource SecondaryButton}" Click="CheckUpdates_Click" />
-                            <Button Content="Restart" Margin="6,0,6,0" Style="{StaticResource SecondaryButton}" Click="Restart_Click" />
-                            <Button Content="Shutdown" Margin="6,0,0,0" Style="{StaticResource DangerButton}" Click="Shutdown_Click" />
+                            <Button Content="Load Rules" Margin="6,0,0,0" Style="{StaticResource SecondaryButton}" Click="LoadRules_Click" />
+                            <Button Content="Updates" Margin="0,8,6,0" Style="{StaticResource SecondaryButton}" Click="CheckUpdates_Click" />
+                            <Button Content="Restart" Margin="6,8,6,0" Style="{StaticResource SecondaryButton}" Click="Restart_Click" />
+                            <Button Content="Shutdown" Margin="6,8,6,0" Style="{StaticResource DangerButton}" Click="Shutdown_Click" />
                         </UniformGrid>
                     </StackPanel>
                 </Border>
 
                 <Border Grid.Row="2" Background="White" BorderBrush="#D8DEE6" BorderThickness="1" CornerRadius="8" Padding="16">
-                    <Grid>
-                        <Grid.RowDefinitions>
-                            <RowDefinition Height="Auto" />
-                            <RowDefinition Height="*" />
-                        </Grid.RowDefinitions>
-                        <TextBlock Text="Activity" FontSize="18" FontWeight="SemiBold" Margin="0,0,0,10" />
-                        <TextBox x:Name="ActivityBox" Grid.Row="1" IsReadOnly="True" AcceptsReturn="True" VerticalScrollBarVisibility="Auto" FontFamily="Consolas" TextWrapping="Wrap" />
-                    </Grid>
+                    <TabControl>
+                        <TabItem Header="App Rules">
+                            <Grid Margin="0,12,0,0">
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="*" />
+                                </Grid.RowDefinitions>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="*" />
+                                </Grid.ColumnDefinitions>
+                                <StackPanel Grid.ColumnSpan="2" Orientation="Horizontal" Margin="0,0,0,12">
+                                    <TextBox x:Name="AppDisplayNameBox" Width="170" Height="34" Margin="0,0,8,0" ToolTip="Display name" />
+                                    <TextBox x:Name="AppProcessBox" Width="160" Height="34" Margin="0,0,8,0" ToolTip="Process name, for example chrome.exe" />
+                                    <TextBox x:Name="AppPathBox" Width="260" Height="34" Margin="0,0,8,0" ToolTip="Optional full EXE path" />
+                                    <Button Content="Allow" Width="82" Margin="0,0,8,0" Click="AllowApp_Click" />
+                                    <Button Content="Block" Width="82" Style="{StaticResource DangerButton}" Click="BlockApp_Click" />
+                                </StackPanel>
+                                <Grid Grid.Row="1" Margin="0,0,8,0">
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="Auto" />
+                                        <RowDefinition Height="*" />
+                                        <RowDefinition Height="Auto" />
+                                    </Grid.RowDefinitions>
+                                    <TextBlock Text="Allowed apps" FontWeight="SemiBold" Margin="0,0,0,8" />
+                                    <DataGrid x:Name="AllowedAppsGrid" Grid.Row="1" AutoGenerateColumns="False" IsReadOnly="True" SelectionMode="Single">
+                                        <DataGrid.Columns>
+                                            <DataGridTextColumn Header="Name" Binding="{Binding DisplayName}" Width="*" />
+                                            <DataGridTextColumn Header="Process" Binding="{Binding ProcessName}" Width="*" />
+                                        </DataGrid.Columns>
+                                    </DataGrid>
+                                    <Button Grid.Row="2" Content="Remove Selected Allowed" Height="34" Margin="0,8,0,0" Style="{StaticResource SecondaryButton}" Click="RemoveAllowedApp_Click" />
+                                </Grid>
+                                <Grid Grid.Row="1" Grid.Column="1" Margin="8,0,0,0">
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="Auto" />
+                                        <RowDefinition Height="*" />
+                                        <RowDefinition Height="Auto" />
+                                    </Grid.RowDefinitions>
+                                    <TextBlock Text="Blocked apps" FontWeight="SemiBold" Margin="0,0,0,8" />
+                                    <DataGrid x:Name="BlockedAppsGrid" Grid.Row="1" AutoGenerateColumns="False" IsReadOnly="True" SelectionMode="Single">
+                                        <DataGrid.Columns>
+                                            <DataGridTextColumn Header="Name" Binding="{Binding DisplayName}" Width="*" />
+                                            <DataGridTextColumn Header="Process" Binding="{Binding ProcessName}" Width="*" />
+                                        </DataGrid.Columns>
+                                    </DataGrid>
+                                    <Button Grid.Row="2" Content="Remove Selected Blocked" Height="34" Margin="0,8,0,0" Style="{StaticResource SecondaryButton}" Click="RemoveBlockedApp_Click" />
+                                </Grid>
+                            </Grid>
+                        </TabItem>
+                        <TabItem Header="Websites">
+                            <Grid Margin="0,12,0,0">
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="*" />
+                                </Grid.RowDefinitions>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="*" />
+                                </Grid.ColumnDefinitions>
+                                <StackPanel Grid.ColumnSpan="2" Orientation="Horizontal" Margin="0,0,0,12">
+                                    <TextBox x:Name="WebsiteBox" Width="340" Height="34" Margin="0,0,8,0" ToolTip="Domain or URL, for example testing.example.edu" />
+                                    <CheckBox x:Name="WhitelistOnlyCheckBox" Content="Allowlist only" VerticalAlignment="Center" Margin="0,0,12,0" />
+                                    <Button Content="Save Mode" Width="102" Margin="0,0,8,0" Style="{StaticResource SecondaryButton}" Click="SaveWebsiteMode_Click" />
+                                    <Button Content="Allow Site" Width="96" Margin="0,0,8,0" Click="AllowWebsite_Click" />
+                                    <Button Content="Block Site" Width="96" Style="{StaticResource DangerButton}" Click="BlockWebsite_Click" />
+                                </StackPanel>
+                                <Grid Grid.Row="1" Margin="0,0,8,0">
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="Auto" />
+                                        <RowDefinition Height="*" />
+                                        <RowDefinition Height="Auto" />
+                                    </Grid.RowDefinitions>
+                                    <TextBlock Text="Allowed websites" FontWeight="SemiBold" Margin="0,0,0,8" />
+                                    <ListBox x:Name="AllowedSitesList" Grid.Row="1" />
+                                    <Button Grid.Row="2" Content="Remove Selected Allowed Site" Height="34" Margin="0,8,0,0" Style="{StaticResource SecondaryButton}" Click="RemoveAllowedWebsite_Click" />
+                                </Grid>
+                                <Grid Grid.Row="1" Grid.Column="1" Margin="8,0,0,0">
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="Auto" />
+                                        <RowDefinition Height="*" />
+                                        <RowDefinition Height="Auto" />
+                                    </Grid.RowDefinitions>
+                                    <TextBlock Text="Blocked websites" FontWeight="SemiBold" Margin="0,0,0,8" />
+                                    <ListBox x:Name="BlockedSitesList" Grid.Row="1" />
+                                    <Button Grid.Row="2" Content="Remove Selected Blocked Site" Height="34" Margin="0,8,0,0" Style="{StaticResource SecondaryButton}" Click="RemoveBlockedWebsite_Click" />
+                                </Grid>
+                            </Grid>
+                        </TabItem>
+                        <TabItem Header="Monitoring">
+                            <Grid Margin="0,12,0,0">
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="*" />
+                                </Grid.RowDefinitions>
+                                <Border Background="#F8FAFC" BorderBrush="#D8DEE6" BorderThickness="1" CornerRadius="8" Padding="16" Margin="0,0,0,12">
+                                    <Grid>
+                                        <Grid.RowDefinitions>
+                                            <RowDefinition Height="Auto" />
+                                            <RowDefinition Height="Auto" />
+                                            <RowDefinition Height="Auto" />
+                                        </Grid.RowDefinitions>
+                                        <TextBlock Text="Remote monitoring" FontSize="18" FontWeight="SemiBold" Foreground="#111827" />
+                                        <TextBlock Grid.Row="1"
+                                                   Text="V7.2 adds the secure monitoring configuration layer. Live encrypted screen viewing will use a separate user-session monitor agent so it can capture the desktop correctly and avoid exposing raw VNC."
+                                                   Foreground="#526171"
+                                                   TextWrapping="Wrap"
+                                                   Margin="0,4,0,14" />
+                                        <UniformGrid Grid.Row="2" Columns="2">
+                                            <CheckBox x:Name="MonitoringEnabledCheckBox" Content="Enable monitoring for this station" Margin="0,0,12,10" />
+                                            <CheckBox x:Name="MonitoringScreenViewCheckBox" Content="Allow screen viewing when agent is installed" Margin="12,0,0,10" />
+                                            <CheckBox x:Name="MonitoringApprovalCheckBox" Content="Require local/admin approval" Margin="0,0,12,10" />
+                                            <CheckBox x:Name="MonitoringLanOnlyCheckBox" Content="LAN/VPN only" Margin="12,0,0,10" />
+                                        </UniformGrid>
+                                    </Grid>
+                                </Border>
+
+                                <Grid Grid.Row="1">
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="Auto" />
+                                        <RowDefinition Height="Auto" />
+                                        <RowDefinition Height="*" />
+                                    </Grid.RowDefinitions>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="180" />
+                                        <ColumnDefinition Width="*" />
+                                    </Grid.ColumnDefinitions>
+
+                                    <TextBlock Text="Refresh seconds" FontWeight="SemiBold" Foreground="#344756" VerticalAlignment="Center" />
+                                    <TextBox x:Name="MonitoringRefreshSecondsBox" Grid.Column="1" Height="34" Text="5" />
+
+                                    <TextBlock Grid.Row="1" Text="Transport" FontWeight="SemiBold" Foreground="#344756" VerticalAlignment="Center" Margin="0,10,0,0" />
+                                    <ComboBox x:Name="MonitoringTransportBox" Grid.Row="1" Grid.Column="1" Height="34" Margin="0,10,0,0" SelectedIndex="0">
+                                        <ComboBoxItem Content="secure-agent-planned" />
+                                        <ComboBoxItem Content="vnc-over-vpn-planned" />
+                                        <ComboBoxItem Content="tls-screen-agent-planned" />
+                                    </ComboBox>
+
+                                    <StackPanel Grid.Row="2" Grid.ColumnSpan="2" Margin="0,14,0,0">
+                                        <UniformGrid Columns="2" Margin="0,0,0,10">
+                                            <Button Content="Load Monitoring" Margin="0,0,6,0" Style="{StaticResource SecondaryButton}" Click="LoadMonitoring_Click" />
+                                            <Button Content="Save Monitoring" Margin="6,0,0,0" Click="SaveMonitoring_Click" />
+                                        </UniformGrid>
+                                        <TextBox x:Name="MonitoringStatusBox"
+                                                 IsReadOnly="True"
+                                                 AcceptsReturn="True"
+                                                 TextWrapping="Wrap"
+                                                 VerticalScrollBarVisibility="Auto"
+                                                 MinHeight="120"
+                                                 Background="#FFFFFF" />
+                                    </StackPanel>
+                                </Grid>
+                            </Grid>
+                        </TabItem>
+                        <TabItem Header="Activity">
+                            <Grid Margin="0,12,0,0">
+                                <TextBox x:Name="ActivityBox" IsReadOnly="True" AcceptsReturn="True" VerticalScrollBarVisibility="Auto" FontFamily="Consolas" TextWrapping="Wrap" />
+                            </Grid>
+                        </TabItem>
+                    </TabControl>
                 </Border>
             </Grid>
         </Grid>

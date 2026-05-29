@@ -26,4 +26,5 @@ public static class KioskWorkspaceModes
     public const string Exam = "exam";
     public const string Lab = "lab";
     public const string AppOwner = "appOwner";
+    public const string DedicatedKiosk = "dedicatedKiosk";
 }

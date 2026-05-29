@@ -1,7 +1,7 @@
 #define MyAppName "SimpleKioskOS"
 #define MyAppVersion GetEnv("OTM_KIOSK_VERSION")
 #if MyAppVersion == ""
-  #define MyAppVersion "7.1.0"
+  #define MyAppVersion "7.2.0"
 #endif
 #define MyAppPublisher "SimpleKioskOS"
 #define MyAppExeName "OTM.ControlPanel.exe"
@@ -77,7 +77,7 @@ Filename: "{tmp}\MicrosoftEdgeWebView2Setup.exe"; Parameters: "/silent /install"
 Filename: "{sys}\sc.exe"; Parameters: "create OTMKioskService binPath= ""{app}\Service\{#ServiceExeName}"" start= auto DisplayName= ""OTM Kiosk Service"""; Flags: runhidden waituntilterminated
 Filename: "{sys}\sc.exe"; Parameters: "description OTMKioskService ""Local-first Windows lockdown and kiosk enforcement service."""; Flags: runhidden waituntilterminated
 Filename: "{sys}\sc.exe"; Parameters: "failure OTMKioskService reset= 86400 actions= restart/5000/restart/10000/restart/30000"; Flags: runhidden waituntilterminated
-Filename: "{sys}\netsh.exe"; Parameters: "advfirewall firewall add rule name=""SimpleKioskOS Local API"" dir=in action=allow protocol=TCP localport=47821 profile=domain,private"; Flags: runhidden waituntilterminated
+Filename: "{sys}\netsh.exe"; Parameters: "advfirewall firewall add rule name=""SimpleKioskOS Local API"" dir=in action=allow protocol=TCP localport=47821 profile=any"; Flags: runhidden waituntilterminated
 Filename: "{sys}\sc.exe"; Parameters: "start OTMKioskService"; Flags: runhidden waituntilterminated
 Filename: "{app}\ControlPanel\{#MyAppExeName}"; Description: "Open SimpleKioskOS Control Panel"; Flags: nowait postinstall skipifsilent
 

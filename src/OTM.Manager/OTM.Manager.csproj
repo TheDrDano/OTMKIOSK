@@ -3,6 +3,9 @@
     <Resource Include="..\OTM.KioskShell\Assets\simplekioskos.ico" Link="Assets\simplekioskos.ico" />
     <Resource Include="..\OTM.KioskShell\Assets\simplekioskos_side.png" Link="Assets\simplekioskos_side.png" />
   </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\OTM.Shared\OTM.Shared.csproj" />
+  </ItemGroup>
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
     <UseWPF>true</UseWPF>
