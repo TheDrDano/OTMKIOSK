@@ -782,7 +782,7 @@ public partial class MainWindow : Window
     {
         if (exception is TaskCanceledException)
         {
-            return $"Timed out connecting to {station.Url}. Check that the station is powered on, SimpleKioskOS 8.1.0 or newer is installed, OTMKioskService is running, and Windows Firewall allows TCP 47821 on the station network profile.";
+            return $"Timed out connecting to {station.Url}. Check that the station is powered on, SimpleKioskOS 8.1.1 or newer is installed, OTMKioskService is running, and Windows Firewall allows TCP 47821 on the station network profile.";
         }
 
         if (exception is HttpRequestException httpException)

@@ -1,7 +1,7 @@
 #define MyAppName "SimpleKioskOS Remote Manager"
 #define MyAppVersion GetEnv("OTM_KIOSK_VERSION")
 #if MyAppVersion == ""
-  #define MyAppVersion "8.1.0"
+  #define MyAppVersion "8.1.1"
 #endif
 #define MyAppPublisher "SimpleKioskOS"
 #define ManagerExeName "OTM.Manager.exe"

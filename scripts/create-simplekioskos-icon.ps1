@@ -52,51 +52,17 @@ function New-IconBitmap {
     }
 }
 
-function ConvertTo-IconDib {
+function ConvertTo-IconPng {
     param(
         [System.Drawing.Bitmap]$Bitmap
     )
 
-    $width = $Bitmap.Width
-    $height = $Bitmap.Height
-    $xorBytes = $width * $height * 4
-    $maskStride = [int]([Math]::Floor(($width + 31) / 32) * 4)
-    $maskBytes = $maskStride * $height
-
     $stream = New-Object System.IO.MemoryStream
-    $writer = New-Object System.IO.BinaryWriter $stream
     try {
-        $writer.Write([UInt32]40)                       # BITMAPINFOHEADER size
-        $writer.Write([Int32]$width)
-        $writer.Write([Int32]($height * 2))             # ICO DIB height includes XOR + AND masks
-        $writer.Write([UInt16]1)                        # planes
-        $writer.Write([UInt16]32)                       # bpp
-        $writer.Write([UInt32]0)                        # BI_RGB
-        $writer.Write([UInt32]($xorBytes + $maskBytes))
-        $writer.Write([Int32]0)
-        $writer.Write([Int32]0)
-        $writer.Write([UInt32]0)
-        $writer.Write([UInt32]0)
-
-        for ($y = $height - 1; $y -ge 0; $y--) {
-            for ($x = 0; $x -lt $width; $x++) {
-                $pixel = $Bitmap.GetPixel($x, $y)
-                $writer.Write([byte]$pixel.B)
-                $writer.Write([byte]$pixel.G)
-                $writer.Write([byte]$pixel.R)
-                $writer.Write([byte]$pixel.A)
-            }
-        }
-
-        for ($i = 0; $i -lt $maskBytes; $i++) {
-            $writer.Write([byte]0)
-        }
-
-        $writer.Flush()
-        return $stream.ToArray()
+        $Bitmap.Save($stream, [System.Drawing.Imaging.ImageFormat]::Png)
+        return ,([byte[]]$stream.ToArray())
     }
     finally {
-        $writer.Dispose()
         $stream.Dispose()
     }
 }
@@ -119,6 +85,7 @@ function Save-MultiSizeIcon {
 
         $offset = 6 + ($Frames.Count * 16)
         foreach ($frame in $Frames) {
+            $frameBytes = [byte[]]$frame.Bytes
             $sizeByte = if ($frame.Size -eq 256) { 0 } else { [byte]$frame.Size }
             $writer.Write([byte]$sizeByte)
             $writer.Write([byte]$sizeByte)
@@ -126,13 +93,14 @@ function Save-MultiSizeIcon {
             $writer.Write([byte]0)              # reserved
             $writer.Write([UInt16]1)            # planes
             $writer.Write([UInt16]32)           # bpp
-            $writer.Write([UInt32]$frame.Bytes.Length)
+            $writer.Write([UInt32]$frameBytes.Length)
             $writer.Write([UInt32]$offset)
-            $offset += $frame.Bytes.Length
+            $offset += $frameBytes.Length
         }
 
         foreach ($frame in $Frames) {
-            $writer.Write($frame.Bytes)
+            $frameBytes = [byte[]]$frame.Bytes
+            $writer.Write($frameBytes, 0, $frameBytes.Length)
         }
     }
     finally {
@@ -154,7 +122,7 @@ try {
         $bitmaps += $bitmap
         [pscustomobject]@{
             Size = $size
-            Bytes = ConvertTo-IconDib -Bitmap $bitmap
+            Bytes = [byte[]](ConvertTo-IconPng -Bitmap $bitmap)
         }
     }
 

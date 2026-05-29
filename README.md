@@ -33,7 +33,7 @@ Install prerequisites on a build machine:
 Then run:
 
 ```powershell
-.\scripts\build-installer.ps1 -Version 8.1.0
+.\scripts\build-installer.ps1 -Version 8.1.1
 ```
 
 The installer will be created in:
@@ -53,11 +53,11 @@ For public testing, keep the station app and Remote Manager in this repo as sepa
 To publish a release from GitHub:
 
 ```powershell
-git tag v8.1.0
-git push origin v8.1.0
+git tag v8.1.1
+git push origin v8.1.1
 ```
 
-Use one lowercase release tag per version, like `v8.1.0`. The workflow normalizes manual inputs and `V...` tags back to lowercase `v...`, but old duplicate GitHub releases should be deleted from the GitHub **Releases** page once so the list stays clean.
+Use one lowercase release tag per version, like `v8.1.1`. The workflow normalizes manual inputs and `V...` tags back to lowercase `v...`, but old duplicate GitHub releases should be deleted from the GitHub **Releases** page once so the list stays clean.
 
 The **Release Installers** workflow creates a GitHub Release with:
 
@@ -78,16 +78,16 @@ After the repo is public, set the station update manifest URL in the native Cont
 https://github.com/TheDrDano/OTMKIOSK/releases/latest/download/update-manifest.json
 ```
 
-The current app checks and reports updates. V8.1 can also download the stable station installer from the manifest to `%ProgramData%\OTM Kiosk\Updates\OTM-Kiosk-Setup.exe`, verify its SHA256 hash, and mark it ready for manual install. It does not silently run installers yet; that should wait until signing, hash verification, and a recovery-safe install flow are finished.
+The current app checks and reports updates. V8.1.1 can also download the stable station installer from the manifest to `%ProgramData%\OTM Kiosk\Updates\OTM-Kiosk-Setup.exe`, verify its SHA256 hash, and mark it ready for manual install. It does not silently run installers yet; that should wait until signing, hash verification, and a recovery-safe install flow are finished.
 
 The generated `update-manifest.json` includes the stable station installer URL/hash plus Remote Manager installer metadata:
 
 ```json
 {
   "product": "SimpleKioskOS",
-  "version": "8.1.0",
+  "version": "8.1.1",
   "channel": "stable",
-  "releaseTag": "v8.1.0",
+  "releaseTag": "v8.1.1",
   "installerUrl": "https://github.com/TheDrDano/OTMKIOSK/releases/latest/download/OTM-Kiosk-Setup.exe",
   "sha256": "generated during release",
   "managerInstallerUrl": "https://github.com/TheDrDano/OTMKIOSK/releases/latest/download/SimpleKioskOS-Remote-Manager-Setup.exe",
@@ -103,7 +103,7 @@ Windows publisher identity for an `.exe` uses **Authenticode code signing**, not
 For local signing with a certificate installed in the machine certificate store:
 
 ```powershell
-.\scripts\build-installer.ps1 -Version 8.1.0 -Sign -CertificateThumbprint "YOUR_CERT_THUMBPRINT"
+.\scripts\build-installer.ps1 -Version 8.1.1 -Sign -CertificateThumbprint "YOUR_CERT_THUMBPRINT"
 ```
 
 Use `-CertificateStore LocalMachine` if the certificate is installed in the local machine store instead of the current user store.
@@ -111,7 +111,7 @@ Use `-CertificateStore LocalMachine` if the certificate is installed in the loca
 For local signing with a PFX:
 
 ```powershell
-.\scripts\build-installer.ps1 -Version 8.1.0 -Sign -PfxPath "C:\secure\otm-signing.pfx" -PfxPassword "PFX_PASSWORD"
+.\scripts\build-installer.ps1 -Version 8.1.1 -Sign -PfxPath "C:\secure\otm-signing.pfx" -PfxPassword "PFX_PASSWORD"
 ```
 
 The build signs published EXE/DLL files before packaging and signs the final setup EXE after Inno Setup finishes. If the final setup EXE is not Authenticode-signed by a trusted certificate, Windows will show **Unknown publisher**.
@@ -141,7 +141,7 @@ For lab-only testing without buying a certificate yet, create a self-signed test
 
 ```powershell
 .\scripts\create-test-signing-cert.ps1 -Password "test-password"
-.\scripts\build-installer.ps1 -Version 8.1.0 -Sign -PfxPath ".\artifacts\signing\simplekioskos-test.pfx" -PfxPassword "test-password"
+.\scripts\build-installer.ps1 -Version 8.1.1 -Sign -PfxPath ".\artifacts\signing\simplekioskos-test.pfx" -PfxPassword "test-password"
 ```
 
 On the test machine, trust that test cert before installing:
@@ -321,7 +321,7 @@ Also verify `OTMKioskService` is running on the station.
 Build the Remote Manager installer with:
 
 ```powershell
-.\scripts\build-manager-installer.ps1 -Version 8.1.0
+.\scripts\build-manager-installer.ps1 -Version 8.1.1
 ```
 
 ## Security Notes
