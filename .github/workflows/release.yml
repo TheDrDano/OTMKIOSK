@@ -10,7 +10,7 @@ on:
       version:
         description: "Release version without leading v"
         required: true
-        default: "8.0.0"
+        default: "8.1.0"
       allow_unsigned:
         description: "Allow unsigned release artifacts"
         required: true
@@ -105,7 +105,7 @@ jobs:
             -InstallerPath $station.FullName `
             -ManagerInstallerPath $manager.FullName `
             -OutputPath ".\artifacts\release\update-manifest.json" `
-            -ReleaseNotes "SimpleKioskOS ${{ steps.version.outputs.version }}"
+            -ReleaseNotes "SimpleKioskOS ${{ steps.version.outputs.version }} stable release. Includes the Launchpad visual refresh, updated Remote Manager styling, taskbar power controls, and station update download support."
 
       - name: Publish GitHub release
         shell: pwsh
@@ -113,7 +113,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           $tag = "${{ steps.version.outputs.tag }}"
-          $notes = "SimpleKioskOS ${{ steps.version.outputs.version }}"
+          $notes = "SimpleKioskOS ${{ steps.version.outputs.version }} stable release. Includes the Launchpad visual refresh, updated Remote Manager styling, taskbar power controls, and station update download support."
           $files = @(
             (Get-ChildItem .\artifacts\installer -Filter OTM-Kiosk-Setup.exe | Select-Object -First 1).FullName,
             (Get-ChildItem .\artifacts\manager-installer -Filter SimpleKioskOS-Remote-Manager-Setup.exe | Select-Object -First 1).FullName,

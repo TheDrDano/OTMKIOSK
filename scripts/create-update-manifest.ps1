@@ -20,22 +20,39 @@ if (-not (Test-Path $InstallerPath)) {
 }
 
 $installer = Get-Item $InstallerPath
+$normalizedTag = $Tag.Trim()
+if ($normalizedTag.StartsWith("V", [System.StringComparison]::Ordinal)) {
+    $normalizedTag = "v" + $normalizedTag.Substring(1)
+}
+
+$releaseBaseUrl = "https://github.com/$Repository/releases/latest/download"
 $installerUrl = "https://github.com/$Repository/releases/latest/download/$($installer.Name)"
 $sha256 = (Get-FileHash -Path $installer.FullName -Algorithm SHA256).Hash.ToLowerInvariant()
 
 $manifest = [ordered]@{
+    product = "SimpleKioskOS"
     version = $Version
     channel = $Channel
-    releaseTag = $Tag
+    releaseTag = $normalizedTag
+    publishedAt = (Get-Date).ToUniversalTime().ToString("o")
     installerUrl = $installerUrl
     sha256 = $sha256
+    installerName = $installer.Name
+    installerSize = $installer.Length
     releaseNotes = $ReleaseNotes
+    updateBehavior = "prompt-and-download-only"
+    autoInstallEnabled = $false
+    releaseUrl = "https://github.com/$Repository/releases/tag/$normalizedTag"
 }
 
 if ($ManagerInstallerPath -and (Test-Path $ManagerInstallerPath)) {
     $managerInstaller = Get-Item $ManagerInstallerPath
-    $manifest.managerInstallerUrl = "https://github.com/$Repository/releases/latest/download/$($managerInstaller.Name)"
+    $manifest.managerVersion = $Version
+    $manifest.managerInstallerUrl = "$releaseBaseUrl/$($managerInstaller.Name)"
     $manifest.managerSha256 = (Get-FileHash -Path $managerInstaller.FullName -Algorithm SHA256).Hash.ToLowerInvariant()
+    $manifest.managerInstallerName = $managerInstaller.Name
+    $manifest.managerInstallerSize = $managerInstaller.Length
+    $manifest.managerUpdateBehavior = "prompt-and-download-only"
 }
 
 $outputDirectory = Split-Path -Parent $OutputPath

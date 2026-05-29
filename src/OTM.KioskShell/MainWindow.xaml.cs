@@ -101,13 +101,6 @@ public partial class MainWindow : Window
 
     private async void AdminSignIn_Click(object sender, RoutedEventArgs e) => await SignInAdminAsync();
 
-    private void AdminSignOut_Click(object sender, RoutedEventArgs e)
-    {
-        _adminSessionSecret = "";
-        PinBox.Clear();
-        SetAdminSignedIn(false);
-    }
-
     private async void PinBox_KeyDown(object sender, System.Windows.Input.KeyEventArgs e)
     {
         if (e.Key == Key.Enter)
@@ -145,20 +138,19 @@ public partial class MainWindow : Window
         await EmergencyUnlockAsync();
     }
 
-    private async void RestartSystem_Click(object sender, RoutedEventArgs e)
+    private void RestartSystem_Click(object sender, RoutedEventArgs e)
     {
-        if (await AdminPostAsync("/api/system/restart", "{}"))
-        {
-            ShowNotice("Restart requested", "Windows is restarting.", NoticeKind.Warning);
-        }
+        StartLocalSystemCommand("/r /t 0", "Restart requested", "Windows is restarting.");
     }
 
-    private async void ShutdownSystem_Click(object sender, RoutedEventArgs e)
+    private void ShutdownSystem_Click(object sender, RoutedEventArgs e)
     {
-        if (await AdminPostAsync("/api/system/shutdown", "{}"))
-        {
-            ShowNotice("Shutdown requested", "Windows is shutting down.", NoticeKind.Warning);
-        }
+        StartLocalSystemCommand("/s /t 0", "Shutdown requested", "Windows is shutting down.");
+    }
+
+    private void SignOutSystem_Click(object sender, RoutedEventArgs e)
+    {
+        StartLocalSystemCommand("/l", "Sign out requested", "Windows is signing out.");
     }
 
     private async void CheckStationUpdate_Click(object sender, RoutedEventArgs e)
@@ -974,6 +966,26 @@ public partial class MainWindow : Window
         Topmost = false;
         SetSecondaryCoversVisible(false);
         Close();
+    }
+
+    private void StartLocalSystemCommand(string arguments, string title, string message)
+    {
+        try
+        {
+            Process.Start(new ProcessStartInfo
+            {
+                FileName = "shutdown.exe",
+                Arguments = arguments,
+                UseShellExecute = false,
+                CreateNoWindow = true
+            });
+            RestoreSystemUi();
+            ShowNotice(title, message, NoticeKind.Warning);
+        }
+        catch (Exception ex)
+        {
+            ShowNotice("Power command failed", ex.Message, NoticeKind.Error);
+        }
     }
 
     private void YieldDisplaysToApp(Process? process)

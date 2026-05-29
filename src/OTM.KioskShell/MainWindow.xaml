@@ -77,6 +77,15 @@
             <Setter Property="Foreground" Value="White" />
             <Setter Property="BorderBrush" Value="#8F1D14" />
         </Style>
+        <Style x:Key="TaskbarIconButton" TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
+            <Setter Property="Background" Value="#17202A" />
+            <Setter Property="Foreground" Value="#DDE5EF" />
+            <Setter Property="BorderBrush" Value="#2E3A47" />
+            <Setter Property="MinHeight" Value="42" />
+            <Setter Property="Width" Value="46" />
+            <Setter Property="Height" Value="42" />
+            <Setter Property="Padding" Value="0" />
+        </Style>
         <Geometry x:Key="IconDisplay">M0,4 C0,2.9 0.9,2 2,2 L14,2 C15.1,2 16,2.9 16,4 L16,10 C16,11.1 15.1,12 14,12 L2,12 C0.9,12 0,11.1 0,10 Z M6,13.5 C6,13.224 6.224,13 6.5,13 L9.5,13 C9.776,13 10,13.224 10,13.5 C10,13.776 9.776,14 9.5,14 L6.5,14 C6.224,14 6,13.776 6,13.5 Z M8,12 C8.276,12 8.5,12.224 8.5,12.5 L8.5,13 L7.5,13 L7.5,12.5 C7.5,12.224 7.724,12 8,12 Z</Geometry>
         <Geometry x:Key="IconGear">M9.405,1.05 C8.992,-0.35 7.008,-0.35 6.595,1.05 L6.495,1.39 C6.22,2.322 5.149,2.765 4.31,2.28 L4,2.1 C2.734,1.37 1.334,2.77 2.064,4.036 L2.244,4.346 C2.73,5.185 2.286,6.256 1.354,6.531 L1.014,6.631 C-0.386,7.044 -0.386,9.028 1.014,9.441 L1.354,9.541 C2.286,9.816 2.73,10.887 2.244,11.726 L2.064,12.036 C1.334,13.302 2.734,14.702 4,13.972 L4.31,13.792 C5.149,13.306 6.22,13.75 6.495,14.682 L6.595,15.022 C7.008,16.422 8.992,16.422 9.405,15.022 L9.505,14.682 C9.78,13.75 10.851,13.306 11.69,13.792 L12,13.972 C13.266,14.702 14.666,13.302 13.936,12.036 L13.756,11.726 C13.27,10.887 13.714,9.816 14.646,9.541 L14.986,9.441 C16.386,9.028 16.386,7.044 14.986,6.631 L14.646,6.531 C13.714,6.256 13.27,5.185 13.756,4.346 L13.936,4.036 C14.666,2.77 13.266,1.37 12,2.1 L11.69,2.28 C10.851,2.765 9.78,2.322 9.505,1.39 Z M8,10.93 A2.929,2.929 0 1 1 8,5.072 A2.929,2.929 0 0 1 8,10.93 Z</Geometry>
         <Geometry x:Key="IconClose">M2.146,2.854 A0.5,0.5 0 1 1 2.854,2.146 L8,7.293 L13.146,2.146 A0.5,0.5 0 0 1 13.854,2.854 L8.707,8 L13.854,13.146 A0.5,0.5 0 0 1 13.146,13.854 L8,8.707 L2.854,13.854 A0.5,0.5 0 0 1 2.146,13.146 L7.293,8 Z</Geometry>
@@ -255,13 +264,36 @@
                             </ItemsControl.ItemTemplate>
                         </ItemsControl>
                     </ScrollViewer>
-                    <Button x:Name="AdminTaskbarButton" Grid.Column="2" Width="46" Height="42" Margin="14,0,0,0" Padding="0" Style="{StaticResource SecondaryButton}" Click="ToggleAdmin_Click" ToolTip="Admin">
-                        <Grid>
-                            <Viewbox Width="16" Height="16">
-                                <Path Fill="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" Data="{StaticResource IconGear}" />
-                            </Viewbox>
-                        </Grid>
-                    </Button>
+                    <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center" Margin="14,0,0,0">
+                        <Button Style="{StaticResource TaskbarIconButton}" Click="SignOutSystem_Click" ToolTip="Sign out of Windows">
+                            <Grid>
+                                <Viewbox Width="16" Height="16">
+                                    <Path Fill="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" Data="{StaticResource IconExit}" />
+                                </Viewbox>
+                            </Grid>
+                        </Button>
+                        <Button Style="{StaticResource TaskbarIconButton}" Margin="8,0,0,0" Click="RestartSystem_Click" ToolTip="Restart Windows">
+                            <Grid>
+                                <Viewbox Width="16" Height="16">
+                                    <Path Fill="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" Data="{StaticResource IconRefresh}" />
+                                </Viewbox>
+                            </Grid>
+                        </Button>
+                        <Button Style="{StaticResource TaskbarIconButton}" Margin="8,0,0,0" Background="#2B1512" BorderBrush="#6E2A20" Foreground="#FDBA74" Click="ShutdownSystem_Click" ToolTip="Shut down Windows">
+                            <Grid>
+                                <Viewbox Width="16" Height="16">
+                                    <Path Fill="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" Data="{StaticResource IconPower}" />
+                                </Viewbox>
+                            </Grid>
+                        </Button>
+                        <Button x:Name="AdminTaskbarButton" Width="46" Height="42" Margin="8,0,0,0" Padding="0" Style="{StaticResource SecondaryButton}" Click="ToggleAdmin_Click" ToolTip="Admin">
+                            <Grid>
+                                <Viewbox Width="16" Height="16">
+                                    <Path Fill="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" Data="{StaticResource IconGear}" />
+                                </Viewbox>
+                            </Grid>
+                        </Button>
+                    </StackPanel>
                 </Grid>
             </Border>
         </Grid>
@@ -318,7 +350,7 @@
                     <TextBlock Text="Admin tools are hidden until sign-in." Foreground="#64748B" TextWrapping="Wrap" FontSize="12" Margin="0,10,0,0" />
                 </StackPanel>
                 <StackPanel x:Name="AdminActionsPanel" Visibility="Collapsed">
-                <UniformGrid Columns="2" Rows="5">
+                <UniformGrid Columns="2" Rows="4">
                     <Button Margin="0,0,6,6" Click="Unlock_Click">
                         <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
                             <Viewbox Width="15" Height="15" Margin="0,0,8,0">
@@ -359,14 +391,6 @@
                             <TextBlock Text="Exit Shell" />
                         </StackPanel>
                     </Button>
-                    <Button Margin="6,6,0,0" Style="{StaticResource SecondaryButton}" Click="RestartSystem_Click">
-                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
-                            <Viewbox Width="15" Height="15" Margin="0,0,8,0">
-                                <Path Fill="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" Data="{StaticResource IconRefresh}" />
-                            </Viewbox>
-                            <TextBlock Text="Restart" />
-                        </StackPanel>
-                    </Button>
                     <Button Margin="0,6,6,0" Style="{StaticResource SecondaryButton}" Click="CheckStationUpdate_Click">
                         <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
                             <Viewbox Width="15" Height="15" Margin="0,0,8,0">
@@ -381,22 +405,6 @@
                                 <Path Fill="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" Data="{StaticResource IconDisplay}" />
                             </Viewbox>
                             <TextBlock Text="Download" />
-                        </StackPanel>
-                    </Button>
-                    <Button Margin="0,6,6,0" Style="{StaticResource DangerButton}" Click="ShutdownSystem_Click">
-                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
-                            <Viewbox Width="15" Height="15" Margin="0,0,8,0">
-                                <Path Fill="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" Data="{StaticResource IconPower}" />
-                            </Viewbox>
-                            <TextBlock Text="Shutdown" />
-                        </StackPanel>
-                    </Button>
-                    <Button Margin="6,6,0,0" Style="{StaticResource SecondaryButton}" Click="AdminSignOut_Click">
-                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
-                            <Viewbox Width="15" Height="15" Margin="0,0,8,0">
-                                <Path Fill="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" Data="{StaticResource IconClose}" />
-                            </Viewbox>
-                            <TextBlock Text="Sign out" />
                         </StackPanel>
                     </Button>
                 </UniformGrid>
