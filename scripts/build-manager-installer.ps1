@@ -1,5 +1,5 @@
 param(
-    [string]$Version = "8.1.1",
+    [string]$Version = "8.1.2",
     [switch]$Sign,
     [string]$PfxPath = $env:OTM_SIGN_PFX_PATH,
     [string]$PfxPassword = $env:OTM_SIGN_PFX_PASSWORD

@@ -1,7 +1,7 @@
 #define MyAppName "SimpleKioskOS"
 #define MyAppVersion GetEnv("OTM_KIOSK_VERSION")
 #if MyAppVersion == ""
-  #define MyAppVersion "8.1.1"
+  #define MyAppVersion "8.1.2"
 #endif
 #define MyAppPublisher "SimpleKioskOS"
 #define MyAppExeName "OTM.ControlPanel.exe"
