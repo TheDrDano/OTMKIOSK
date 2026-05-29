@@ -92,6 +92,7 @@ public partial class MainWindow : Window
     private async void Lock_Click(object sender, RoutedEventArgs e) => await PostSelectedAsync("/api/lock", "{}");
     private async void Unlock_Click(object sender, RoutedEventArgs e) => await PostSelectedAsync("/api/unlock", JsonSerializer.Serialize(new { minutes = 15 }));
     private async void CheckUpdates_Click(object sender, RoutedEventArgs e) => await PostSelectedAsync("/api/updates/check", "{}");
+    private async void DownloadStationUpdate_Click(object sender, RoutedEventArgs e) => await PostSelectedAsync("/api/updates/download", "{}");
     private async void Restart_Click(object sender, RoutedEventArgs e) => await PostSelectedAsync("/api/system/restart", "{}");
     private async void Shutdown_Click(object sender, RoutedEventArgs e) => await PostSelectedAsync("/api/system/shutdown", "{}");
     private async void LoadRules_Click(object sender, RoutedEventArgs e) => await LoadPolicyAsync();
@@ -184,6 +185,28 @@ public partial class MainWindow : Window
                 station.LastStatus += $"{Environment.NewLine}Device: {device.DeviceName}";
             }
 
+            if (!string.IsNullOrWhiteSpace(PinBox.Password))
+            {
+                var remote = await GetRemoteStatusAsync(client);
+                if (remote is not null)
+                {
+                    if (!string.IsNullOrWhiteSpace(remote.LastAvailableVersion))
+                    {
+                        station.LastStatus += $"{Environment.NewLine}Update: {remote.LastAvailableVersion} available";
+                    }
+
+                    if (!string.IsNullOrWhiteSpace(remote.LastDownloadedVersion))
+                    {
+                        station.LastStatus += $"{Environment.NewLine}Downloaded: {remote.LastDownloadedVersion}";
+                    }
+
+                    if (!string.IsNullOrWhiteSpace(remote.LastDownloadMessage))
+                    {
+                        station.LastStatus += $"{Environment.NewLine}{remote.LastDownloadMessage}";
+                    }
+                }
+            }
+
             station.Touch();
             SaveStations();
             UpdateSelectedStatus(station);
@@ -196,6 +219,16 @@ public partial class MainWindow : Window
             UpdateSelectedStatus(station);
             Log($"{station.Name}: {station.LastStatus}");
         }
+    }
+
+    private async Task<RemoteStatusDto?> GetRemoteStatusAsync(HttpClient client)
+    {
+        using var request = new HttpRequestMessage(HttpMethod.Get, "/api/remote/status");
+        request.Headers.Add("X-OTM-Admin-PIN", PinBox.Password);
+        var response = await client.SendAsync(request);
+        return response.IsSuccessStatusCode
+            ? await response.Content.ReadFromJsonAsync<RemoteStatusDto>(JsonOptions)
+            : null;
     }
 
     private async Task PostSelectedAsync(string path, string body)
@@ -228,7 +261,8 @@ public partial class MainWindow : Window
                 return;
             }
 
-            Log($"{station.Name}: command sent to {path}");
+            var message = await ReadApiMessageAsync(response);
+            Log($"{station.Name}: {(string.IsNullOrWhiteSpace(message) ? $"command sent to {path}" : message)}");
             await RefreshStationAsync(station);
         }
         catch (Exception ex)
@@ -748,7 +782,7 @@ public partial class MainWindow : Window
     {
         if (exception is TaskCanceledException)
         {
-            return $"Timed out connecting to {station.Url}. Check that the station is powered on, SimpleKioskOS 7.2.0 or newer is installed, OTMKioskService is running, and Windows Firewall allows TCP 47821 on the station network profile.";
+            return $"Timed out connecting to {station.Url}. Check that the station is powered on, SimpleKioskOS 8.0.0 or newer is installed, OTMKioskService is running, and Windows Firewall allows TCP 47821 on the station network profile.";
         }
 
         if (exception is HttpRequestException httpException)
@@ -762,6 +796,30 @@ public partial class MainWindow : Window
         }
 
         return exception.Message;
+    }
+
+    private static async Task<string> ReadApiMessageAsync(HttpResponseMessage response)
+    {
+        var body = await response.Content.ReadAsStringAsync();
+        if (string.IsNullOrWhiteSpace(body))
+        {
+            return "";
+        }
+
+        try
+        {
+            using var document = JsonDocument.Parse(body);
+            if (document.RootElement.TryGetProperty("message", out var message) && message.ValueKind == JsonValueKind.String)
+            {
+                return message.GetString() ?? "";
+            }
+        }
+        catch
+        {
+            // Fall back to raw response text below.
+        }
+
+        return body.Trim();
     }
 
     private void UpdateSelectedStatus(ManagedStation station)
@@ -817,6 +875,13 @@ public partial class MainWindow : Window
     {
         public string DeviceName { get; set; } = "";
         public string ConfiguredName { get; set; } = "";
+    }
+
+    private sealed class RemoteStatusDto
+    {
+        public string LastAvailableVersion { get; set; } = "";
+        public string LastDownloadedVersion { get; set; } = "";
+        public string LastDownloadMessage { get; set; } = "";
     }
 
     private sealed class RemoteMonitoringStatusDto

@@ -11,4 +11,6 @@ public static class KioskPaths
     public static string DeviceIdentityPath => Path.Combine(RootDirectory, "device-identity.json");
     public static string QuarantineDirectory => Path.Combine(RootDirectory, "Quarantine");
     public static string WebView2UserDataDirectory => Path.Combine(RootDirectory, "WebView2");
+    public static string UpdatesDirectory => Path.Combine(RootDirectory, "Updates");
+    public static string StationInstallerUpdatePath => Path.Combine(UpdatesDirectory, "OTM-Kiosk-Setup.exe");
 }

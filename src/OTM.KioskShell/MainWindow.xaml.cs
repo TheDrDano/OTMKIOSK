@@ -38,6 +38,9 @@ public partial class MainWindow : Window
     private const int VkControl = 0x11;
     private const int VkShift = 0x10;
     private const int LlkhfAltdown = 0x20;
+    private const uint AbmGetState = 0x00000004;
+    private const uint AbmSetState = 0x0000000A;
+    private const int AbsAutoHide = 0x0000001;
 
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
@@ -64,6 +67,7 @@ public partial class MainWindow : Window
     private bool _webFocusMode;
     private bool _suppressSystemShortcuts;
     private bool _taskbarHidden;
+    private int? _originalTaskbarState;
     private string _adminSessionSecret = "";
     private IntPtr _keyboardHook;
     private LowLevelKeyboardProc? _keyboardProc;
@@ -155,6 +159,16 @@ public partial class MainWindow : Window
         {
             ShowNotice("Shutdown requested", "Windows is shutting down.", NoticeKind.Warning);
         }
+    }
+
+    private async void CheckStationUpdate_Click(object sender, RoutedEventArgs e)
+    {
+        await AdminUpdatePostAsync("/api/updates/check", "Update check completed");
+    }
+
+    private async void DownloadStationUpdate_Click(object sender, RoutedEventArgs e)
+    {
+        await AdminUpdatePostAsync("/api/updates/download", "Update download completed");
     }
 
     private void ExitShell_Click(object sender, RoutedEventArgs e)
@@ -687,6 +701,40 @@ public partial class MainWindow : Window
         return true;
     }
 
+    private async Task AdminUpdatePostAsync(string url, string title)
+    {
+        try
+        {
+            var secret = !string.IsNullOrWhiteSpace(_adminSessionSecret) ? _adminSessionSecret : PinBox.Password;
+            if (string.IsNullOrWhiteSpace(secret))
+            {
+                ShowNotice("Sign in required", "Enter the admin PIN before using updates.", NoticeKind.Info);
+                SetAdminSignedIn(false);
+                return;
+            }
+
+            var request = new HttpRequestMessage(HttpMethod.Post, url)
+            {
+                Content = new StringContent("{}", Encoding.UTF8, "application/json")
+            };
+            request.Headers.Add("X-OTM-Admin-PIN", secret);
+
+            var response = await _client.SendAsync(request);
+            if (!response.IsSuccessStatusCode)
+            {
+                ShowNotice("Update request failed", await ReadApiErrorAsync(response), NoticeKind.Warning);
+                return;
+            }
+
+            var message = await ReadApiMessageAsync(response);
+            ShowNotice(title, string.IsNullOrWhiteSpace(message) ? "Update request completed." : message, NoticeKind.Info);
+        }
+        catch (Exception ex)
+        {
+            ShowNotice("Update request failed", ex.Message, NoticeKind.Error);
+        }
+    }
+
     private async Task SignInAdminAsync()
     {
         if (string.IsNullOrWhiteSpace(PinBox.Password))
@@ -1137,6 +1185,15 @@ public partial class MainWindow : Window
 
     private void SetTaskbarVisible(bool visible)
     {
+        if (visible)
+        {
+            RestoreTaskbarAutoHideState();
+        }
+        else
+        {
+            SetTaskbarAutoHide(true);
+        }
+
         if (_taskbarHidden == !visible)
         {
             return;
@@ -1149,6 +1206,64 @@ public partial class MainWindow : Window
             EnsureExplorerRunning();
         }
         _taskbarHidden = !visible;
+    }
+
+    private void SetTaskbarAutoHide(bool enabled)
+    {
+        try
+        {
+            var data = CreateAppBarData();
+            var currentState = unchecked((int)SHAppBarMessage(AbmGetState, ref data).ToUInt32());
+            _originalTaskbarState ??= currentState;
+
+            var nextState = enabled
+                ? currentState | AbsAutoHide
+                : currentState & ~AbsAutoHide;
+
+            if (nextState == currentState)
+            {
+                return;
+            }
+
+            data = CreateAppBarData();
+            data.LParam = new IntPtr(nextState);
+            SHAppBarMessage(AbmSetState, ref data);
+        }
+        catch (Exception ex)
+        {
+            Debug.WriteLine(ex);
+        }
+    }
+
+    private void RestoreTaskbarAutoHideState()
+    {
+        if (_originalTaskbarState is not { } originalState)
+        {
+            return;
+        }
+
+        try
+        {
+            var data = CreateAppBarData();
+            data.LParam = new IntPtr(originalState);
+            SHAppBarMessage(AbmSetState, ref data);
+        }
+        catch (Exception ex)
+        {
+            Debug.WriteLine(ex);
+        }
+        finally
+        {
+            _originalTaskbarState = null;
+        }
+    }
+
+    private static AppBarData CreateAppBarData()
+    {
+        return new AppBarData
+        {
+            CbSize = Marshal.SizeOf<AppBarData>()
+        };
     }
 
     private static void EnsureExplorerRunning()
@@ -1270,6 +1385,9 @@ public partial class MainWindow : Window
     [DllImport("user32.dll", SetLastError = true)]
     private static extern IntPtr FindWindow(string lpClassName, string? lpWindowName);
 
+    [DllImport("shell32.dll", SetLastError = true)]
+    private static extern UIntPtr SHAppBarMessage(uint dwMessage, ref AppBarData pData);
+
     [DllImport("user32.dll", SetLastError = true)]
     private static extern IntPtr SetWindowsHookEx(int idHook, LowLevelKeyboardProc lpfn, IntPtr hMod, uint dwThreadId);
 
@@ -1297,6 +1415,26 @@ public partial class MainWindow : Window
         public IntPtr ExtraInfo;
     }
 
+    [StructLayout(LayoutKind.Sequential)]
+    private struct AppBarData
+    {
+        public int CbSize;
+        public IntPtr HWnd;
+        public uint UCallbackMessage;
+        public uint UEdge;
+        public RectData Rc;
+        public IntPtr LParam;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    private struct RectData
+    {
+        public int Left;
+        public int Top;
+        public int Right;
+        public int Bottom;
+    }
+
     private static async Task<string> ReadApiErrorAsync(HttpResponseMessage response)
     {
         var body = await response.Content.ReadAsStringAsync();
@@ -1311,6 +1449,30 @@ public partial class MainWindow : Window
             if (document.RootElement.TryGetProperty("error", out var error) && error.ValueKind == JsonValueKind.String)
             {
                 return error.GetString() ?? "Request failed.";
+            }
+        }
+        catch
+        {
+            // Fall back to plain response text below.
+        }
+
+        return body.Trim();
+    }
+
+    private static async Task<string> ReadApiMessageAsync(HttpResponseMessage response)
+    {
+        var body = await response.Content.ReadAsStringAsync();
+        if (string.IsNullOrWhiteSpace(body))
+        {
+            return "";
+        }
+
+        try
+        {
+            using var document = JsonDocument.Parse(body);
+            if (document.RootElement.TryGetProperty("message", out var message) && message.ValueKind == JsonValueKind.String)
+            {
+                return message.GetString() ?? "";
             }
         }
         catch

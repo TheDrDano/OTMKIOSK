@@ -119,7 +119,9 @@
                         <TextBlock Text="Channel" Foreground="#344756" FontWeight="SemiBold" FontSize="12" />
                         <TextBox x:Name="UpdateChannelBox" Height="32" Margin="0,3,0,10" />
                         <Button Content="Save Update Settings" Style="{StaticResource SecondaryButton}" Margin="0,0,0,8" Click="SaveUpdateSettings_Click" />
-                        <Button Content="Check Updates" Style="{StaticResource SecondaryButton}" Click="CheckUpdates_Click" />
+                        <Button Content="Check Updates" Style="{StaticResource SecondaryButton}" Margin="0,0,0,8" Click="CheckUpdates_Click" />
+                        <Button Content="Download Update" Margin="0,0,0,8" Click="DownloadUpdate_Click" />
+                        <Button Content="Open Update Folder" Style="{StaticResource SecondaryButton}" Click="OpenUpdateFolder_Click" />
                         <TextBlock x:Name="UpdateStatusText" Text="" Foreground="#64748B" FontSize="12" TextWrapping="Wrap" Margin="0,10,0,0" />
                     </StackPanel>
                 </Border>

@@ -1,8 +1,8 @@
 <Window x:Class="Otm.Kiosk.Manager.MainWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="SimpleKioskOS Remote Manager" Height="680" Width="1080" MinHeight="600" MinWidth="900"
-        Background="#E8EDF2">
+        Title="SimpleKioskOS Remote Manager" Height="720" Width="1180" MinHeight="640" MinWidth="980"
+        Background="#080D12">
     <Window.Resources>
         <Style TargetType="Button">
             <Setter Property="Height" Value="38" />
@@ -13,11 +13,40 @@
             <Setter Property="BorderBrush" Value="#D9550D" />
             <Setter Property="BorderThickness" Value="1" />
             <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="HorizontalContentAlignment" Value="Center" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="Chrome"
+                                Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                CornerRadius="7"
+                                Padding="{TemplateBinding Padding}">
+                            <ContentPresenter Content="{TemplateBinding Content}"
+                                              ContentTemplate="{TemplateBinding ContentTemplate}"
+                                              HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
+                                              VerticalAlignment="Center" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Chrome" Property="Opacity" Value="0.9" />
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="Chrome" Property="Opacity" Value="0.78" />
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter TargetName="Chrome" Property="Opacity" Value="0.5" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
         </Style>
         <Style x:Key="SecondaryButton" TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
-            <Setter Property="Background" Value="White" />
-            <Setter Property="Foreground" Value="#1D2935" />
-            <Setter Property="BorderBrush" Value="#C7D0DA" />
+            <Setter Property="Background" Value="#F8FAFC" />
+            <Setter Property="Foreground" Value="#111827" />
+            <Setter Property="BorderBrush" Value="#D5DEE8" />
         </Style>
         <Style x:Key="DangerButton" TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
             <Setter Property="Background" Value="#B42318" />
@@ -25,19 +54,21 @@
         </Style>
     </Window.Resources>
 
-    <Grid Margin="20">
+    <Grid Margin="22">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
             <RowDefinition Height="*" />
         </Grid.RowDefinitions>
 
-        <Border Background="White" BorderBrush="#CBD5E1" BorderThickness="1" CornerRadius="8" Padding="18">
+        <Border Background="#0F1722" BorderBrush="#263241" BorderThickness="1" CornerRadius="8" Padding="20">
             <DockPanel LastChildFill="True">
                 <StackPanel DockPanel.Dock="Left">
-                    <TextBlock Text="SimpleKioskOS Remote Manager" FontSize="27" FontWeight="SemiBold" Foreground="#111827" />
-                    <TextBlock Text="Connect to multiple SimpleKioskOS stations over LAN or VPN" Foreground="#526171" Margin="1,4,0,0" />
+                    <TextBlock Text="SimpleKioskOS Remote Manager" FontSize="29" FontWeight="SemiBold" Foreground="#F8FAFC" />
+                    <TextBlock Text="Connect to multiple SimpleKioskOS stations over LAN or VPN" Foreground="#AAB6C2" Margin="1,4,0,0" />
                 </StackPanel>
-                <Image DockPanel.Dock="Right" Source="pack://application:,,,/Assets/simplekioskos_side.png" Width="220" Height="54" Stretch="Uniform" />
+                <Border DockPanel.Dock="Right" Background="#F8FAFC" BorderBrush="#E2E8F0" BorderThickness="1" CornerRadius="28" Padding="12,6">
+                    <Image Source="pack://application:,,,/Assets/simplekioskos_side.png" Width="220" Height="54" Stretch="Uniform" />
+                </Border>
             </DockPanel>
         </Border>
 
@@ -47,17 +78,17 @@
                 <ColumnDefinition Width="*" />
             </Grid.ColumnDefinitions>
 
-            <Border Background="White" BorderBrush="#D8DEE6" BorderThickness="1" CornerRadius="8" Padding="16" Margin="0,0,16,0">
+            <Border Background="#0F1722" BorderBrush="#263241" BorderThickness="1" CornerRadius="8" Padding="16" Margin="0,0,16,0">
                 <Grid>
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto" />
                         <RowDefinition Height="*" />
                     </Grid.RowDefinitions>
                     <StackPanel>
-                        <TextBlock Text="Stations" FontSize="18" FontWeight="SemiBold" Margin="0,0,0,10" />
-                        <TextBlock Text="Name" Foreground="#344756" FontWeight="SemiBold" />
+                        <TextBlock Text="Stations" FontSize="20" FontWeight="SemiBold" Foreground="#F8FAFC" Margin="0,0,0,10" />
+                        <TextBlock Text="Name" Foreground="#DDE5EF" FontWeight="SemiBold" />
                         <TextBox x:Name="StationNameBox" Height="34" Margin="0,4,0,10" />
-                        <TextBlock Text="Station API URL" Foreground="#344756" FontWeight="SemiBold" />
+                        <TextBlock Text="Station API URL" Foreground="#DDE5EF" FontWeight="SemiBold" />
                         <TextBox x:Name="StationUrlBox" Text="http://localhost:47821" Height="34" Margin="0,4,0,10" />
                         <UniformGrid Columns="2">
                             <Button Content="Save Station" Margin="0,0,6,0" Click="SaveStation_Click" />
@@ -68,6 +99,8 @@
 
                     <ListBox x:Name="StationsList"
                              Grid.Row="1"
+                             Background="#F8FAFC"
+                             BorderBrush="#2E3A47"
                              DisplayMemberPath="Summary"
                              SelectionChanged="StationsList_SelectionChanged" />
                 </Grid>
@@ -80,16 +113,18 @@
                     <RowDefinition Height="*" />
                 </Grid.RowDefinitions>
 
-                <Border Background="#111827" CornerRadius="8" Padding="18" Margin="0,0,0,14">
+                <Border Background="#111827" BorderBrush="#263241" BorderThickness="1" CornerRadius="8" Padding="18" Margin="0,0,0,14">
                     <StackPanel>
                         <TextBlock x:Name="SelectedStationText" Text="No station selected" Foreground="White" FontSize="24" FontWeight="SemiBold" />
                         <TextBlock x:Name="SelectedStatusText" Text="Add or select a station to manage it." Foreground="#C8D3DD" Margin="0,5,0,0" TextWrapping="Wrap" />
                     </StackPanel>
                 </Border>
 
-                <Border Grid.Row="1" Background="White" BorderBrush="#D8DEE6" BorderThickness="1" CornerRadius="8" Padding="16" Margin="0,0,0,14">
+                <Border Grid.Row="1" Background="#0F1722" BorderBrush="#263241" BorderThickness="1" CornerRadius="8" Padding="16" Margin="0,0,0,14">
                     <StackPanel>
-                        <TextBlock Text="Admin PIN" Foreground="#344756" FontWeight="SemiBold" />
+                        <TextBlock Text="Station controls" Foreground="#F8FAFC" FontSize="18" FontWeight="SemiBold" />
+                        <TextBlock Text="Use the station admin PIN to refresh, control, and update the selected workstation." Foreground="#AAB6C2" TextWrapping="Wrap" Margin="0,4,0,10" />
+                        <TextBlock Text="Admin PIN" Foreground="#DDE5EF" FontWeight="SemiBold" />
                         <PasswordBox x:Name="PinBox" Height="34" Margin="0,4,0,12" />
                         <UniformGrid Columns="4">
                             <Button Content="Refresh" Margin="0,0,6,0" Click="RefreshSelected_Click" />
@@ -97,13 +132,14 @@
                             <Button Content="Unlock" Margin="6,0,6,0" Style="{StaticResource SecondaryButton}" Click="Unlock_Click" />
                             <Button Content="Load Rules" Margin="6,0,0,0" Style="{StaticResource SecondaryButton}" Click="LoadRules_Click" />
                             <Button Content="Updates" Margin="0,8,6,0" Style="{StaticResource SecondaryButton}" Click="CheckUpdates_Click" />
+                            <Button Content="Download Update" Margin="6,8,6,0" Style="{StaticResource SecondaryButton}" Click="DownloadStationUpdate_Click" />
                             <Button Content="Restart" Margin="6,8,6,0" Style="{StaticResource SecondaryButton}" Click="Restart_Click" />
                             <Button Content="Shutdown" Margin="6,8,6,0" Style="{StaticResource DangerButton}" Click="Shutdown_Click" />
                         </UniformGrid>
                     </StackPanel>
                 </Border>
 
-                <Border Grid.Row="2" Background="White" BorderBrush="#D8DEE6" BorderThickness="1" CornerRadius="8" Padding="16">
+                <Border Grid.Row="2" Background="#F8FAFC" BorderBrush="#D8DEE6" BorderThickness="1" CornerRadius="8" Padding="16">
                     <TabControl>
                         <TabItem Header="App Rules">
                             <Grid Margin="0,12,0,0">
@@ -115,13 +151,27 @@
                                     <ColumnDefinition Width="*" />
                                     <ColumnDefinition Width="*" />
                                 </Grid.ColumnDefinitions>
-                                <StackPanel Grid.ColumnSpan="2" Orientation="Horizontal" Margin="0,0,0,12">
-                                    <TextBox x:Name="AppDisplayNameBox" Width="170" Height="34" Margin="0,0,8,0" ToolTip="Display name" />
-                                    <TextBox x:Name="AppProcessBox" Width="160" Height="34" Margin="0,0,8,0" ToolTip="Process name, for example chrome.exe" />
-                                    <TextBox x:Name="AppPathBox" Width="260" Height="34" Margin="0,0,8,0" ToolTip="Optional full EXE path" />
-                                    <Button Content="Allow" Width="82" Margin="0,0,8,0" Click="AllowApp_Click" />
-                                    <Button Content="Block" Width="82" Style="{StaticResource DangerButton}" Click="BlockApp_Click" />
-                                </StackPanel>
+                                <Grid Grid.ColumnSpan="2" Margin="0,0,0,12">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="170" />
+                                        <ColumnDefinition Width="160" />
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="82" />
+                                        <ColumnDefinition Width="82" />
+                                    </Grid.ColumnDefinitions>
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="Auto" />
+                                        <RowDefinition Height="Auto" />
+                                    </Grid.RowDefinitions>
+                                    <TextBlock Text="Display name" Foreground="#344756" FontWeight="SemiBold" FontSize="12" Margin="0,0,8,4" />
+                                    <TextBlock Grid.Column="1" Text="Process name" Foreground="#344756" FontWeight="SemiBold" FontSize="12" Margin="0,0,8,4" />
+                                    <TextBlock Grid.Column="2" Text="EXE path" Foreground="#344756" FontWeight="SemiBold" FontSize="12" Margin="0,0,8,4" />
+                                    <TextBox x:Name="AppDisplayNameBox" Grid.Row="1" Height="34" Margin="0,0,8,0" ToolTip="Display name, for example Microsoft Flight Simulator" />
+                                    <TextBox x:Name="AppProcessBox" Grid.Row="1" Grid.Column="1" Height="34" Margin="0,0,8,0" ToolTip="Process name, for example chrome.exe" />
+                                    <TextBox x:Name="AppPathBox" Grid.Row="1" Grid.Column="2" Height="34" Margin="0,0,8,0" ToolTip="Optional full EXE path" />
+                                    <Button Grid.Row="1" Grid.Column="3" Content="Allow" Margin="0,0,8,0" Click="AllowApp_Click" />
+                                    <Button Grid.Row="1" Grid.Column="4" Content="Block" Style="{StaticResource DangerButton}" Click="BlockApp_Click" />
+                                </Grid>
                                 <Grid Grid.Row="1" Margin="0,0,8,0">
                                     <Grid.RowDefinitions>
                                         <RowDefinition Height="Auto" />
@@ -164,13 +214,26 @@
                                     <ColumnDefinition Width="*" />
                                     <ColumnDefinition Width="*" />
                                 </Grid.ColumnDefinitions>
-                                <StackPanel Grid.ColumnSpan="2" Orientation="Horizontal" Margin="0,0,0,12">
-                                    <TextBox x:Name="WebsiteBox" Width="340" Height="34" Margin="0,0,8,0" ToolTip="Domain or URL, for example testing.example.edu" />
-                                    <CheckBox x:Name="WhitelistOnlyCheckBox" Content="Allowlist only" VerticalAlignment="Center" Margin="0,0,12,0" />
-                                    <Button Content="Save Mode" Width="102" Margin="0,0,8,0" Style="{StaticResource SecondaryButton}" Click="SaveWebsiteMode_Click" />
-                                    <Button Content="Allow Site" Width="96" Margin="0,0,8,0" Click="AllowWebsite_Click" />
-                                    <Button Content="Block Site" Width="96" Style="{StaticResource DangerButton}" Click="BlockWebsite_Click" />
-                                </StackPanel>
+                                <Grid Grid.ColumnSpan="2" Margin="0,0,0,12">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="340" />
+                                        <ColumnDefinition Width="130" />
+                                        <ColumnDefinition Width="102" />
+                                        <ColumnDefinition Width="96" />
+                                        <ColumnDefinition Width="96" />
+                                    </Grid.ColumnDefinitions>
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="Auto" />
+                                        <RowDefinition Height="Auto" />
+                                    </Grid.RowDefinitions>
+                                    <TextBlock Text="Website domain or URL" Foreground="#344756" FontWeight="SemiBold" FontSize="12" Margin="0,0,8,4" />
+                                    <TextBlock Grid.Column="1" Text="Mode" Foreground="#344756" FontWeight="SemiBold" FontSize="12" Margin="0,0,8,4" />
+                                    <TextBox x:Name="WebsiteBox" Grid.Row="1" Height="34" Margin="0,0,8,0" ToolTip="Domain or URL, for example testing.example.edu" />
+                                    <CheckBox x:Name="WhitelistOnlyCheckBox" Grid.Row="1" Grid.Column="1" Content="Allowlist only" VerticalAlignment="Center" Margin="0,0,12,0" />
+                                    <Button Grid.Row="1" Grid.Column="2" Content="Save Mode" Margin="0,0,8,0" Style="{StaticResource SecondaryButton}" Click="SaveWebsiteMode_Click" />
+                                    <Button Grid.Row="1" Grid.Column="3" Content="Allow Site" Margin="0,0,8,0" Click="AllowWebsite_Click" />
+                                    <Button Grid.Row="1" Grid.Column="4" Content="Block Site" Style="{StaticResource DangerButton}" Click="BlockWebsite_Click" />
+                                </Grid>
                                 <Grid Grid.Row="1" Margin="0,0,8,0">
                                     <Grid.RowDefinitions>
                                         <RowDefinition Height="Auto" />
@@ -208,7 +271,7 @@
                                         </Grid.RowDefinitions>
                                         <TextBlock Text="Remote monitoring" FontSize="18" FontWeight="SemiBold" Foreground="#111827" />
                                         <TextBlock Grid.Row="1"
-                                                   Text="V7.2 adds the secure monitoring configuration layer. Live encrypted screen viewing will use a separate user-session monitor agent so it can capture the desktop correctly and avoid exposing raw VNC."
+                                                   Text="SimpleKioskOS includes the secure monitoring configuration layer. Live encrypted screen viewing will use a separate user-session monitor agent so it can capture the desktop correctly and avoid exposing raw VNC."
                                                    Foreground="#526171"
                                                    TextWrapping="Wrap"
                                                    Margin="0,4,0,14" />

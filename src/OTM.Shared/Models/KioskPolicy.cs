@@ -116,6 +116,13 @@ public sealed class UpdatePolicy
     public DateTimeOffset? LastCheckedAt { get; set; }
     public string LastCheckMessage { get; set; } = "";
     public string LastAvailableVersion { get; set; } = "";
+    public string LastInstallerUrl { get; set; } = "";
+    public string LastInstallerSha256 { get; set; } = "";
+    public string LastReleaseNotes { get; set; } = "";
+    public DateTimeOffset? LastDownloadedAt { get; set; }
+    public string LastDownloadedVersion { get; set; } = "";
+    public string LastDownloadedPath { get; set; } = "";
+    public string LastDownloadMessage { get; set; } = "";
 }
 
 public sealed class AdminCredential

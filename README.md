@@ -33,7 +33,7 @@ Install prerequisites on a build machine:
 Then run:
 
 ```powershell
-.\scripts\build-installer.ps1 -Version 7.2.0
+.\scripts\build-installer.ps1 -Version 8.0.0
 ```
 
 The installer will be created in:
@@ -53,11 +53,11 @@ For public testing, keep the station app and Remote Manager in this repo as sepa
 To publish a release from GitHub:
 
 ```powershell
-git tag v7.2.0
-git push origin v7.2.0
+git tag v8.0.0
+git push origin v8.0.0
 ```
 
-Use one lowercase release tag per version, like `v7.2.0`. The workflow normalizes manual inputs and `V...` tags back to lowercase `v...`, but old duplicate GitHub releases should be deleted from the GitHub **Releases** page once so the list stays clean.
+Use one lowercase release tag per version, like `v8.0.0`. The workflow normalizes manual inputs and `V...` tags back to lowercase `v...`, but old duplicate GitHub releases should be deleted from the GitHub **Releases** page once so the list stays clean.
 
 The **Release Installers** workflow creates a GitHub Release with:
 
@@ -78,7 +78,7 @@ After the repo is public, set the station update manifest URL in the native Cont
 https://github.com/TheDrDano/OTMKIOSK/releases/latest/download/update-manifest.json
 ```
 
-The current app checks and reports updates. It does not silently run installers yet; that should wait until signing, hash verification, and a recovery-safe install flow are finished.
+The current app checks and reports updates. V8.0 can also download the stable station installer from the manifest to `%ProgramData%\OTM Kiosk\Updates\OTM-Kiosk-Setup.exe`, verify its SHA256 hash, and mark it ready for manual install. It does not silently run installers yet; that should wait until signing, hash verification, and a recovery-safe install flow are finished.
 
 ## EXE Code Signing
 
@@ -87,7 +87,7 @@ Windows publisher identity for an `.exe` uses **Authenticode code signing**, not
 For local signing with a certificate installed in the machine certificate store:
 
 ```powershell
-.\scripts\build-installer.ps1 -Version 7.2.0 -Sign -CertificateThumbprint "YOUR_CERT_THUMBPRINT"
+.\scripts\build-installer.ps1 -Version 8.0.0 -Sign -CertificateThumbprint "YOUR_CERT_THUMBPRINT"
 ```
 
 Use `-CertificateStore LocalMachine` if the certificate is installed in the local machine store instead of the current user store.
@@ -95,7 +95,7 @@ Use `-CertificateStore LocalMachine` if the certificate is installed in the loca
 For local signing with a PFX:
 
 ```powershell
-.\scripts\build-installer.ps1 -Version 7.2.0 -Sign -PfxPath "C:\secure\otm-signing.pfx" -PfxPassword "PFX_PASSWORD"
+.\scripts\build-installer.ps1 -Version 8.0.0 -Sign -PfxPath "C:\secure\otm-signing.pfx" -PfxPassword "PFX_PASSWORD"
 ```
 
 The build signs published EXE/DLL files before packaging and signs the final setup EXE after Inno Setup finishes. If the final setup EXE is not Authenticode-signed by a trusted certificate, Windows will show **Unknown publisher**.
@@ -125,7 +125,7 @@ For lab-only testing without buying a certificate yet, create a self-signed test
 
 ```powershell
 .\scripts\create-test-signing-cert.ps1 -Password "test-password"
-.\scripts\build-installer.ps1 -Version 7.2.0 -Sign -PfxPath ".\artifacts\signing\simplekioskos-test.pfx" -PfxPassword "test-password"
+.\scripts\build-installer.ps1 -Version 8.0.0 -Sign -PfxPath ".\artifacts\signing\simplekioskos-test.pfx" -PfxPassword "test-password"
 ```
 
 On the test machine, trust that test cert before installing:
@@ -283,9 +283,9 @@ The Websites tab works the same way. Add an allowed website and keep **Show allo
 
 Management is native-app first. The station installer includes the SimpleKioskOS Control Panel for setup, app rules, website rules, profiles, logs, and admin PIN changes. The service hosts a local/LAN API on port `47821` for the Control Panel, kiosk shell, and Remote Manager. The installer opens this port in Windows Firewall so LAN/VPN management can reach the station. There is no browser-based local manager UI.
 
-The separate **SimpleKioskOS Remote Manager** app can track multiple stations by URL, refresh their status, send PIN-protected lock, unlock, restart, and shutdown commands, manage allowed/blocked app and website rules remotely, and configure the V7.2 remote-monitoring foundation.
+The separate **SimpleKioskOS Remote Manager** app can track multiple stations by URL, refresh their status, send PIN-protected lock, unlock, restart, and shutdown commands, manage allowed/blocked app and website rules remotely, configure the remote-monitoring foundation, and trigger stable station update checks/downloads. Station update downloads are stored on the station and must be installed manually.
 
-Remote monitoring is disabled by default and admin-PIN protected. V7.2 stores and exposes monitoring settings through `/api/monitoring/config`, including LAN/VPN-only mode, screen-view permission, local/admin approval, and the planned secure transport. Live encrypted screen viewing should be implemented as a separate user-session monitor agent, not inside the LocalSystem service, because Windows services cannot reliably capture the interactive desktop. Do not expose the station API or a future VNC/RFB port directly to the public internet; use LAN, VPN, or a managed TLS relay.
+Remote monitoring is disabled by default and admin-PIN protected. The app stores and exposes monitoring settings through `/api/monitoring/config`, including LAN/VPN-only mode, screen-view permission, local/admin approval, and the planned secure transport. Live encrypted screen viewing should be implemented as a separate user-session monitor agent, not inside the LocalSystem service, because Windows services cannot reliably capture the interactive desktop. Do not expose the station API or a future VNC/RFB port directly to the public internet; use LAN, VPN, or a managed TLS relay.
 
 If a station times out from Remote Manager, first test this from the manager PC:
 
@@ -305,7 +305,7 @@ Also verify `OTMKioskService` is running on the station.
 Build the Remote Manager installer with:
 
 ```powershell
-.\scripts\build-manager-installer.ps1 -Version 7.2.0
+.\scripts\build-manager-installer.ps1 -Version 8.0.0
 ```
 
 ## Security Notes

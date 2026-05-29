@@ -1,5 +1,6 @@
 using System.Net.Http;
 using System.Net.Http.Json;
+using System.Diagnostics;
 using System.Text;
 using System.Text.Json;
 using System.Windows;
@@ -21,6 +22,8 @@ public partial class MainWindow : Window
     private readonly HttpClient _client = new() { BaseAddress = new Uri("http://localhost:47821") };
     private readonly DispatcherTimer _noticeTimer = new() { Interval = TimeSpan.FromSeconds(5) };
     private KioskPolicy? _currentPolicy;
+    private bool _updateNoticeShown;
+    private bool _startupUpdateChecked;
 
     public MainWindow()
     {
@@ -81,6 +84,10 @@ public partial class MainWindow : Window
 
             var policy = await GetAdminJsonAsync<KioskPolicy>("/api/policy");
             var logs = await GetAdminJsonAsync<List<LogEntry>>("/api/logs?count=300") ?? [];
+            if (policy is not null)
+            {
+                policy.Updates ??= new UpdatePolicy();
+            }
 
             _currentPolicy = policy;
             EnableEnforcementCheckBox.IsChecked = policy?.Enforcement.Enabled == true;
@@ -94,6 +101,8 @@ public partial class MainWindow : Window
             BindWebsiteRules();
             BindDedicatedKiosk();
             LogsGrid.ItemsSource = logs.OrderByDescending(log => log.Timestamp).ToList();
+            ShowUpdateNoticeIfNeeded(policy);
+            _ = CheckForStartupUpdateAsync(policy);
         }
         catch (HttpRequestException ex) when (ex.StatusCode == System.Net.HttpStatusCode.Unauthorized)
         {
@@ -365,6 +374,7 @@ public partial class MainWindow : Window
             return;
         }
 
+        _currentPolicy.Updates ??= new UpdatePolicy();
         _currentPolicy.Updates.Enabled = UpdateEnabledCheckBox.IsChecked == true;
         _currentPolicy.Updates.ManifestUrl = UpdateManifestUrlBox.Text.Trim();
         _currentPolicy.Updates.Channel = string.IsNullOrWhiteSpace(UpdateChannelBox.Text) ? "stable" : UpdateChannelBox.Text.Trim();
@@ -377,6 +387,7 @@ public partial class MainWindow : Window
         {
             if (_currentPolicy is not null)
             {
+                _currentPolicy.Updates ??= new UpdatePolicy();
                 _currentPolicy.Updates.Enabled = UpdateEnabledCheckBox.IsChecked == true;
                 _currentPolicy.Updates.ManifestUrl = UpdateManifestUrlBox.Text.Trim();
                 _currentPolicy.Updates.Channel = string.IsNullOrWhiteSpace(UpdateChannelBox.Text) ? "stable" : UpdateChannelBox.Text.Trim();
@@ -392,19 +403,12 @@ public partial class MainWindow : Window
                 return;
             }
 
-            var request = new HttpRequestMessage(HttpMethod.Post, "/api/updates/check")
+            var result = await SendUpdateCommandAsync("/api/updates/check", "Update check failed");
+            if (result is null)
             {
-                Content = new StringContent("{}", Encoding.UTF8, "application/json")
-            };
-            request.Headers.Add("X-OTM-Admin-PIN", PinBox.Password);
-            var response = await _client.SendAsync(request);
-            if (!response.IsSuccessStatusCode)
-            {
-                ShowNotice("Update check failed", await ReadApiErrorAsync(response), NoticeKind.Warning);
                 return;
             }
 
-            var result = await response.Content.ReadFromJsonAsync<UpdateCheckResponse>(JsonOptions);
             UpdateStatusText.Text = result?.Message ?? "Update check completed.";
             ShowNotice("Update check completed", UpdateStatusText.Text, result?.Available == true ? NoticeKind.Success : NoticeKind.Info);
             await RefreshAsync();
@@ -413,6 +417,56 @@ public partial class MainWindow : Window
         {
             ShowNotice("Update check failed", ex.Message, NoticeKind.Error);
         }
+    }
+
+    private async void DownloadUpdate_Click(object sender, RoutedEventArgs e)
+    {
+        var result = await SendUpdateCommandAsync("/api/updates/download", "Update download failed");
+        if (result is null)
+        {
+            return;
+        }
+
+        UpdateStatusText.Text = result.Message;
+        ShowNotice(result.Downloaded ? "Update downloaded" : "Update not downloaded", result.Message, result.Downloaded ? NoticeKind.Success : NoticeKind.Info);
+        await RefreshAsync();
+    }
+
+    private void OpenUpdateFolder_Click(object sender, RoutedEventArgs e)
+    {
+        try
+        {
+            var folder = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData), "OTM Kiosk", "Updates");
+            Directory.CreateDirectory(folder);
+            Process.Start(new ProcessStartInfo(folder) { UseShellExecute = true });
+        }
+        catch (Exception ex)
+        {
+            ShowNotice("Could not open update folder", ex.Message, NoticeKind.Error);
+        }
+    }
+
+    private async Task<UpdateOperationResponse?> SendUpdateCommandAsync(string path, string failureTitle)
+    {
+        if (string.IsNullOrWhiteSpace(PinBox.Password))
+        {
+            ShowNotice("Admin PIN required", "Enter the admin PIN before using updates.", NoticeKind.Info);
+            return null;
+        }
+
+        var request = new HttpRequestMessage(HttpMethod.Post, path)
+        {
+            Content = new StringContent("{}", Encoding.UTF8, "application/json")
+        };
+        request.Headers.Add("X-OTM-Admin-PIN", PinBox.Password);
+        var response = await _client.SendAsync(request);
+        if (!response.IsSuccessStatusCode)
+        {
+            ShowNotice(failureTitle, await ReadApiErrorAsync(response), NoticeKind.Warning);
+            return null;
+        }
+
+        return await response.Content.ReadFromJsonAsync<UpdateOperationResponse>(JsonOptions);
     }
 
     private async Task AddAppRuleAsync(bool allow)
@@ -585,12 +639,58 @@ public partial class MainWindow : Window
 
     private void BindUpdateSettings(KioskPolicy? policy)
     {
-        UpdateEnabledCheckBox.IsChecked = policy?.Updates.Enabled == true;
-        UpdateManifestUrlBox.Text = string.IsNullOrWhiteSpace(policy?.Updates.ManifestUrl)
+        var updates = policy?.Updates ?? new UpdatePolicy();
+        UpdateEnabledCheckBox.IsChecked = updates.Enabled;
+        UpdateManifestUrlBox.Text = string.IsNullOrWhiteSpace(updates.ManifestUrl)
             ? new UpdatePolicy().ManifestUrl
-            : policy.Updates.ManifestUrl;
-        UpdateChannelBox.Text = string.IsNullOrWhiteSpace(policy?.Updates.Channel) ? "stable" : policy.Updates.Channel;
-        UpdateStatusText.Text = policy?.Updates.LastCheckMessage ?? "";
+            : updates.ManifestUrl;
+        UpdateChannelBox.Text = string.IsNullOrWhiteSpace(updates.Channel) ? "stable" : updates.Channel;
+        var lines = new[]
+        {
+            updates.LastCheckMessage,
+            updates.LastDownloadMessage,
+            string.IsNullOrWhiteSpace(updates.LastDownloadedPath) ? null : $"Ready installer: {updates.LastDownloadedPath}"
+        };
+        UpdateStatusText.Text = string.Join(Environment.NewLine, lines.Where(line => !string.IsNullOrWhiteSpace(line)));
+    }
+
+    private void ShowUpdateNoticeIfNeeded(KioskPolicy? policy)
+    {
+        var updates = policy?.Updates;
+        if (_updateNoticeShown || updates is null)
+        {
+            return;
+        }
+
+        if (!string.IsNullOrWhiteSpace(updates.LastAvailableVersion)
+            && !string.Equals(updates.LastAvailableVersion, updates.LastDownloadedVersion, StringComparison.OrdinalIgnoreCase))
+        {
+            _updateNoticeShown = true;
+            ShowNotice("Stable update available", $"Version {updates.LastAvailableVersion} is available. Use Download Update when ready.", NoticeKind.Info);
+        }
+    }
+
+    private async Task CheckForStartupUpdateAsync(KioskPolicy? policy)
+    {
+        if (_startupUpdateChecked || policy?.Updates.Enabled != true || string.IsNullOrWhiteSpace(PinBox.Password))
+        {
+            return;
+        }
+
+        _startupUpdateChecked = true;
+        try
+        {
+            var result = await SendUpdateCommandAsync("/api/updates/check", "Startup update check failed");
+            if (result?.Available == true)
+            {
+                UpdateStatusText.Text = result.Message;
+                ShowNotice("Stable update available", result.Message, NoticeKind.Info);
+            }
+        }
+        catch
+        {
+            // Startup checks should never block local management.
+        }
     }
 
     private string GetDedicatedKioskType()
@@ -843,9 +943,10 @@ public partial class MainWindow : Window
         Error
     }
 
-    private sealed class UpdateCheckResponse
+    private sealed class UpdateOperationResponse
     {
         public bool Available { get; set; }
+        public bool Downloaded { get; set; }
         public string Message { get; set; } = "";
     }
 

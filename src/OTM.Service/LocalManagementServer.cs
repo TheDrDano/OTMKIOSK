@@ -221,6 +221,7 @@ public sealed class LocalManagementServer
                     policy.Admin = _runtime.GetPolicy().Admin;
                 }
 
+                policy.Updates ??= new UpdatePolicy();
                 _runtime.SavePolicy(policy, "Policy updated from native control panel.");
                 ApplyBrowserPolicySafely(policy);
                 await WriteJsonAsync(response, _runtime.GetPolicy());
@@ -273,6 +274,12 @@ public sealed class LocalManagementServer
             if (path.Equals("/api/updates/check", StringComparison.OrdinalIgnoreCase) && request.HttpMethod == "POST")
             {
                 await WriteJsonAsync(response, await CheckForUpdatesAsync());
+                return;
+            }
+
+            if (path.Equals("/api/updates/download", StringComparison.OrdinalIgnoreCase) && request.HttpMethod == "POST")
+            {
+                await WriteJsonAsync(response, await DownloadUpdateAsync());
                 return;
             }
 
@@ -393,6 +400,7 @@ public sealed class LocalManagementServer
     private object GetRemoteStatus()
     {
         var policy = _runtime.GetPolicy();
+        policy.Updates ??= new UpdatePolicy();
         var identity = LoadOrCreateDeviceIdentity();
         return new
         {
@@ -411,6 +419,13 @@ public sealed class LocalManagementServer
             lastUpdateCheck = policy.Updates.LastCheckedAt,
             lastUpdateMessage = policy.Updates.LastCheckMessage,
             lastAvailableVersion = policy.Updates.LastAvailableVersion,
+            lastInstallerUrl = policy.Updates.LastInstallerUrl,
+            lastInstallerSha256 = policy.Updates.LastInstallerSha256,
+            lastReleaseNotes = policy.Updates.LastReleaseNotes,
+            lastDownloadedAt = policy.Updates.LastDownloadedAt,
+            lastDownloadedVersion = policy.Updates.LastDownloadedVersion,
+            lastDownloadedPath = policy.Updates.LastDownloadedPath,
+            lastDownloadMessage = policy.Updates.LastDownloadMessage,
             monitoringEnabled = policy.Monitoring?.Enabled == true,
             monitoringScreenViewAllowed = policy.Monitoring?.AllowScreenView == true,
             monitoringLanOnly = policy.Monitoring?.LanOnly != false,
@@ -460,6 +475,7 @@ public sealed class LocalManagementServer
     private async Task<object> CheckForUpdatesAsync()
     {
         var policy = _runtime.GetPolicy();
+        policy.Updates ??= new UpdatePolicy();
         policy.Updates.LastCheckedAt = DateTimeOffset.UtcNow;
 
         if (!policy.Updates.Enabled)
@@ -469,27 +485,13 @@ public sealed class LocalManagementServer
             return BuildUpdateCheckResponse(policy, available: false);
         }
 
-        if (string.IsNullOrWhiteSpace(policy.Updates.ManifestUrl))
-        {
-            policy.Updates.ManifestUrl = new UpdatePolicy().ManifestUrl;
-        }
-
-        if (!Uri.TryCreate(policy.Updates.ManifestUrl, UriKind.Absolute, out var manifestUri)
-            || (manifestUri.Scheme != Uri.UriSchemeHttps && manifestUri.Scheme != Uri.UriSchemeHttp))
-        {
-            policy.Updates.LastCheckMessage = "Enter a valid HTTP or HTTPS update manifest URL.";
-            _runtime.SavePolicy(policy, "Update check failed because manifest URL is invalid.");
-            return BuildUpdateCheckResponse(policy, available: false);
-        }
-
         try
         {
-            using var client = new HttpClient { Timeout = TimeSpan.FromSeconds(15) };
-            var json = await client.GetStringAsync(manifestUri);
-            var manifest = JsonSerializer.Deserialize<UpdateManifest>(json, JsonOptions);
-            if (manifest is null || string.IsNullOrWhiteSpace(manifest.Version))
+            var manifest = await FetchUpdateManifestAsync(policy);
+            var manifestError = ValidateStationUpdateManifest(manifest, requireInstaller: false);
+            if (!string.IsNullOrWhiteSpace(manifestError))
             {
-                policy.Updates.LastCheckMessage = "Update manifest did not include a version.";
+                policy.Updates.LastCheckMessage = manifestError;
                 _runtime.SavePolicy(policy, "Update check failed because manifest is invalid.");
                 return BuildUpdateCheckResponse(policy, available: false);
             }
@@ -497,23 +499,15 @@ public sealed class LocalManagementServer
             var currentVersion = GetCurrentVersion();
             var available = IsNewerVersion(manifest.Version, currentVersion);
             policy.Updates.LastAvailableVersion = available ? manifest.Version : "";
+            policy.Updates.LastInstallerUrl = manifest.InstallerUrl;
+            policy.Updates.LastInstallerSha256 = manifest.Sha256;
+            policy.Updates.LastReleaseNotes = manifest.ReleaseNotes;
             policy.Updates.LastCheckMessage = available
-                ? $"Version {manifest.Version} is available. Download/install is not automatic yet."
+                ? $"Stable version {manifest.Version} is available. Download it from the Updates panel when ready."
                 : $"No update available. Current version is {currentVersion}.";
             _runtime.SavePolicy(policy, "Update check completed.");
 
-            return new
-            {
-                available,
-                currentVersion,
-                manifest.Version,
-                manifest.Channel,
-                manifest.InstallerUrl,
-                manifest.Sha256,
-                manifest.ReleaseNotes,
-                message = policy.Updates.LastCheckMessage,
-                autoInstallEnabled = false
-            };
+            return BuildUpdateCheckResponse(policy, available, manifest);
         }
         catch (Exception ex)
         {
@@ -523,16 +517,178 @@ public sealed class LocalManagementServer
         }
     }
 
-    private static object BuildUpdateCheckResponse(KioskPolicy policy, bool available)
+    private async Task<object> DownloadUpdateAsync()
+    {
+        var policy = _runtime.GetPolicy();
+        policy.Updates ??= new UpdatePolicy();
+        policy.Updates.LastCheckedAt = DateTimeOffset.UtcNow;
+
+        if (!policy.Updates.Enabled)
+        {
+            policy.Updates.LastDownloadMessage = "Update downloads are disabled.";
+            _runtime.SavePolicy(policy, "Update download skipped because updates are disabled.");
+            return BuildUpdateDownloadResponse(policy, downloaded: false);
+        }
+
+        try
+        {
+            var manifest = await FetchUpdateManifestAsync(policy);
+            var manifestError = ValidateStationUpdateManifest(manifest, requireInstaller: true);
+            if (!string.IsNullOrWhiteSpace(manifestError))
+            {
+                policy.Updates.LastDownloadMessage = manifestError;
+                _runtime.SavePolicy(policy, "Update download failed because manifest is invalid.");
+                return BuildUpdateDownloadResponse(policy, downloaded: false);
+            }
+
+            var currentVersion = GetCurrentVersion();
+            var available = IsNewerVersion(manifest.Version, currentVersion);
+            policy.Updates.LastAvailableVersion = available ? manifest.Version : "";
+            policy.Updates.LastInstallerUrl = manifest.InstallerUrl;
+            policy.Updates.LastInstallerSha256 = manifest.Sha256;
+            policy.Updates.LastReleaseNotes = manifest.ReleaseNotes;
+            if (!available)
+            {
+                policy.Updates.LastDownloadMessage = $"No download needed. Current version is {currentVersion}.";
+                _runtime.SavePolicy(policy, "Update download skipped because the station is current.");
+                return BuildUpdateDownloadResponse(policy, downloaded: false);
+            }
+
+            Directory.CreateDirectory(KioskPaths.UpdatesDirectory);
+            var tempPath = KioskPaths.StationInstallerUpdatePath + ".download";
+            if (File.Exists(tempPath))
+            {
+                File.Delete(tempPath);
+            }
+
+            using (var client = new HttpClient { Timeout = TimeSpan.FromMinutes(10) })
+            {
+                await using var source = await client.GetStreamAsync(manifest.InstallerUrl);
+                await using var destination = File.Create(tempPath);
+                await source.CopyToAsync(destination);
+            }
+
+            var hash = await ComputeSha256Async(tempPath);
+            if (!string.Equals(hash, manifest.Sha256, StringComparison.OrdinalIgnoreCase))
+            {
+                File.Delete(tempPath);
+                policy.Updates.LastDownloadMessage = "Downloaded installer failed SHA256 verification and was deleted.";
+                _runtime.SavePolicy(policy, "Update download failed SHA256 verification.");
+                return BuildUpdateDownloadResponse(policy, downloaded: false);
+            }
+
+            if (File.Exists(KioskPaths.StationInstallerUpdatePath))
+            {
+                File.Delete(KioskPaths.StationInstallerUpdatePath);
+            }
+
+            File.Move(tempPath, KioskPaths.StationInstallerUpdatePath);
+            policy.Updates.LastDownloadedAt = DateTimeOffset.UtcNow;
+            policy.Updates.LastDownloadedVersion = manifest.Version;
+            policy.Updates.LastDownloadedPath = KioskPaths.StationInstallerUpdatePath;
+            policy.Updates.LastDownloadMessage = $"Version {manifest.Version} downloaded and verified. Install manually when ready.";
+            _runtime.SavePolicy(policy, "Update downloaded and verified.");
+            _runtime.Log("Info", "UpdateDownloaded", policy.Updates.LastDownloadMessage, path: KioskPaths.StationInstallerUpdatePath);
+            return BuildUpdateDownloadResponse(policy, downloaded: true);
+        }
+        catch (Exception ex)
+        {
+            policy.Updates.LastDownloadMessage = $"Update download failed: {ex.Message}";
+            _runtime.SavePolicy(policy, "Update download failed.");
+            return BuildUpdateDownloadResponse(policy, downloaded: false);
+        }
+    }
+
+    private static object BuildUpdateCheckResponse(KioskPolicy policy, bool available, UpdateManifest? manifest = null)
     {
         return new
         {
             available,
             currentVersion = GetCurrentVersion(),
-            version = policy.Updates.LastAvailableVersion,
+            version = manifest?.Version ?? policy.Updates.LastAvailableVersion,
+            channel = manifest?.Channel ?? policy.Updates.Channel,
+            installerUrl = manifest?.InstallerUrl ?? policy.Updates.LastInstallerUrl,
+            sha256 = manifest?.Sha256 ?? policy.Updates.LastInstallerSha256,
+            releaseNotes = manifest?.ReleaseNotes ?? policy.Updates.LastReleaseNotes,
             message = policy.Updates.LastCheckMessage,
+            downloadedVersion = policy.Updates.LastDownloadedVersion,
+            downloadedPath = policy.Updates.LastDownloadedPath,
+            downloadMessage = policy.Updates.LastDownloadMessage,
             autoInstallEnabled = false
         };
+    }
+
+    private static object BuildUpdateDownloadResponse(KioskPolicy policy, bool downloaded)
+    {
+        return new
+        {
+            downloaded,
+            currentVersion = GetCurrentVersion(),
+            version = policy.Updates.LastAvailableVersion,
+            installerUrl = policy.Updates.LastInstallerUrl,
+            sha256 = policy.Updates.LastInstallerSha256,
+            releaseNotes = policy.Updates.LastReleaseNotes,
+            downloadedVersion = policy.Updates.LastDownloadedVersion,
+            downloadedAt = policy.Updates.LastDownloadedAt,
+            downloadedPath = policy.Updates.LastDownloadedPath,
+            message = policy.Updates.LastDownloadMessage,
+            autoInstallEnabled = false
+        };
+    }
+
+    private static async Task<UpdateManifest> FetchUpdateManifestAsync(KioskPolicy policy)
+    {
+        if (string.IsNullOrWhiteSpace(policy.Updates.ManifestUrl))
+        {
+            policy.Updates.ManifestUrl = new UpdatePolicy().ManifestUrl;
+        }
+
+        if (!Uri.TryCreate(policy.Updates.ManifestUrl, UriKind.Absolute, out var manifestUri)
+            || (manifestUri.Scheme != Uri.UriSchemeHttps && manifestUri.Scheme != Uri.UriSchemeHttp))
+        {
+            throw new InvalidOperationException("Enter a valid HTTP or HTTPS update manifest URL.");
+        }
+
+        using var client = new HttpClient { Timeout = TimeSpan.FromSeconds(20) };
+        var json = await client.GetStringAsync(manifestUri);
+        return JsonSerializer.Deserialize<UpdateManifest>(json, JsonOptions)
+            ?? new UpdateManifest();
+    }
+
+    private static string ValidateStationUpdateManifest(UpdateManifest manifest, bool requireInstaller)
+    {
+        if (string.IsNullOrWhiteSpace(manifest.Version))
+        {
+            return "Update manifest did not include a version.";
+        }
+
+        if (!string.IsNullOrWhiteSpace(manifest.Channel)
+            && !string.Equals(manifest.Channel, "stable", StringComparison.OrdinalIgnoreCase))
+        {
+            return $"Update manifest channel '{manifest.Channel}' is not stable.";
+        }
+
+        if (requireInstaller)
+        {
+            if (string.IsNullOrWhiteSpace(manifest.InstallerUrl))
+            {
+                return "Update manifest did not include installerUrl for OTM-Kiosk-Setup.exe.";
+            }
+
+            if (string.IsNullOrWhiteSpace(manifest.Sha256))
+            {
+                return "Update manifest did not include sha256 for OTM-Kiosk-Setup.exe.";
+            }
+        }
+
+        return "";
+    }
+
+    private static async Task<string> ComputeSha256Async(string path)
+    {
+        await using var stream = File.OpenRead(path);
+        var hash = await SHA256.HashDataAsync(stream);
+        return Convert.ToHexString(hash).ToLowerInvariant();
     }
 
     private static bool IsNewerVersion(string candidate, string current)
@@ -640,7 +796,7 @@ public sealed class LocalManagementServer
 
     private static string GetCurrentVersion()
     {
-        return Assembly.GetExecutingAssembly().GetName().Version?.ToString(3) ?? "7.2.0";
+        return Assembly.GetExecutingAssembly().GetName().Version?.ToString(3) ?? "8.0.0";
     }
 
     private static string GetConfiguredDeviceName(DeviceIdentity identity, KioskPolicy policy)
