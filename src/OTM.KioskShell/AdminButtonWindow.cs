@@ -36,9 +36,9 @@ public sealed class AdminButtonWindow : Window
             BorderThickness = new Thickness(1),
             Content = new StackPanel
             {
-                Orientation = Orientation.Horizontal,
-                HorizontalAlignment = HorizontalAlignment.Center,
-                VerticalAlignment = VerticalAlignment.Center,
+                Orientation = System.Windows.Controls.Orientation.Horizontal,
+                HorizontalAlignment = System.Windows.HorizontalAlignment.Center,
+                VerticalAlignment = System.Windows.VerticalAlignment.Center,
                 Children =
                 {
                     new Viewbox
