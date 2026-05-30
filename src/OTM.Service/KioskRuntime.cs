@@ -85,6 +85,9 @@ public sealed class KioskRuntime : IDisposable
             MaintenanceHoldUntil = this.MaintenanceHoldUntil,
             MaintenanceHoldReason = maintenanceHoldActive ? this.MaintenanceHoldReason : "",
             PolicyName = policy.Name,
+            BrandingCompanyName = policy.Branding.CompanyName,
+            BrandingFooterText = policy.Branding.FooterText,
+            BrandingShowFooter = policy.Branding.ShowFooter,
             CurrentTime = now
         };
     }
@@ -193,6 +196,17 @@ public sealed class KioskRuntime : IDisposable
         policy.Enforcement ??= new EnforcementPolicy();
         policy.Restrictions ??= new RestrictionPolicy();
         policy.Browser ??= new BrowserPolicy();
+        policy.Branding ??= new BrandingPolicy();
+        if (string.IsNullOrWhiteSpace(policy.Branding.CompanyName))
+        {
+            policy.Branding.CompanyName = "OTM";
+        }
+
+        if (string.IsNullOrWhiteSpace(policy.Branding.FooterText))
+        {
+            policy.Branding.FooterText = $"Powered by {policy.Branding.CompanyName}";
+        }
+
         policy.DedicatedKiosk ??= new DedicatedKioskPolicy();
         policy.Remote ??= new RemoteManagementPolicy();
         policy.Monitoring ??= new RemoteMonitoringPolicy();

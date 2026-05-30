@@ -89,6 +89,7 @@ public partial class MainWindow : Window
             if (policy is not null)
             {
                 policy.Updates ??= new UpdatePolicy();
+                policy.Branding ??= new BrandingPolicy();
             }
 
             _currentPolicy = policy;
@@ -98,6 +99,7 @@ public partial class MainWindow : Window
             BrowserEnabledCheckBox.IsChecked = policy?.Browser.Enabled == true;
             WhitelistOnlyCheckBox.IsChecked = policy?.Browser.WhitelistOnly == true;
             BrowserBlockDownloadsCheckBox.IsChecked = policy?.Browser.BlockDownloads == true;
+            BindBranding(policy);
             BindUpdateSettings(policy);
             PolicyTextBox.Text = JsonSerializer.Serialize(policy, JsonOptions);
             BindAppRules();
@@ -239,6 +241,9 @@ public partial class MainWindow : Window
                 return;
             }
 
+            _currentPolicy.DedicatedKiosk.ProcessName = "msedge.exe";
+            _currentPolicy.DedicatedKiosk.Path = null;
+            _currentPolicy.DedicatedKiosk.Arguments = null;
             var site = NormalizeSite(_currentPolicy.DedicatedKiosk.Url);
             UpsertSite(_currentPolicy.Browser.AllowedSites, site);
             _currentPolicy.Browser.Enabled = true;
@@ -394,6 +399,25 @@ public partial class MainWindow : Window
         _currentPolicy.Updates.AutoInstall = false;
         _currentPolicy.Updates.HoldEnforcementDuringStartupUpdate = true;
         await SaveCurrentPolicyAsync("Update settings saved.");
+    }
+
+    private async void SaveBranding_Click(object sender, RoutedEventArgs e)
+    {
+        if (_currentPolicy is null)
+        {
+            ShowNotice("Refresh required", "Enter the admin PIN and refresh before changing branding.", NoticeKind.Info);
+            return;
+        }
+
+        _currentPolicy.Branding ??= new BrandingPolicy();
+        _currentPolicy.Branding.CompanyName = string.IsNullOrWhiteSpace(BrandingCompanyNameBox.Text)
+            ? "OTM"
+            : BrandingCompanyNameBox.Text.Trim();
+        _currentPolicy.Branding.FooterText = string.IsNullOrWhiteSpace(BrandingFooterTextBox.Text)
+            ? $"Powered by {_currentPolicy.Branding.CompanyName}"
+            : BrandingFooterTextBox.Text.Trim();
+        _currentPolicy.Branding.ShowFooter = BrandingFooterVisibleCheckBox.IsChecked == true;
+        await SaveCurrentPolicyAsync("Branding saved.");
     }
 
     private async void CheckUpdates_Click(object sender, RoutedEventArgs e)
@@ -663,7 +687,9 @@ public partial class MainWindow : Window
         DedicatedKioskTypeBox.SelectedIndex = string.Equals(kiosk.Type, KioskLauncherTypes.App, StringComparison.OrdinalIgnoreCase) ? 1 : 0;
         DedicatedKioskNameBox.Text = kiosk.DisplayName;
         DedicatedKioskUrlBox.Text = kiosk.Url ?? "";
-        DedicatedKioskProcessBox.Text = kiosk.ProcessName;
+        DedicatedKioskProcessBox.Text = string.IsNullOrWhiteSpace(kiosk.ProcessName) && !string.Equals(kiosk.Type, KioskLauncherTypes.App, StringComparison.OrdinalIgnoreCase)
+            ? "msedge.exe"
+            : kiosk.ProcessName;
         DedicatedKioskPathBox.Text = kiosk.Path ?? "";
         DedicatedKioskArgumentsBox.Text = kiosk.Arguments ?? "";
     }
@@ -685,6 +711,16 @@ public partial class MainWindow : Window
             string.IsNullOrWhiteSpace(updates.LastDownloadedPath) ? null : $"Ready installer: {updates.LastDownloadedPath}"
         };
         UpdateStatusText.Text = string.Join(Environment.NewLine, lines.Where(line => !string.IsNullOrWhiteSpace(line)));
+    }
+
+    private void BindBranding(KioskPolicy? policy)
+    {
+        var branding = policy?.Branding ?? new BrandingPolicy();
+        BrandingCompanyNameBox.Text = string.IsNullOrWhiteSpace(branding.CompanyName) ? "OTM" : branding.CompanyName;
+        BrandingFooterTextBox.Text = string.IsNullOrWhiteSpace(branding.FooterText)
+            ? $"Powered by {BrandingCompanyNameBox.Text}"
+            : branding.FooterText;
+        BrandingFooterVisibleCheckBox.IsChecked = branding.ShowFooter;
     }
 
     private void ShowUpdateNoticeIfNeeded(KioskPolicy? policy)

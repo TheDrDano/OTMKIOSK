@@ -32,6 +32,7 @@ public partial class MainWindow : Window
     private const int VkTab = 0x09;
     private const int VkEscape = 0x1B;
     private const int VkSpace = 0x20;
+    private const int VkA = 0x41;
     private const int VkF4 = 0x73;
     private const int VkLWin = 0x5B;
     private const int VkRWin = 0x5C;
@@ -207,9 +208,10 @@ public partial class MainWindow : Window
         AdminPanel.Visibility = Visibility.Collapsed;
         _adminSessionSecret = "";
         SetAdminSignedIn(false);
-        AdminTaskbarButton.Visibility = Visibility.Collapsed;
-        AdminCornerButton.Visibility = Visibility.Collapsed;
-        SetFloatingAdminButtonVisible(true);
+        WebWorkspace.Visibility = Visibility.Collapsed;
+        AppWorkspace.Visibility = Visibility.Collapsed;
+        IdleWorkspace.Visibility = Visibility.Visible;
+        UpdateAdminAccessButtons();
         Show();
         PlaceOnPrimaryScreen();
         WindowState = WindowState.Maximized;
@@ -319,6 +321,10 @@ public partial class MainWindow : Window
                 ? $"{state.PolicyName}: startup update in progress"
                 : $"{state.PolicyName}: managed mode {(state.EnforcementEnabled ? "on" : "off")}";
         SafeTestBanner.Visibility = state?.EnforcementEnabled == false ? Visibility.Visible : Visibility.Collapsed;
+        BrandingFooterText.Text = string.IsNullOrWhiteSpace(state?.BrandingFooterText)
+            ? "Powered by OTM"
+            : state.BrandingFooterText;
+        BrandingFooterText.Visibility = state?.BrandingShowFooter == false ? Visibility.Collapsed : Visibility.Visible;
 
         if (_maintenanceHoldActive)
         {
@@ -335,9 +341,10 @@ public partial class MainWindow : Window
         {
             WorkspaceTitle.Text = "Setup SimpleKioskOS";
             WorkspaceSubtitle.Text = "No launch target is configured yet.";
-            PrimaryLaunchText.Text = "Setup station";
+            PrimaryLaunchText.Text = "Admin setup";
             LaunchpadHintText.Text = "Sign in as admin to add the website or app this station should run.";
             SetLaunchpadRailVisible(false);
+            UpdateAdminAccessButtons();
             return;
         }
 
@@ -345,9 +352,10 @@ public partial class MainWindow : Window
         WorkspaceSubtitle.Text = "This station is ready.";
         PrimaryLaunchText.Text = $"Launch {primary.DisplayName}";
         LaunchpadHintText.Text = string.Equals(primary.Type, KioskLauncherTypes.Web, StringComparison.OrdinalIgnoreCase)
-            ? "The website opens through Microsoft Edge fullscreen kiosk mode. Use Admin for maintenance."
-            : "The approved app opens as the only managed workspace. Use Admin for maintenance.";
+            ? "The website opens through Microsoft Edge fullscreen kiosk mode."
+            : "The approved app opens as the only managed workspace.";
         SetLaunchpadRailVisible(false);
+        UpdateAdminAccessButtons();
     }
 
     private KioskLauncher? GetPrimaryLauncher()
@@ -470,9 +478,7 @@ public partial class MainWindow : Window
         WorkspaceHeader.Visibility = enabled ? Visibility.Collapsed : Visibility.Visible;
         ShellTaskbar.Visibility = Visibility.Collapsed;
         WebFullscreenText.Text = enabled ? "Exit full" : "Fullscreen";
-        AdminTaskbarButton.Visibility = Visibility.Collapsed;
-        AdminCornerButton.Visibility = Visibility.Collapsed;
-        SetFloatingAdminButtonVisible(AdminPanel.Visibility != Visibility.Visible);
+        UpdateAdminAccessButtons();
     }
 
     private bool StartEdgeKioskWorkspace(KioskLauncher launcher)
@@ -507,10 +513,11 @@ public partial class MainWindow : Window
             WorkspaceTitle.Text = launcher.DisplayName;
             WorkspaceSubtitle.Text = "Microsoft Edge fullscreen kiosk";
             AppWorkspaceTitle.Text = $"{launcher.DisplayName} is running";
-            AppWorkspaceText.Text = "Use the floating Admin button to unlock, maintain, or exit the station.";
+            AppWorkspaceText.Text = "This station is running the approved website.";
             IdleWorkspace.Visibility = Visibility.Collapsed;
             WebWorkspace.Visibility = Visibility.Collapsed;
             AppWorkspace.Visibility = Visibility.Visible;
+            UpdateAdminAccessButtons();
 
             if (process is not null)
             {
@@ -603,6 +610,7 @@ public partial class MainWindow : Window
             IdleWorkspace.Visibility = Visibility.Collapsed;
             WebWorkspace.Visibility = Visibility.Collapsed;
             AppWorkspace.Visibility = Visibility.Visible;
+            UpdateAdminAccessButtons();
 
             if (launcher.AllowMultiMonitorOwnership || string.Equals(launcher.WorkspaceMode, KioskWorkspaceModes.AppOwner, StringComparison.OrdinalIgnoreCase))
             {
@@ -961,13 +969,10 @@ public partial class MainWindow : Window
         _adminButtonWindow = new AdminButtonWindow();
         _adminButtonWindow.AdminRequested += (_, _) =>
         {
-            Show();
-            PlaceOnPrimaryScreen();
-            Topmost = true;
-            SetAdminPanelOpen(true);
-            Activate();
+            OpenAdminFromGlobalShortcut();
         };
         _adminButtonWindow.Show();
+        _adminButtonWindow.Hide();
     }
 
     private void SetFloatingAdminButtonVisible(bool visible)
@@ -979,7 +984,7 @@ public partial class MainWindow : Window
 
         if (visible)
         {
-            _adminButtonWindow.PlaceBottomRight();
+            _adminButtonWindow.PlaceTopRight();
             _adminButtonWindow.Show();
             _adminButtonWindow.Topmost = true;
             return;
@@ -1005,9 +1010,7 @@ public partial class MainWindow : Window
         }
 
         AdminPanel.Visibility = open ? Visibility.Visible : Visibility.Collapsed;
-        AdminTaskbarButton.Visibility = Visibility.Collapsed;
-        AdminCornerButton.Visibility = Visibility.Collapsed;
-        SetFloatingAdminButtonVisible(!open);
+        UpdateAdminAccessButtons();
         if (open)
         {
             if (string.IsNullOrWhiteSpace(_adminSessionSecret))
@@ -1022,6 +1025,34 @@ public partial class MainWindow : Window
             SetSecondaryCoversVisible(false);
             FocusManagedApp(_managedApps.LastOrDefault());
         }
+    }
+
+    private void OpenAdminFromGlobalShortcut()
+    {
+        Show();
+        PlaceOnPrimaryScreen();
+        Topmost = true;
+        SetSecondaryCoversVisible(true);
+        SetAdminPanelOpen(true);
+        Activate();
+    }
+
+    private bool HasLaunchedWorkspace()
+    {
+        return WebWorkspace.Visibility == Visibility.Visible
+            || AppWorkspace.Visibility == Visibility.Visible
+            || _managedApps.Count > 0
+            || _appOwnsDisplays;
+    }
+
+    private void UpdateAdminAccessButtons()
+    {
+        var panelOpen = AdminPanel.Visibility == Visibility.Visible;
+        var activeWorkspace = HasLaunchedWorkspace();
+
+        AdminTaskbarButton.Visibility = Visibility.Collapsed;
+        AdminCornerButton.Visibility = !panelOpen && !activeWorkspace ? Visibility.Visible : Visibility.Collapsed;
+        SetFloatingAdminButtonVisible(!panelOpen && activeWorkspace);
     }
 
     private void SetAdminSignedIn(bool signedIn)
@@ -1161,6 +1192,8 @@ public partial class MainWindow : Window
             PlaceOnPrimaryScreen();
             SetSecondaryCoversVisible(true);
         }
+
+        UpdateAdminAccessButtons();
     }
 
     private void YieldFocusToManagedApps()
@@ -1552,18 +1585,27 @@ public partial class MainWindow : Window
     private IntPtr KeyboardHookCallback(int nCode, IntPtr wParam, IntPtr lParam)
     {
         var message = wParam.ToInt32();
-        if (nCode >= 0
-            && _suppressSystemShortcuts
-            && (message == WmKeyDown || message == WmKeyUp || message == WmSysKeyDown || message == WmSysKeyUp))
+        if (nCode >= 0 && (message == WmKeyDown || message == WmKeyUp || message == WmSysKeyDown || message == WmSysKeyUp))
         {
             var data = Marshal.PtrToStructure<KeyboardHookStruct>(lParam);
-            if (ShouldSuppressGlobalKey(data))
+            if ((message == WmKeyDown || message == WmSysKeyDown) && ShouldOpenAdminFromGlobalKey(data))
+            {
+                Dispatcher.BeginInvoke(new Action(OpenAdminFromGlobalShortcut));
+                return new IntPtr(1);
+            }
+
+            if (_suppressSystemShortcuts && ShouldSuppressGlobalKey(data))
             {
                 return new IntPtr(1);
             }
         }
 
         return CallNextHookEx(_keyboardHook, nCode, wParam, lParam);
+    }
+
+    private static bool ShouldOpenAdminFromGlobalKey(KeyboardHookStruct data)
+    {
+        return data.VkCode == VkA && IsKeyDown(VkControl) && IsKeyDown(VkShift);
     }
 
     private static bool ShouldSuppressGlobalKey(KeyboardHookStruct data)

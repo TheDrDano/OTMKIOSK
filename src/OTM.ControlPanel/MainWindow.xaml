@@ -129,6 +129,19 @@
                     </StackPanel>
                 </Border>
 
+                <Border Background="White" BorderBrush="#D8DEE6" BorderThickness="1" CornerRadius="8" Padding="18" Margin="0,0,0,14">
+                    <StackPanel>
+                        <TextBlock Text="Branding" FontSize="16" FontWeight="SemiBold" Margin="0,0,0,8" />
+                        <TextBlock Text="Controls the small footer shown on the fullscreen launcher." Foreground="#64748B" FontSize="12" TextWrapping="Wrap" Margin="0,0,0,10" />
+                        <TextBlock Text="Company" Foreground="#344756" FontWeight="SemiBold" FontSize="12" />
+                        <TextBox x:Name="BrandingCompanyNameBox" Height="32" Margin="0,3,0,8" />
+                        <TextBlock Text="Footer text" Foreground="#344756" FontWeight="SemiBold" FontSize="12" />
+                        <TextBox x:Name="BrandingFooterTextBox" Height="32" Margin="0,3,0,8" />
+                        <CheckBox x:Name="BrandingFooterVisibleCheckBox" Content="Show footer on launcher" Margin="0,0,0,10" />
+                        <Button Content="Save Branding" Style="{StaticResource SecondaryButton}" Click="SaveBranding_Click" />
+                    </StackPanel>
+                </Border>
+
                 <Border Background="White" BorderBrush="#D8DEE6" BorderThickness="1" CornerRadius="8" Padding="18">
                     <StackPanel>
                         <TextBlock Text="Admin" FontSize="16" FontWeight="SemiBold" Margin="0,0,0,10" />
@@ -171,7 +184,7 @@
                                 </StackPanel>
                                 <StackPanel Grid.Row="1" Grid.Column="1" Margin="0,0,10,0">
                                     <TextBlock Text="Process" Foreground="#344756" FontWeight="SemiBold" Margin="0,0,0,4" />
-                                    <TextBox x:Name="AppProcessNameBox" Height="34" ToolTip="Example: chrome.exe" />
+                                    <TextBox x:Name="AppProcessNameBox" Height="34" ToolTip="Example: msedge.exe" />
                                 </StackPanel>
                                 <StackPanel Grid.Row="1" Grid.Column="2" Margin="0,0,10,0">
                                     <TextBlock Text="EXE path" Foreground="#344756" FontWeight="SemiBold" Margin="0,0,0,4" />
@@ -351,7 +364,7 @@
                                 <TextBlock Text="Website URL" Foreground="#344756" FontWeight="SemiBold" Margin="0,0,0,4" />
                                 <TextBox x:Name="DedicatedKioskUrlBox" Height="34" Margin="0,0,0,10" ToolTip="Example: https://testing.example.edu" />
                                 <TextBlock Text="App process name" Foreground="#344756" FontWeight="SemiBold" Margin="0,0,0,4" />
-                                <TextBox x:Name="DedicatedKioskProcessBox" Height="34" Margin="0,0,0,10" ToolTip="Example: chrome.exe or FlightSimulator.exe" />
+                                <TextBox x:Name="DedicatedKioskProcessBox" Height="34" Margin="0,0,0,10" ToolTip="Example: msedge.exe or FlightSimulator.exe" />
                                 <TextBlock Text="App EXE path" Foreground="#344756" FontWeight="SemiBold" Margin="0,0,0,4" />
                                 <TextBox x:Name="DedicatedKioskPathBox" Height="34" Margin="0,0,0,10" ToolTip="Optional full path to EXE" />
                                 <TextBlock Text="Arguments" Foreground="#344756" FontWeight="SemiBold" Margin="0,0,0,4" />

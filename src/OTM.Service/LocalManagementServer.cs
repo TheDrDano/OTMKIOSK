@@ -784,7 +784,7 @@ public sealed class LocalManagementServer
 
     private static string GetCurrentVersion()
     {
-        return Assembly.GetExecutingAssembly().GetName().Version?.ToString(3) ?? "9.1.1";
+        return Assembly.GetExecutingAssembly().GetName().Version?.ToString(3) ?? "9.2.0";
     }
 
     private static string GetConfiguredDeviceName(DeviceIdentity identity, KioskPolicy policy)
@@ -888,7 +888,7 @@ public sealed class LocalManagementServer
             Type = isWeb ? KioskLauncherTypes.Web : KioskLauncherTypes.App,
             WorkspaceMode = KioskWorkspaceModes.DedicatedKiosk,
             Url = dedicatedKiosk.Url,
-            ProcessName = dedicatedKiosk.ProcessName,
+            ProcessName = isWeb ? "msedge.exe" : dedicatedKiosk.ProcessName,
             Path = dedicatedKiosk.Path,
             Arguments = dedicatedKiosk.Arguments,
             Required = true,

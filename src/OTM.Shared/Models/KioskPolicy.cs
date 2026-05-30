@@ -12,6 +12,7 @@ public sealed class KioskPolicy
     public EnforcementPolicy Enforcement { get; set; } = new();
     public RestrictionPolicy Restrictions { get; set; } = new();
     public BrowserPolicy Browser { get; set; } = new();
+    public BrandingPolicy Branding { get; set; } = new();
     public DedicatedKioskPolicy DedicatedKiosk { get; set; } = new();
     public RemoteManagementPolicy Remote { get; set; } = new();
     public RemoteMonitoringPolicy Monitoring { get; set; } = new();
@@ -74,13 +75,20 @@ public sealed class BrowserPolicy
     ];
 }
 
+public sealed class BrandingPolicy
+{
+    public string CompanyName { get; set; } = "OTM";
+    public string FooterText { get; set; } = "Powered by OTM";
+    public bool ShowFooter { get; set; } = true;
+}
+
 public sealed class DedicatedKioskPolicy
 {
     public bool Enabled { get; set; }
     public string Type { get; set; } = KioskLauncherTypes.Web;
-    public string DisplayName { get; set; } = "Kiosk";
+    public string DisplayName { get; set; } = "Microsoft Edge Kiosk";
     public string? Url { get; set; }
-    public string ProcessName { get; set; } = "";
+    public string ProcessName { get; set; } = "msedge.exe";
     public string? Path { get; set; }
     public string? Arguments { get; set; }
 }

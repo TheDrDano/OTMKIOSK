@@ -1,6 +1,6 @@
 param(
     [string]$Configuration = "Release",
-    [string]$Version = "9.1.1",
+    [string]$Version = "9.2.0",
     [switch]$FrameworkDependent,
     [switch]$Sign,
     [string]$CertificateThumbprint = $env:OTM_SIGN_CERT_THUMBPRINT,

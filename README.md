@@ -32,7 +32,7 @@ Install prerequisites on a build machine:
 Then run:
 
 ```powershell
-.\scripts\build-installer.ps1 -Version 9.1.1
+.\scripts\build-installer.ps1 -Version 9.2.0
 ```
 
 The installer will be created in:
@@ -52,11 +52,11 @@ For public testing, ship the station app first. The release workflow builds the 
 To publish a release from GitHub:
 
 ```powershell
-git tag v9.1.1
-git push origin v9.1.1
+git tag v9.2.0
+git push origin v9.2.0
 ```
 
-Use one lowercase release tag per version, like `v9.1.1`. The workflow normalizes manual inputs and `V...` tags back to lowercase `v...`, but old duplicate GitHub releases should be deleted from the GitHub **Releases** page once so the list stays clean.
+Use one lowercase release tag per version, like `v9.2.0`. The workflow normalizes manual inputs and `V...` tags back to lowercase `v...`, but old duplicate GitHub releases should be deleted from the GitHub **Releases** page once so the list stays clean.
 
 The **Release Installers** workflow creates a GitHub Release with:
 
@@ -75,7 +75,7 @@ After the repo is public, set the station update manifest URL in the native Cont
 https://github.com/TheDrDano/OTMKIOSK/releases/latest/download/update-manifest.json
 ```
 
-The current app checks and reports updates. V9.1.1 can also download the stable station installer from the manifest to `%ProgramData%\OTM Kiosk\Updates\OTM-Kiosk-Setup.exe`, verify its SHA256 hash, and mark it ready for manual install. It does not silently run installers yet; that should wait until signing, hash verification, and a recovery-safe install flow are finished.
+The current app checks and reports updates. V9.2.0 can also download the stable station installer from the manifest to `%ProgramData%\OTM Kiosk\Updates\OTM-Kiosk-Setup.exe`, verify its SHA256 hash, and mark it ready for manual install. It does not silently run installers yet; that should wait until signing, hash verification, and a recovery-safe install flow are finished.
 
 During install, the optional **Check GitHub and download verified updates when SimpleKioskOS starts** task enables startup update checks from this repository. When enabled, the service checks the stable GitHub manifest on startup and downloads a verified newer installer in the background. Enforcement is temporarily held off while that startup update check/download is running, so an older installed build does not lock the system before the update is ready.
 
@@ -84,9 +84,9 @@ The generated `update-manifest.json` includes the stable station installer URL/h
 ```json
 {
   "product": "SimpleKioskOS",
-  "version": "9.1.1",
+  "version": "9.2.0",
   "channel": "stable",
-  "releaseTag": "v9.1.1",
+  "releaseTag": "v9.2.0",
   "installerUrl": "https://github.com/TheDrDano/OTMKIOSK/releases/latest/download/OTM-Kiosk-Setup.exe",
   "sha256": "generated during release",
   "autoInstallEnabled": false
@@ -100,7 +100,7 @@ Windows publisher identity for an `.exe` uses **Authenticode code signing**, not
 For local signing with a certificate installed in the machine certificate store:
 
 ```powershell
-.\scripts\build-installer.ps1 -Version 9.1.1 -Sign -CertificateThumbprint "YOUR_CERT_THUMBPRINT"
+.\scripts\build-installer.ps1 -Version 9.2.0 -Sign -CertificateThumbprint "YOUR_CERT_THUMBPRINT"
 ```
 
 Use `-CertificateStore LocalMachine` if the certificate is installed in the local machine store instead of the current user store.
@@ -108,7 +108,7 @@ Use `-CertificateStore LocalMachine` if the certificate is installed in the loca
 For local signing with a PFX:
 
 ```powershell
-.\scripts\build-installer.ps1 -Version 9.1.1 -Sign -PfxPath "C:\secure\otm-signing.pfx" -PfxPassword "PFX_PASSWORD"
+.\scripts\build-installer.ps1 -Version 9.2.0 -Sign -PfxPath "C:\secure\otm-signing.pfx" -PfxPassword "PFX_PASSWORD"
 ```
 
 The build signs published EXE/DLL files before packaging and signs the final setup EXE after Inno Setup finishes. If the final setup EXE is not Authenticode-signed by a trusted certificate, Windows will show **Unknown publisher**.
@@ -138,7 +138,7 @@ For lab-only testing without buying a certificate yet, create a self-signed test
 
 ```powershell
 .\scripts\create-test-signing-cert.ps1 -Password "test-password"
-.\scripts\build-installer.ps1 -Version 9.1.1 -Sign -PfxPath ".\artifacts\signing\simplekioskos-test.pfx" -PfxPassword "test-password"
+.\scripts\build-installer.ps1 -Version 9.2.0 -Sign -PfxPath ".\artifacts\signing\simplekioskos-test.pfx" -PfxPassword "test-password"
 ```
 
 On the test machine, trust that test cert before installing:
@@ -169,7 +169,7 @@ To test the fullscreen kiosk shell after the service is running:
 dotnet run --project .\src\OTM.KioskShell\OTM.KioskShell.csproj
 ```
 
-The kiosk shell is the user-facing locked workspace. It runs fullscreen, uses the SimpleKioskOS shield/monitor logo, and launches one approved website or application for the station. Websites open in Microsoft Edge fullscreen kiosk mode by default, with embedded WebView2 as a fallback. The sidebar and open-apps taskbar are removed from the user experience. Admin access is available through a small floating admin button so maintenance is still possible after the app or website has focus. The shell hides the Windows taskbar while locked and installs a low-level keyboard hook to suppress common escape shortcuts such as Alt+F4, Alt+Tab, Ctrl+Esc, Ctrl+Shift+Esc, and Windows-key combinations. Ctrl+Alt+Del cannot be blocked by a normal Windows app and should be handled with Windows policy in production.
+The kiosk shell is the user-facing locked workspace. It runs fullscreen, uses the SimpleKioskOS shield/monitor logo, and launches one approved website or application for the station. Websites open in Microsoft Edge fullscreen kiosk mode by default, with embedded WebView2 as a fallback. The sidebar and open-apps taskbar are removed from the user experience. Admin access is available from the visible **Admin** button on the setup/home screen, from the floating **Admin** pill after a site/app launches, or with `Ctrl+Shift+A` while the shell is running. The shell hides the Windows taskbar while locked and installs a low-level keyboard hook to suppress common escape shortcuts such as Alt+F4, Alt+Tab, Ctrl+Esc, Ctrl+Shift+Esc, and Windows-key combinations. Ctrl+Alt+Del cannot be blocked by a normal Windows app and should be handled with Windows policy in production.
 
 The Control Panel includes a **Kiosk** tab for the dedicated single-purpose station target. When enabled, managed mode auto-opens one approved website through Edge kiosk mode or starts one approved application as the primary kiosk app. This is intended for true web kiosks, museum displays, exam sites, and single-app shared stations.
 
@@ -195,7 +195,7 @@ Disable it with:
 .\scripts\disable-kiosk-shell-startup.ps1
 ```
 
-Branding assets live in `branding\`. The kiosk shell, secondary lock displays, native control panel, and installer payload use the SimpleKioskOS icon, side wordmark, and bottom wordmark.
+Branding assets live in `branding\`. The kiosk shell, secondary lock displays, native control panel, and installer payload use the SimpleKioskOS icon, side wordmark, and bottom wordmark. The local policy also includes a `Branding` section with the default company set to `OTM` and a configurable launcher footer.
 
 ## Install As Windows Service
 
@@ -288,7 +288,7 @@ Close every Edge/Chrome window after clearing policies. If the blocked page is s
 
 ## Simple App Rules
 
-The native control panel includes **Simple App Rules** so admins can allow or block apps without editing policy JSON. Enter a display name, process name such as `chrome.exe`, or browse/type an EXE path, then choose **Add App** or **Block App**. Allowed apps can also be added to the fullscreen kiosk launcher automatically.
+The native control panel includes **Simple App Rules** so admins can allow or block apps without editing policy JSON. Enter a display name, process name such as `msedge.exe`, or browse/type an EXE path, then choose **Add App** or **Block App**. Allowed apps can also be added to the fullscreen kiosk launcher automatically.
 
 The Websites tab works the same way. Add an allowed website and keep **Show allowed site in Launchpad** checked to create an embedded WebView2 workspace directly.
 
