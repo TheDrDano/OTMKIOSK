@@ -13,12 +13,20 @@ public static class PolicyDefaults
             {
                 Enabled = false,
                 StrictApplicationWhitelist = false,
+                BlockUntilShellStarted = true,
                 RestartRequiredApps = true,
                 FullscreenOverlay = false
             },
+            BackgroundApps = DefaultBackgroundApps(),
             BlockedApps = DefaultBlockedApps()
         };
     }
+
+    public static List<AppRule> DefaultBackgroundApps() =>
+    [
+        new AppRule { DisplayName = "SimpleKioskOS Service", ProcessName = "OTM.Service.exe" },
+        new AppRule { DisplayName = "SimpleKioskOS Shell", ProcessName = "OTM.KioskShell.exe" }
+    ];
 
     public static List<AppRule> DefaultBlockedApps() =>
     [

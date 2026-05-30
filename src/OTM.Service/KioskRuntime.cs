@@ -14,10 +14,11 @@ public sealed class KioskRuntime : IDisposable
 
     public KioskPolicy Policy { get; private set; }
     public DateTimeOffset? TemporaryUnlockUntil { get; private set; }
+    public DateTimeOffset? LastShellHeartbeat { get; private set; }
 
     public KioskRuntime()
     {
-        Policy = _store.LoadOrCreate();
+        Policy = NormalizePolicy(_store.LoadOrCreate());
     }
 
     public async Task StartAsync()
@@ -56,6 +57,7 @@ public sealed class KioskRuntime : IDisposable
     {
         lock (_policyLock)
         {
+            policy = NormalizePolicy(policy);
             policy.Version = Math.Max(Policy.Version + 1, policy.Version);
             Policy = policy;
             _store.Save(policy);
@@ -111,6 +113,19 @@ public sealed class KioskRuntime : IDisposable
         SavePolicy(policy, "Kiosk enforcement locked.");
     }
 
+    public void MarkShellHeartbeat()
+    {
+        LastShellHeartbeat = DateTimeOffset.UtcNow;
+    }
+
+    public bool IsShellReady(KioskPolicy? policy = null)
+    {
+        policy ??= GetPolicy();
+        var graceSeconds = Math.Clamp(policy.Enforcement.ShellHeartbeatGraceSeconds, 3, 120);
+        return LastShellHeartbeat is not null
+            && LastShellHeartbeat.Value >= DateTimeOffset.UtcNow.AddSeconds(-graceSeconds);
+    }
+
     public void EmergencyDisableEnforcement(string reason)
     {
         TemporaryUnlockUntil = DateTimeOffset.UtcNow.AddHours(24);
@@ -139,5 +154,23 @@ public sealed class KioskRuntime : IDisposable
         _cts?.Dispose();
         _downloadsGuard?.Dispose();
         _managementServer?.Stop();
+    }
+
+    private static KioskPolicy NormalizePolicy(KioskPolicy policy)
+    {
+        policy.Enforcement ??= new EnforcementPolicy();
+        policy.Restrictions ??= new RestrictionPolicy();
+        policy.Browser ??= new BrowserPolicy();
+        policy.DedicatedKiosk ??= new DedicatedKioskPolicy();
+        policy.Remote ??= new RemoteManagementPolicy();
+        policy.Monitoring ??= new RemoteMonitoringPolicy();
+        policy.Updates ??= new UpdatePolicy();
+        policy.Launchers ??= [];
+        policy.AllowedApps ??= [];
+        policy.BackgroundApps ??= [];
+        policy.BlockedApps ??= [];
+        policy.RequiredApps ??= [];
+        policy.Admin ??= AdminCredential.CreateDefault();
+        return policy;
     }
 }

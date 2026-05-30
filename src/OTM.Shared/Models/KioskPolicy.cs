@@ -18,6 +18,7 @@ public sealed class KioskPolicy
     public UpdatePolicy Updates { get; set; } = new();
     public List<KioskLauncher> Launchers { get; set; } = [];
     public List<AppRule> AllowedApps { get; set; } = [];
+    public List<AppRule> BackgroundApps { get; set; } = [];
     public List<AppRule> BlockedApps { get; set; } = [];
     public List<AppRule> RequiredApps { get; set; } = [];
     public AdminCredential Admin { get; set; } = AdminCredential.CreateDefault();
@@ -27,9 +28,11 @@ public sealed class EnforcementPolicy
 {
     public bool Enabled { get; set; }
     public bool StrictApplicationWhitelist { get; set; }
+    public bool BlockUntilShellStarted { get; set; } = true;
     public bool RestartRequiredApps { get; set; } = true;
     public bool FullscreenOverlay { get; set; }
     public int ProcessScanIntervalMs { get; set; } = 1000;
+    public int ShellHeartbeatGraceSeconds { get; set; } = 10;
     public int TemporaryUnlockMinutes { get; set; } = 15;
 }
 

@@ -7,7 +7,6 @@ param(
     [string]$Tag,
     [Parameter(Mandatory)]
     [string]$InstallerPath,
-    [string]$ManagerInstallerPath,
     [string]$Channel = "stable",
     [string]$OutputPath = "artifacts\release\update-manifest.json",
     [string]$ReleaseNotes = "SimpleKioskOS release"
@@ -25,7 +24,6 @@ if ($normalizedTag.StartsWith("V", [System.StringComparison]::Ordinal)) {
     $normalizedTag = "v" + $normalizedTag.Substring(1)
 }
 
-$releaseBaseUrl = "https://github.com/$Repository/releases/latest/download"
 $installerUrl = "https://github.com/$Repository/releases/latest/download/$($installer.Name)"
 $sha256 = (Get-FileHash -Path $installer.FullName -Algorithm SHA256).Hash.ToLowerInvariant()
 
@@ -43,16 +41,6 @@ $manifest = [ordered]@{
     updateBehavior = "prompt-and-download-only"
     autoInstallEnabled = $false
     releaseUrl = "https://github.com/$Repository/releases/tag/$normalizedTag"
-}
-
-if ($ManagerInstallerPath -and (Test-Path $ManagerInstallerPath)) {
-    $managerInstaller = Get-Item $ManagerInstallerPath
-    $manifest.managerVersion = $Version
-    $manifest.managerInstallerUrl = "$releaseBaseUrl/$($managerInstaller.Name)"
-    $manifest.managerSha256 = (Get-FileHash -Path $managerInstaller.FullName -Algorithm SHA256).Hash.ToLowerInvariant()
-    $manifest.managerInstallerName = $managerInstaller.Name
-    $manifest.managerInstallerSize = $managerInstaller.Length
-    $manifest.managerUpdateBehavior = "prompt-and-download-only"
 }
 
 $outputDirectory = Split-Path -Parent $OutputPath

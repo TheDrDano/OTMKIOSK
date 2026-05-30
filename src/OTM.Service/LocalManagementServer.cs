@@ -23,8 +23,6 @@ public sealed class LocalManagementServer
     private readonly KioskRuntime _runtime;
     private readonly SqliteKioskStore _logs;
     private readonly HttpListener _listener = new();
-    private string? _pairingCode;
-    private DateTimeOffset? _pairingExpiresAt;
     private bool _closed;
 
     public LocalManagementServer(KioskRuntime runtime, SqliteKioskStore logs)
@@ -33,7 +31,6 @@ public sealed class LocalManagementServer
         _logs = logs;
         _listener.Prefixes.Add("http://localhost:47821/");
         _listener.Prefixes.Add("http://127.0.0.1:47821/");
-        _listener.Prefixes.Add("http://+:47821/");
     }
 
     public async Task RunAsync(CancellationToken cancellationToken)
@@ -74,16 +71,7 @@ public sealed class LocalManagementServer
 
     private void StartListenerWithFallback()
     {
-        try
-        {
-            _listener.Start();
-        }
-        catch (HttpListenerException) when (_listener.Prefixes.Contains("http://+:47821/"))
-        {
-            _listener.Prefixes.Remove("http://+:47821/");
-            _listener.Start();
-            _runtime.Log("Warning", "LocalApiLanDisabled", "LAN API binding failed; local-only API binding is active.");
-        }
+        _listener.Start();
     }
 
     public void Stop()
@@ -167,6 +155,13 @@ public sealed class LocalManagementServer
                 return;
             }
 
+            if (path.Equals("/api/kiosk/shell-heartbeat", StringComparison.OrdinalIgnoreCase) && request.HttpMethod == "POST")
+            {
+                _runtime.MarkShellHeartbeat();
+                await WriteJsonAsync(response, new { ok = true, shellReady = true });
+                return;
+            }
+
             if (path.Equals("/api/kiosk/violation", StringComparison.OrdinalIgnoreCase) && request.HttpMethod == "POST")
             {
                 var violation = await ReadJsonAsync<KioskViolationRequest>(request);
@@ -225,26 +220,6 @@ public sealed class LocalManagementServer
                 _runtime.SavePolicy(policy, "Policy updated from native control panel.");
                 ApplyBrowserPolicySafely(policy);
                 await WriteJsonAsync(response, _runtime.GetPolicy());
-                return;
-            }
-
-            if (path.Equals("/api/device/pairing-code", StringComparison.OrdinalIgnoreCase) && request.HttpMethod == "POST")
-            {
-                _pairingCode = RandomNumberGenerator.GetInt32(100000, 1000000).ToString();
-                _pairingExpiresAt = DateTimeOffset.UtcNow.AddMinutes(10);
-                _runtime.Log("Info", "LanPairingCodeGenerated", "Local pairing code generated from control panel.");
-                await WriteJsonAsync(response, new
-                {
-                    code = _pairingCode,
-                    expiresAt = _pairingExpiresAt,
-                    device = GetDeviceStatus()
-                });
-                return;
-            }
-
-            if (path.Equals("/api/remote/status", StringComparison.OrdinalIgnoreCase) && request.HttpMethod == "GET")
-            {
-                await WriteJsonAsync(response, GetRemoteStatus());
                 return;
             }
 
@@ -377,60 +352,16 @@ public sealed class LocalManagementServer
     {
         var policy = _runtime.GetPolicy();
         var identity = LoadOrCreateDeviceIdentity();
-        var now = DateTimeOffset.UtcNow;
-        if (_pairingExpiresAt.HasValue && _pairingExpiresAt.Value <= now)
-        {
-            _pairingCode = null;
-            _pairingExpiresAt = null;
-        }
 
         return new
         {
             identity.DeviceId,
             identity.DeviceName,
             configuredName = GetConfiguredDeviceName(identity, policy),
-            pairingEnabled = !string.IsNullOrWhiteSpace(_pairingCode) && _pairingExpiresAt.HasValue && _pairingExpiresAt.Value > now,
-            pairingExpiresAt = _pairingExpiresAt,
-            lanApiEnabled = true,
+            pairingEnabled = false,
+            lanApiEnabled = false,
             localApiUrl = "http://localhost:47821",
-            remoteFoundation = "local-only"
-        };
-    }
-
-    private object GetRemoteStatus()
-    {
-        var policy = _runtime.GetPolicy();
-        policy.Updates ??= new UpdatePolicy();
-        var identity = LoadOrCreateDeviceIdentity();
-        return new
-        {
-            deviceId = identity.DeviceId,
-            deviceName = GetConfiguredDeviceName(identity, policy),
-            remoteEnabled = policy.Remote.Enabled,
-            serverUrl = policy.Remote.ServerUrl,
-            organizationId = policy.Remote.OrganizationId,
-            allowRemotePolicyPush = policy.Remote.AllowRemotePolicyPush,
-            allowRemoteUnlock = policy.Remote.AllowRemoteUnlock,
-            allowRemoteUpdate = policy.Remote.AllowRemoteUpdate,
-            lastSyncAt = policy.Remote.LastSyncAt,
-            updatesEnabled = policy.Updates.Enabled,
-            updateChannel = policy.Updates.Channel,
-            updateManifestUrl = policy.Updates.ManifestUrl,
-            lastUpdateCheck = policy.Updates.LastCheckedAt,
-            lastUpdateMessage = policy.Updates.LastCheckMessage,
-            lastAvailableVersion = policy.Updates.LastAvailableVersion,
-            lastInstallerUrl = policy.Updates.LastInstallerUrl,
-            lastInstallerSha256 = policy.Updates.LastInstallerSha256,
-            lastReleaseNotes = policy.Updates.LastReleaseNotes,
-            lastDownloadedAt = policy.Updates.LastDownloadedAt,
-            lastDownloadedVersion = policy.Updates.LastDownloadedVersion,
-            lastDownloadedPath = policy.Updates.LastDownloadedPath,
-            lastDownloadMessage = policy.Updates.LastDownloadMessage,
-            monitoringEnabled = policy.Monitoring?.Enabled == true,
-            monitoringScreenViewAllowed = policy.Monitoring?.AllowScreenView == true,
-            monitoringLanOnly = policy.Monitoring?.LanOnly != false,
-            currentVersion = GetCurrentVersion(),
-            state = policy.Remote.Enabled ? "configured" : "local-only"
+            remoteFoundation = "disabled"
         };
     }
 
@@ -796,7 +727,7 @@ public sealed class LocalManagementServer
 
     private static string GetCurrentVersion()
     {
-        return Assembly.GetExecutingAssembly().GetName().Version?.ToString(3) ?? "8.1.2";
+        return Assembly.GetExecutingAssembly().GetName().Version?.ToString(3) ?? "9.0.0";
     }
 
     private static string GetConfiguredDeviceName(DeviceIdentity identity, KioskPolicy policy)
@@ -917,6 +848,7 @@ public sealed class LocalManagementServer
         {
             "BlockedProcess",
             "WhitelistViolation",
+            "ShellStartupGuard",
             "DownloadDeleted",
             "DownloadQuarantined",
             "DownloadBlockFailed",

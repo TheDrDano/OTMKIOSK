@@ -3,8 +3,8 @@
     <TargetFramework>net8.0-windows</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
-    <Company>OTM</Company>
-    <Product>OTM Kiosk</Product>
-    <AssemblyCopyright>Copyright OTM</AssemblyCopyright>
+    <Company>SimpleKioskOS</Company>
+    <Product>SimpleKioskOS</Product>
+    <AssemblyCopyright>Copyright SimpleKioskOS</AssemblyCopyright>
   </PropertyGroup>
 </Project>

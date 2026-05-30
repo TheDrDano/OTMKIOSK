@@ -26,12 +26,11 @@ if (Get-Service -Name "OTMKioskService" -ErrorAction SilentlyContinue) {
     Start-Sleep -Seconds 2
 }
 
-sc.exe create "OTMKioskService" binPath= "`"$serviceExe`"" start= auto DisplayName= "OTM Kiosk Service" | Out-Null
-sc.exe description "OTMKioskService" "Local-first Windows lockdown and kiosk enforcement service." | Out-Null
-netsh advfirewall firewall add rule name="SimpleKioskOS Local API" dir=in action=allow protocol=TCP localport=47821 profile=any | Out-Null
+sc.exe create "OTMKioskService" binPath= "`"$serviceExe`"" start= auto DisplayName= "SimpleKioskOS Service" | Out-Null
+sc.exe description "OTMKioskService" "Local-first fullscreen workspace and kiosk enforcement service." | Out-Null
 Start-Service -Name "OTMKioskService"
 
-Write-Host "Installed OTM Kiosk Service."
+Write-Host "Installed SimpleKioskOS Service."
 Write-Host "Fullscreen shell: $(Join-Path $InstallRoot "KioskShell\OTM.KioskShell.exe")"
 Write-Host "Local API: http://localhost:47821"
 Write-Host "First-run PIN: 123456"

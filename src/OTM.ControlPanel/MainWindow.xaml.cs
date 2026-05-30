@@ -50,6 +50,7 @@ public partial class MainWindow : Window
 
         _currentPolicy.Enforcement.Enabled = EnableEnforcementCheckBox.IsChecked == true;
         _currentPolicy.Enforcement.StrictApplicationWhitelist = StrictWhitelistCheckBox.IsChecked == true;
+        _currentPolicy.Enforcement.BlockUntilShellStarted = ShellGuardCheckBox.IsChecked == true;
         await SaveCurrentPolicyAsync("Workspace mode saved.");
     }
 
@@ -93,6 +94,7 @@ public partial class MainWindow : Window
             _currentPolicy = policy;
             EnableEnforcementCheckBox.IsChecked = policy?.Enforcement.Enabled == true;
             StrictWhitelistCheckBox.IsChecked = policy?.Enforcement.StrictApplicationWhitelist == true;
+            ShellGuardCheckBox.IsChecked = policy?.Enforcement.BlockUntilShellStarted != false;
             BrowserEnabledCheckBox.IsChecked = policy?.Browser.Enabled == true;
             WhitelistOnlyCheckBox.IsChecked = policy?.Browser.WhitelistOnly == true;
             BrowserBlockDownloadsCheckBox.IsChecked = policy?.Browser.BlockDownloads == true;
@@ -160,6 +162,14 @@ public partial class MainWindow : Window
         if (BlockedAppsGrid.SelectedItem is AppRule rule)
         {
             await RemoveAppRuleAsync(_currentPolicy?.BlockedApps, rule, "Blocked app removed.");
+        }
+    }
+
+    private async void RemoveBackgroundApp_Click(object sender, RoutedEventArgs e)
+    {
+        if (BackgroundAppsGrid.SelectedItem is AppRule rule)
+        {
+            await RemoveAppRuleAsync(_currentPolicy?.BackgroundApps, rule, "Background app removed.");
         }
     }
 
@@ -487,7 +497,18 @@ public partial class MainWindow : Window
 
         if (allow)
         {
+            if (AddBackgroundAppCheckBox.IsChecked == true)
+            {
+                UpsertRule(_currentPolicy.BackgroundApps, rule);
+                RemoveMatchingRule(_currentPolicy.AllowedApps, rule);
+                RemoveMatchingRule(_currentPolicy.BlockedApps, rule);
+                RemoveMatchingLauncher(rule);
+                await SaveCurrentPolicyAsync("Background app saved.");
+                return;
+            }
+
             UpsertRule(_currentPolicy.AllowedApps, rule);
+            RemoveMatchingRule(_currentPolicy.BackgroundApps, rule);
             RemoveMatchingRule(_currentPolicy.BlockedApps, rule);
 
             if (AddLauncherCheckBox.IsChecked == true)
@@ -617,6 +638,7 @@ public partial class MainWindow : Window
     private void BindAppRules()
     {
         AllowedAppsGrid.ItemsSource = _currentPolicy?.AllowedApps.OrderBy(app => app.DisplayName).ToList() ?? [];
+        BackgroundAppsGrid.ItemsSource = _currentPolicy?.BackgroundApps.OrderBy(app => app.DisplayName).ToList() ?? [];
         BlockedAppsGrid.ItemsSource = _currentPolicy?.BlockedApps.OrderBy(app => app.DisplayName).ToList() ?? [];
     }
 
@@ -711,6 +733,8 @@ public partial class MainWindow : Window
         AppDisplayNameBox.Clear();
         AppProcessNameBox.Clear();
         AppPathBox.Clear();
+        AddLauncherCheckBox.IsChecked = true;
+        AddBackgroundAppCheckBox.IsChecked = false;
     }
 
     private void UpsertLauncher(AppRule rule)
@@ -825,15 +849,20 @@ public partial class MainWindow : Window
 
     private static string ToWorkspaceUrl(string site)
     {
-        var normalized = NormalizeSite(site);
+        var trimmed = site.Trim();
+        if (Uri.TryCreate(trimmed, UriKind.Absolute, out var uri)
+            && (uri.Scheme == Uri.UriSchemeHttp || uri.Scheme == Uri.UriSchemeHttps))
+        {
+            return trimmed;
+        }
+
+        var normalized = NormalizeSite(trimmed);
         if (string.IsNullOrWhiteSpace(normalized))
         {
             return "";
         }
 
-        return normalized.Contains("://", StringComparison.OrdinalIgnoreCase)
-            ? normalized
-            : $"https://{normalized}/";
+        return $"https://{normalized}/";
     }
 
     private static void UpsertSite(List<string> sites, string site)

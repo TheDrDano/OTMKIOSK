@@ -53,6 +53,7 @@ public partial class MainWindow : Window
     private readonly DispatcherTimer _focusTimer = new() { Interval = TimeSpan.FromSeconds(2) };
     private readonly DispatcherTimer _noticeTimer = new() { Interval = TimeSpan.FromSeconds(6) };
     private readonly DispatcherTimer _violationTimer = new() { Interval = TimeSpan.FromSeconds(4) };
+    private readonly DispatcherTimer _heartbeatTimer = new() { Interval = TimeSpan.FromSeconds(2) };
     private readonly List<SecondaryDisplayWindow> _secondaryWindows = [];
     private readonly List<ManagedApp> _managedApps = [];
     private List<KioskLauncher> _launchers = [];
@@ -82,6 +83,7 @@ public partial class MainWindow : Window
             InstallKeyboardHook();
             SetSystemLockdownActive(true);
             EnforceFullscreen();
+            await SendShellHeartbeatAsync();
             await RefreshAsync();
         };
         _clockTimer.Tick += (_, _) => ClockText.Text = DateTime.Now.ToString("dddd, MMM d  h:mm tt");
@@ -90,6 +92,8 @@ public partial class MainWindow : Window
         _focusTimer.Start();
         _violationTimer.Tick += async (_, _) => await PollViolationsAsync();
         _violationTimer.Start();
+        _heartbeatTimer.Tick += async (_, _) => await SendShellHeartbeatAsync();
+        _heartbeatTimer.Start();
         _noticeTimer.Tick += (_, _) =>
         {
             NoticePanel.Visibility = Visibility.Collapsed;
@@ -228,6 +232,23 @@ public partial class MainWindow : Window
             return;
         }
 
+        await LaunchLauncherAsync(launcher);
+    }
+
+    private async void PrimaryLaunch_Click(object sender, RoutedEventArgs e)
+    {
+        var launcher = GetPrimaryLauncher();
+        if (launcher is null)
+        {
+            SetAdminPanelOpen(true);
+            return;
+        }
+
+        await LaunchLauncherAsync(launcher);
+    }
+
+    private async Task LaunchLauncherAsync(KioskLauncher launcher)
+    {
         try
         {
             var approved = await RequestLaunchAsync(launcher);
@@ -262,9 +283,7 @@ public partial class MainWindow : Window
                 : $"{state.PolicyName}: managed mode {(state.EnforcementEnabled ? "on" : "off")}";
             SafeTestBanner.Visibility = state?.EnforcementEnabled == false ? Visibility.Visible : Visibility.Collapsed;
             LaunchersList.ItemsSource = _launchers;
-            WorkspaceSubtitle.Text = _launchers.Count == 0
-                ? "No launchers are configured. Open admin controls to add apps or websites."
-                : "Choose an approved app, website, or workspace from the launcher.";
+            ConfigureLaunchpadHome();
             await AutoLaunchDedicatedKioskAsync(state);
         }
         catch (Exception ex)
@@ -272,6 +291,58 @@ public partial class MainWindow : Window
             StatusText.Text = "Waiting for kiosk service";
             LaunchersList.ItemsSource = Array.Empty<KioskLauncher>();
             ShowNotice("Service unavailable", "The kiosk service is not responding yet. Local controls will reconnect automatically.", NoticeKind.Warning);
+            Debug.WriteLine(ex);
+        }
+    }
+
+    private void ConfigureLaunchpadHome()
+    {
+        var primary = GetPrimaryLauncher();
+        if (primary is null)
+        {
+            WorkspaceTitle.Text = "Setup SimpleKioskOS";
+            WorkspaceSubtitle.Text = "No launch target is configured yet.";
+            PrimaryLaunchText.Text = "Setup station";
+            LaunchpadHintText.Text = "Sign in as admin to add the website or app this station should run.";
+            SetLaunchpadRailVisible(false);
+            return;
+        }
+
+        WorkspaceTitle.Text = primary.DisplayName;
+        WorkspaceSubtitle.Text = "This station is ready.";
+        PrimaryLaunchText.Text = $"Launch {primary.DisplayName}";
+        LaunchpadHintText.Text = string.Equals(primary.Type, KioskLauncherTypes.Web, StringComparison.OrdinalIgnoreCase)
+            ? "The website opens fullscreen with no address bar. Use the admin corner to unlock for maintenance."
+            : "Only approved apps stay open while managed mode is active.";
+        SetLaunchpadRailVisible(_launchers.Count > 1 && !_webFocusMode);
+    }
+
+    private KioskLauncher? GetPrimaryLauncher()
+    {
+        return _launchers.FirstOrDefault(IsDedicatedKiosk)
+            ?? _launchers.FirstOrDefault(launcher => launcher.Required)
+            ?? _launchers.FirstOrDefault();
+    }
+
+    private void SetLaunchpadRailVisible(bool visible)
+    {
+        if (_webFocusMode)
+        {
+            return;
+        }
+
+        LeftRail.Visibility = visible ? Visibility.Visible : Visibility.Collapsed;
+        LeftRailColumn.Width = visible ? new GridLength(292) : new GridLength(0);
+    }
+
+    private async Task SendShellHeartbeatAsync()
+    {
+        try
+        {
+            await _client.PostAsync("/api/kiosk/shell-heartbeat", new StringContent("{}", Encoding.UTF8, "application/json"));
+        }
+        catch (Exception ex)
+        {
             Debug.WriteLine(ex);
         }
     }
@@ -355,10 +426,7 @@ public partial class MainWindow : Window
         Topmost = true;
         SetSecondaryCoversVisible(true);
         ExamBrowser.CoreWebView2?.Navigate(launcher.Url);
-        if (IsDedicatedKiosk(launcher))
-        {
-            SetWebFocusMode(true);
-        }
+        SetWebFocusMode(true);
     }
 
     private void SetWebFocusMode(bool enabled)

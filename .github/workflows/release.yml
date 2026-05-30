@@ -10,7 +10,7 @@ on:
       version:
         description: "Release version without leading v"
         required: true
-        default: "8.1.2"
+        default: "9.0.0"
       allow_unsigned:
         description: "Allow unsigned release artifacts"
         required: true
@@ -81,31 +81,17 @@ jobs:
             .\scripts\build-installer.ps1 -Version "${{ steps.version.outputs.version }}"
           }
 
-      - name: Build Remote Manager installer
-        shell: pwsh
-        env:
-          OTM_SIGN_PFX_PATH: artifacts\signing\otm-signing.pfx
-          OTM_SIGN_PFX_PASSWORD: ${{ secrets.OTM_SIGN_PFX_PASSWORD }}
-        run: |
-          if (Test-Path $env:OTM_SIGN_PFX_PATH) {
-            .\scripts\build-manager-installer.ps1 -Version "${{ steps.version.outputs.version }}" -Sign
-          } else {
-            .\scripts\build-manager-installer.ps1 -Version "${{ steps.version.outputs.version }}"
-          }
-
       - name: Create update manifest
         shell: pwsh
         run: |
           $station = Get-ChildItem .\artifacts\installer -Filter OTM-Kiosk-Setup.exe | Select-Object -First 1
-          $manager = Get-ChildItem .\artifacts\manager-installer -Filter SimpleKioskOS-Remote-Manager-Setup.exe | Select-Object -First 1
           .\scripts\create-update-manifest.ps1 `
             -Version "${{ steps.version.outputs.version }}" `
             -Repository "${{ github.repository }}" `
             -Tag "${{ steps.version.outputs.tag }}" `
             -InstallerPath $station.FullName `
-            -ManagerInstallerPath $manager.FullName `
             -OutputPath ".\artifacts\release\update-manifest.json" `
-            -ReleaseNotes "SimpleKioskOS ${{ steps.version.outputs.version }} stable release. Includes the Launchpad visual refresh, updated Remote Manager styling, taskbar power controls, and station update download support."
+            -ReleaseNotes "SimpleKioskOS ${{ steps.version.outputs.version }} station release. Includes local Launchpad setup, dedicated fullscreen website/app mode, startup shell guard, background app exceptions, and station update download support."
 
       - name: Publish GitHub release
         shell: pwsh
@@ -113,17 +99,17 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           $tag = "${{ steps.version.outputs.tag }}"
-          $notes = "SimpleKioskOS ${{ steps.version.outputs.version }} stable release. Includes the Launchpad visual refresh, updated Remote Manager styling, taskbar power controls, and station update download support."
+          $title = "SimpleKioskOS ${{ steps.version.outputs.version }}"
+          $notes = "SimpleKioskOS ${{ steps.version.outputs.version }} station release. Includes local Launchpad setup, dedicated fullscreen website/app mode, startup shell guard, background app exceptions, and station update download support."
           $files = @(
             (Get-ChildItem .\artifacts\installer -Filter OTM-Kiosk-Setup.exe | Select-Object -First 1).FullName,
-            (Get-ChildItem .\artifacts\manager-installer -Filter SimpleKioskOS-Remote-Manager-Setup.exe | Select-Object -First 1).FullName,
             (Resolve-Path .\artifacts\release\update-manifest.json).Path
           )
           gh release view $tag 2>$null
           if ($LASTEXITCODE -eq 0) {
             gh release upload $tag @files --clobber
           } else {
-            gh release create $tag @files --title $notes --notes $notes
+            gh release create $tag @files --title $title --notes $notes
           }
 
       - name: Upload release artifacts
@@ -132,5 +118,4 @@ jobs:
           name: SimpleKioskOS-Release
           path: |
             artifacts/installer/*.exe
-            artifacts/manager-installer/*.exe
             artifacts/release/update-manifest.json

@@ -1,7 +1,7 @@
 #define MyAppName "SimpleKioskOS"
 #define MyAppVersion GetEnv("OTM_KIOSK_VERSION")
 #if MyAppVersion == ""
-  #define MyAppVersion "8.1.2"
+  #define MyAppVersion "9.0.0"
 #endif
 #define MyAppPublisher "SimpleKioskOS"
 #define MyAppExeName "OTM.ControlPanel.exe"
@@ -74,10 +74,9 @@ Root: HKLM; Subkey: "Software\Microsoft\Windows\CurrentVersion\Run"; ValueType: 
 
 [Run]
 Filename: "{tmp}\MicrosoftEdgeWebView2Setup.exe"; Parameters: "/silent /install"; StatusMsg: "Installing Microsoft Edge WebView2 Runtime for exam/web kiosk mode..."; Check: not IsWebView2RuntimePresent; AfterInstall: VerifyWebView2Installed; Flags: waituntilterminated runhidden
-Filename: "{sys}\sc.exe"; Parameters: "create OTMKioskService binPath= ""{app}\Service\{#ServiceExeName}"" start= auto DisplayName= ""OTM Kiosk Service"""; Flags: runhidden waituntilterminated
-Filename: "{sys}\sc.exe"; Parameters: "description OTMKioskService ""Local-first Windows lockdown and kiosk enforcement service."""; Flags: runhidden waituntilterminated
+Filename: "{sys}\sc.exe"; Parameters: "create OTMKioskService binPath= ""{app}\Service\{#ServiceExeName}"" start= auto DisplayName= ""SimpleKioskOS Service"""; Flags: runhidden waituntilterminated
+Filename: "{sys}\sc.exe"; Parameters: "description OTMKioskService ""Local-first fullscreen workspace and kiosk enforcement service."""; Flags: runhidden waituntilterminated
 Filename: "{sys}\sc.exe"; Parameters: "failure OTMKioskService reset= 86400 actions= restart/5000/restart/10000/restart/30000"; Flags: runhidden waituntilterminated
-Filename: "{sys}\netsh.exe"; Parameters: "advfirewall firewall add rule name=""SimpleKioskOS Local API"" dir=in action=allow protocol=TCP localport=47821 profile=any"; Flags: runhidden waituntilterminated
 Filename: "{sys}\sc.exe"; Parameters: "start OTMKioskService"; Flags: runhidden waituntilterminated
 Filename: "{app}\ControlPanel\{#MyAppExeName}"; Description: "Open SimpleKioskOS Control Panel"; Flags: nowait postinstall skipifsilent
 
@@ -89,7 +88,6 @@ Filename: "{sys}\taskkill.exe"; Parameters: "/IM OTM.KioskShell.exe /F /T"; Flag
 Filename: "{sys}\taskkill.exe"; Parameters: "/IM OTM.Service.exe /F /T"; Flags: runhidden waituntilterminated
 Filename: "{sys}\taskkill.exe"; Parameters: "/IM OTM.ControlPanel.exe /F /T"; Flags: runhidden waituntilterminated
 Filename: "{sys}\taskkill.exe"; Parameters: "/IM OTM.RecoveryTool.exe /F /T"; Flags: runhidden waituntilterminated
-Filename: "{sys}\netsh.exe"; Parameters: "advfirewall firewall delete rule name=""SimpleKioskOS Local API"""; Flags: runhidden waituntilterminated
 Filename: "{sys}\sc.exe"; Parameters: "delete OTMKioskService"; Flags: runhidden waituntilterminated
 
 [Code]

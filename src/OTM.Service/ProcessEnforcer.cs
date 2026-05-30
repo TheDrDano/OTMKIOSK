@@ -11,8 +11,9 @@ public sealed class ProcessEnforcer
         "System", "Idle", "Registry", "smss", "csrss", "wininit", "winlogon", "services",
         "lsass", "svchost", "fontdrvhost", "dwm", "explorer", "sihost", "taskhostw",
         "RuntimeBroker", "SearchIndexer", "StartMenuExperienceHost", "ShellExperienceHost",
-        "SecurityHealthSystray", "OTM.Service", "OTM.ControlPanel", "OTM.RecoveryTool", "OTM.KioskShell",
-        "unins000", "unins001", "unins002"
+        "TextInputHost", "SearchHost", "SecurityHealthSystray", "msedgewebview2",
+        "OTM.Service", "OTM.ControlPanel", "OTM.RecoveryTool", "OTM.KioskShell",
+        "OTM-Kiosk-Setup", "unins000", "unins001", "unins002"
     };
 
     private readonly KioskRuntime _runtime;
@@ -62,6 +63,12 @@ public sealed class ProcessEnforcer
                 }
 
                 var path = SafeMainModulePath(process);
+                if (IsStartupGuardViolation(policy, name, path, process))
+                {
+                    Kill(process, "ShellStartupGuard", $"Process blocked before SimpleKioskOS shell was ready: {name}", path);
+                    continue;
+                }
+
                 if (IsBlocked(policy, name, path))
                 {
                     Kill(process, "BlockedProcess", $"Blocked process killed: {name}", path);
@@ -123,9 +130,31 @@ public sealed class ProcessEnforcer
     private static bool IsAllowed(KioskPolicy policy, string processName, string? path)
     {
         return policy.AllowedApps.Any(rule => Matches(rule, processName, path))
+            || policy.BackgroundApps.Any(rule => Matches(rule, processName, path))
             || policy.Launchers.Any(launcher =>
                 string.Equals(launcher.Type, KioskLauncherTypes.App, StringComparison.OrdinalIgnoreCase)
                 && Matches(ToAppRule(launcher), processName, path));
+    }
+
+    private bool IsStartupGuardViolation(KioskPolicy policy, string processName, string? path, Process process)
+    {
+        if (!policy.Enforcement.BlockUntilShellStarted || _runtime.IsShellReady(policy))
+        {
+            return false;
+        }
+
+        if (IsShellBootstrapAllowed(policy, processName, path))
+        {
+            return false;
+        }
+
+        return ShouldCheckWhitelist(process, path);
+    }
+
+    private static bool IsShellBootstrapAllowed(KioskPolicy policy, string processName, string? path)
+    {
+        return ProtectedProcesses.Contains(processName)
+            || policy.BackgroundApps.Any(rule => Matches(rule, processName, path));
     }
 
     private static AppRule ToAppRule(KioskLauncher launcher)
