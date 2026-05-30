@@ -1,7 +1,7 @@
 #define MyAppName "SimpleKioskOS"
 #define MyAppVersion GetEnv("OTM_KIOSK_VERSION")
 #if MyAppVersion == ""
-  #define MyAppVersion "9.0.0"
+  #define MyAppVersion "9.1.0"
 #endif
 #define MyAppPublisher "SimpleKioskOS"
 #define MyAppExeName "OTM.ControlPanel.exe"
@@ -35,6 +35,7 @@ Name: "english"; MessagesFile: "compiler:Default.isl"
 [Tasks]
 Name: "desktopicon"; Description: "Create a desktop shortcut"; GroupDescription: "Shortcuts:"
 Name: "startupshell"; Description: "Start fullscreen kiosk shell when Windows signs in"; GroupDescription: "Kiosk shell:"
+Name: "startupupdates"; Description: "Check GitHub and download verified updates when SimpleKioskOS starts"; GroupDescription: "Updates:"; Flags: unchecked
 
 [Files]
 Source: "..\artifacts\stage\service\*"; DestDir: "{app}\Service"; Flags: ignoreversion recursesubdirs createallsubdirs
@@ -77,6 +78,8 @@ Filename: "{tmp}\MicrosoftEdgeWebView2Setup.exe"; Parameters: "/silent /install"
 Filename: "{sys}\sc.exe"; Parameters: "create OTMKioskService binPath= ""{app}\Service\{#ServiceExeName}"" start= auto DisplayName= ""SimpleKioskOS Service"""; Flags: runhidden waituntilterminated
 Filename: "{sys}\sc.exe"; Parameters: "description OTMKioskService ""Local-first fullscreen workspace and kiosk enforcement service."""; Flags: runhidden waituntilterminated
 Filename: "{sys}\sc.exe"; Parameters: "failure OTMKioskService reset= 86400 actions= restart/5000/restart/10000/restart/30000"; Flags: runhidden waituntilterminated
+Filename: "{app}\Service\{#ServiceExeName}"; Parameters: "--configure-startup-updates true"; Check: ShouldEnableStartupUpdates; Flags: runhidden waituntilterminated
+Filename: "{app}\Service\{#ServiceExeName}"; Parameters: "--configure-startup-updates false"; Check: ShouldDisableStartupUpdates; Flags: runhidden waituntilterminated
 Filename: "{sys}\sc.exe"; Parameters: "start OTMKioskService"; Flags: runhidden waituntilterminated
 Filename: "{app}\ControlPanel\{#MyAppExeName}"; Description: "Open SimpleKioskOS Control Panel"; Flags: nowait postinstall skipifsilent
 
@@ -107,6 +110,16 @@ begin
     HasWebView2RuntimeVersion(HKLM, 'SOFTWARE\WOW6432Node\Microsoft\EdgeUpdate\Clients\{F3017226-FE2A-4295-8BDF-00C3A9A7E4C5}') or
     HasWebView2RuntimeVersion(HKLM, 'SOFTWARE\Microsoft\EdgeUpdate\Clients\{F3017226-FE2A-4295-8BDF-00C3A9A7E4C5}') or
     HasWebView2RuntimeVersion(HKCU, 'Software\Microsoft\EdgeUpdate\Clients\{F3017226-FE2A-4295-8BDF-00C3A9A7E4C5}');
+end;
+
+function ShouldEnableStartupUpdates(): Boolean;
+begin
+  Result := WizardIsTaskSelected('startupupdates');
+end;
+
+function ShouldDisableStartupUpdates(): Boolean;
+begin
+  Result := not WizardIsTaskSelected('startupupdates');
 end;
 
 procedure VerifyWebView2Installed();

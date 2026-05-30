@@ -15,6 +15,8 @@ public sealed class KioskRuntime : IDisposable
     public KioskPolicy Policy { get; private set; }
     public DateTimeOffset? TemporaryUnlockUntil { get; private set; }
     public DateTimeOffset? LastShellHeartbeat { get; private set; }
+    public DateTimeOffset? MaintenanceHoldUntil { get; private set; }
+    public string MaintenanceHoldReason { get; private set; } = "";
 
     public KioskRuntime()
     {
@@ -72,12 +74,16 @@ public sealed class KioskRuntime : IDisposable
         var policy = GetPolicy();
         var now = DateTimeOffset.UtcNow;
         var unlockActive = TemporaryUnlockUntil is not null && TemporaryUnlockUntil > now;
+        var maintenanceHoldActive = MaintenanceHoldUntil is not null && MaintenanceHoldUntil > now;
         return new RuntimeState
         {
             ServiceRunning = true,
-            EnforcementEnabled = policy.Enforcement.Enabled && !unlockActive,
-            TemporaryUnlockActive = unlockActive,
-            TemporaryUnlockUntil = TemporaryUnlockUntil,
+            EnforcementEnabled = policy.Enforcement.Enabled && !unlockActive && !maintenanceHoldActive,
+            TemporaryUnlockActive = unlockActive || maintenanceHoldActive,
+            TemporaryUnlockUntil = unlockActive ? TemporaryUnlockUntil : this.MaintenanceHoldUntil,
+            MaintenanceHoldActive = maintenanceHoldActive,
+            MaintenanceHoldUntil = this.MaintenanceHoldUntil,
+            MaintenanceHoldReason = maintenanceHoldActive ? this.MaintenanceHoldReason : "",
             PolicyName = policy.Name,
             CurrentTime = now
         };
@@ -87,6 +93,11 @@ public sealed class KioskRuntime : IDisposable
     {
         var policy = GetPolicy();
         if (!policy.Enforcement.Enabled)
+        {
+            return false;
+        }
+
+        if (MaintenanceHoldUntil is not null && MaintenanceHoldUntil > DateTimeOffset.UtcNow)
         {
             return false;
         }
@@ -108,9 +119,30 @@ public sealed class KioskRuntime : IDisposable
     public void Relock()
     {
         TemporaryUnlockUntil = null;
+        MaintenanceHoldUntil = null;
+        MaintenanceHoldReason = "";
         var policy = GetPolicy();
         policy.Enforcement.Enabled = true;
         SavePolicy(policy, "Kiosk enforcement locked.");
+    }
+
+    public void BeginMaintenanceHold(TimeSpan duration, string reason)
+    {
+        MaintenanceHoldUntil = DateTimeOffset.UtcNow.Add(duration);
+        MaintenanceHoldReason = reason;
+        Log("Info", "MaintenanceHoldStarted", $"{reason} Enforcement is paused until {MaintenanceHoldUntil:O}.");
+    }
+
+    public void EndMaintenanceHold(string reason)
+    {
+        if (MaintenanceHoldUntil is null)
+        {
+            return;
+        }
+
+        MaintenanceHoldUntil = null;
+        MaintenanceHoldReason = "";
+        Log("Info", "MaintenanceHoldEnded", reason);
     }
 
     public void MarkShellHeartbeat()

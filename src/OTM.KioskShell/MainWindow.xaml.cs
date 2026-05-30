@@ -54,6 +54,7 @@ public partial class MainWindow : Window
     private readonly DispatcherTimer _noticeTimer = new() { Interval = TimeSpan.FromSeconds(6) };
     private readonly DispatcherTimer _violationTimer = new() { Interval = TimeSpan.FromSeconds(4) };
     private readonly DispatcherTimer _heartbeatTimer = new() { Interval = TimeSpan.FromSeconds(2) };
+    private readonly DispatcherTimer _statusTimer = new() { Interval = TimeSpan.FromSeconds(5) };
     private readonly List<SecondaryDisplayWindow> _secondaryWindows = [];
     private readonly List<ManagedApp> _managedApps = [];
     private List<KioskLauncher> _launchers = [];
@@ -61,11 +62,13 @@ public partial class MainWindow : Window
     private string _autoLaunchedKioskId = "";
     private DateTimeOffset _yieldFocusUntil = DateTimeOffset.MinValue;
     private DateTimeOffset _lastViolationPoll = DateTimeOffset.UtcNow.AddMinutes(-5);
+    private AdminButtonWindow? _adminButtonWindow;
     private bool _appOwnsDisplays;
     private bool _restoreWebWorkspaceAfterAdmin;
     private bool _restoreBrowserAfterAdmin;
     private bool _allowClose;
     private bool _webFocusMode;
+    private bool _maintenanceHoldActive;
     private bool _suppressSystemShortcuts;
     private bool _taskbarHidden;
     private int? _originalTaskbarState;
@@ -81,6 +84,7 @@ public partial class MainWindow : Window
             PlaceOnPrimaryScreen();
             CreateSecondaryDisplayCovers();
             InstallKeyboardHook();
+            CreateFloatingAdminButton();
             SetSystemLockdownActive(true);
             EnforceFullscreen();
             await SendShellHeartbeatAsync();
@@ -94,6 +98,8 @@ public partial class MainWindow : Window
         _violationTimer.Start();
         _heartbeatTimer.Tick += async (_, _) => await SendShellHeartbeatAsync();
         _heartbeatTimer.Start();
+        _statusTimer.Tick += async (_, _) => await RefreshRuntimeStateAsync();
+        _statusTimer.Start();
         _noticeTimer.Tick += (_, _) =>
         {
             NoticePanel.Visibility = Visibility.Collapsed;
@@ -201,8 +207,9 @@ public partial class MainWindow : Window
         AdminPanel.Visibility = Visibility.Collapsed;
         _adminSessionSecret = "";
         SetAdminSignedIn(false);
-        AdminTaskbarButton.Visibility = Visibility.Visible;
+        AdminTaskbarButton.Visibility = Visibility.Collapsed;
         AdminCornerButton.Visibility = Visibility.Collapsed;
+        SetFloatingAdminButtonVisible(true);
         Show();
         PlaceOnPrimaryScreen();
         WindowState = WindowState.Maximized;
@@ -278,20 +285,46 @@ public partial class MainWindow : Window
         {
             var state = await _client.GetFromJsonAsync<RuntimeState>("/api/status", JsonOptions);
             _launchers = await _client.GetFromJsonAsync<List<KioskLauncher>>("/api/kiosk/launchers", JsonOptions) ?? [];
-            StatusText.Text = state is null
-                ? "Service status unavailable"
-                : $"{state.PolicyName}: managed mode {(state.EnforcementEnabled ? "on" : "off")}";
-            SafeTestBanner.Visibility = state?.EnforcementEnabled == false ? Visibility.Visible : Visibility.Collapsed;
-            LaunchersList.ItemsSource = _launchers;
+            ApplyRuntimeState(state);
             ConfigureLaunchpadHome();
             await AutoLaunchDedicatedKioskAsync(state);
         }
         catch (Exception ex)
         {
             StatusText.Text = "Waiting for kiosk service";
-            LaunchersList.ItemsSource = Array.Empty<KioskLauncher>();
             ShowNotice("Service unavailable", "The kiosk service is not responding yet. Local controls will reconnect automatically.", NoticeKind.Warning);
             Debug.WriteLine(ex);
+        }
+    }
+
+    private async Task RefreshRuntimeStateAsync()
+    {
+        try
+        {
+            var state = await _client.GetFromJsonAsync<RuntimeState>("/api/status", JsonOptions);
+            ApplyRuntimeState(state);
+        }
+        catch (Exception ex)
+        {
+            Debug.WriteLine(ex);
+        }
+    }
+
+    private void ApplyRuntimeState(RuntimeState? state)
+    {
+        _maintenanceHoldActive = state?.MaintenanceHoldActive == true;
+        StatusText.Text = state is null
+            ? "Service status unavailable"
+            : _maintenanceHoldActive
+                ? $"{state.PolicyName}: startup update in progress"
+                : $"{state.PolicyName}: managed mode {(state.EnforcementEnabled ? "on" : "off")}";
+        SafeTestBanner.Visibility = state?.EnforcementEnabled == false ? Visibility.Visible : Visibility.Collapsed;
+
+        if (_maintenanceHoldActive)
+        {
+            SetSystemLockdownActive(false);
+            Topmost = false;
+            SetSecondaryCoversVisible(false);
         }
     }
 
@@ -312,9 +345,9 @@ public partial class MainWindow : Window
         WorkspaceSubtitle.Text = "This station is ready.";
         PrimaryLaunchText.Text = $"Launch {primary.DisplayName}";
         LaunchpadHintText.Text = string.Equals(primary.Type, KioskLauncherTypes.Web, StringComparison.OrdinalIgnoreCase)
-            ? "The website opens fullscreen with no address bar. Use the admin corner to unlock for maintenance."
-            : "Only approved apps stay open while managed mode is active.";
-        SetLaunchpadRailVisible(_launchers.Count > 1 && !_webFocusMode);
+            ? "The website opens through Microsoft Edge fullscreen kiosk mode. Use Admin for maintenance."
+            : "The approved app opens as the only managed workspace. Use Admin for maintenance.";
+        SetLaunchpadRailVisible(false);
     }
 
     private KioskLauncher? GetPrimaryLauncher()
@@ -326,13 +359,8 @@ public partial class MainWindow : Window
 
     private void SetLaunchpadRailVisible(bool visible)
     {
-        if (_webFocusMode)
-        {
-            return;
-        }
-
-        LeftRail.Visibility = visible ? Visibility.Visible : Visibility.Collapsed;
-        LeftRailColumn.Width = visible ? new GridLength(292) : new GridLength(0);
+        LeftRail.Visibility = Visibility.Collapsed;
+        LeftRailColumn.Width = new GridLength(0);
     }
 
     private async Task SendShellHeartbeatAsync()
@@ -408,6 +436,11 @@ public partial class MainWindow : Window
             return;
         }
 
+        if (StartEdgeKioskWorkspace(launcher))
+        {
+            return;
+        }
+
         try
         {
             await InitializeBrowserAsync();
@@ -432,13 +465,96 @@ public partial class MainWindow : Window
     private void SetWebFocusMode(bool enabled)
     {
         _webFocusMode = enabled;
-        LeftRail.Visibility = enabled ? Visibility.Collapsed : Visibility.Visible;
-        LeftRailColumn.Width = enabled ? new GridLength(0) : new GridLength(292);
+        LeftRail.Visibility = Visibility.Collapsed;
+        LeftRailColumn.Width = new GridLength(0);
         WorkspaceHeader.Visibility = enabled ? Visibility.Collapsed : Visibility.Visible;
-        ShellTaskbar.Visibility = enabled ? Visibility.Collapsed : Visibility.Visible;
+        ShellTaskbar.Visibility = Visibility.Collapsed;
         WebFullscreenText.Text = enabled ? "Exit full" : "Fullscreen";
-        AdminTaskbarButton.Visibility = enabled ? Visibility.Collapsed : Visibility.Visible;
-        AdminCornerButton.Visibility = enabled && AdminPanel.Visibility != Visibility.Visible ? Visibility.Visible : Visibility.Collapsed;
+        AdminTaskbarButton.Visibility = Visibility.Collapsed;
+        AdminCornerButton.Visibility = Visibility.Collapsed;
+        SetFloatingAdminButtonVisible(AdminPanel.Visibility != Visibility.Visible);
+    }
+
+    private bool StartEdgeKioskWorkspace(KioskLauncher launcher)
+    {
+        var edgePath = FindEdgePath();
+        if (edgePath is null)
+        {
+            return false;
+        }
+
+        try
+        {
+            var userDataFolder = Path.Combine(KioskPaths.RootDirectory, "EdgeKiosk");
+            Directory.CreateDirectory(userDataFolder);
+            var arguments = string.Join(" ", new[]
+            {
+                "--kiosk",
+                QuoteArgument(launcher.Url!),
+                "--edge-kiosk-type=fullscreen",
+                "--no-first-run",
+                "--disable-features=Translate",
+                $"--user-data-dir={QuoteArgument(userDataFolder)}"
+            });
+
+            var process = Process.Start(new ProcessStartInfo
+            {
+                FileName = edgePath,
+                Arguments = arguments,
+                UseShellExecute = string.Equals(edgePath, "msedge.exe", StringComparison.OrdinalIgnoreCase)
+            });
+
+            WorkspaceTitle.Text = launcher.DisplayName;
+            WorkspaceSubtitle.Text = "Microsoft Edge fullscreen kiosk";
+            AppWorkspaceTitle.Text = $"{launcher.DisplayName} is running";
+            AppWorkspaceText.Text = "Use the floating Admin button to unlock, maintain, or exit the station.";
+            IdleWorkspace.Visibility = Visibility.Collapsed;
+            WebWorkspace.Visibility = Visibility.Collapsed;
+            AppWorkspace.Visibility = Visibility.Visible;
+
+            if (process is not null)
+            {
+                AddManagedApp(launcher.DisplayName, process);
+                _ = Dispatcher.InvokeAsync(async () =>
+                {
+                    await Task.Delay(900);
+                    TrackLauncherProcess(new KioskLauncher
+                    {
+                        DisplayName = launcher.DisplayName,
+                        Type = KioskLauncherTypes.App,
+                        ProcessName = "msedge.exe",
+                        Path = edgePath
+                    }, process);
+                    FocusManagedApp(_managedApps.LastOrDefault(app => app.Process.Id == process.Id));
+                });
+            }
+
+            YieldFocusToManagedApps();
+            ShowNotice("Website started", $"{launcher.DisplayName} opened in Edge kiosk mode.", NoticeKind.Success);
+            return true;
+        }
+        catch (Exception ex)
+        {
+            Debug.WriteLine(ex);
+            ShowNotice("Edge kiosk unavailable", "Falling back to embedded web mode.", NoticeKind.Warning);
+            return false;
+        }
+    }
+
+    private static string? FindEdgePath()
+    {
+        var candidates = new[]
+        {
+            Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86), "Microsoft", "Edge", "Application", "msedge.exe"),
+            Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles), "Microsoft", "Edge", "Application", "msedge.exe")
+        };
+
+        return candidates.FirstOrDefault(File.Exists) ?? "msedge.exe";
+    }
+
+    private static string QuoteArgument(string value)
+    {
+        return "\"" + value.Replace("\"", "\\\"", StringComparison.Ordinal) + "\"";
     }
 
     private void StartAppWorkspace(KioskLauncher launcher)
@@ -835,6 +951,43 @@ public partial class MainWindow : Window
         SetAdminPanelOpen(open);
     }
 
+    private void CreateFloatingAdminButton()
+    {
+        if (_adminButtonWindow is not null)
+        {
+            return;
+        }
+
+        _adminButtonWindow = new AdminButtonWindow();
+        _adminButtonWindow.AdminRequested += (_, _) =>
+        {
+            Show();
+            PlaceOnPrimaryScreen();
+            Topmost = true;
+            SetAdminPanelOpen(true);
+            Activate();
+        };
+        _adminButtonWindow.Show();
+    }
+
+    private void SetFloatingAdminButtonVisible(bool visible)
+    {
+        if (_adminButtonWindow is null)
+        {
+            return;
+        }
+
+        if (visible)
+        {
+            _adminButtonWindow.PlaceBottomRight();
+            _adminButtonWindow.Show();
+            _adminButtonWindow.Topmost = true;
+            return;
+        }
+
+        _adminButtonWindow.Hide();
+    }
+
     private void SetAdminPanelOpen(bool open)
     {
         if (open && WebWorkspace.Visibility == Visibility.Visible)
@@ -852,8 +1005,9 @@ public partial class MainWindow : Window
         }
 
         AdminPanel.Visibility = open ? Visibility.Visible : Visibility.Collapsed;
-        AdminTaskbarButton.Visibility = open || _webFocusMode ? Visibility.Collapsed : Visibility.Visible;
-        AdminCornerButton.Visibility = open || !_webFocusMode ? Visibility.Collapsed : Visibility.Visible;
+        AdminTaskbarButton.Visibility = Visibility.Collapsed;
+        AdminCornerButton.Visibility = Visibility.Collapsed;
+        SetFloatingAdminButtonVisible(!open);
         if (open)
         {
             if (string.IsNullOrWhiteSpace(_adminSessionSecret))
@@ -861,6 +1015,12 @@ public partial class MainWindow : Window
                 SetAdminSignedIn(false);
                 PinBox.Focus();
             }
+        }
+        else if (_managedApps.Count > 0 || _appOwnsDisplays)
+        {
+            Topmost = false;
+            SetSecondaryCoversVisible(false);
+            FocusManagedApp(_managedApps.LastOrDefault());
         }
     }
 
@@ -926,6 +1086,7 @@ public partial class MainWindow : Window
         if (_allowClose)
         {
             RestoreSystemUi();
+            _adminButtonWindow?.Close();
             foreach (var window in _secondaryWindows)
             {
                 window.CloseFromOwner();
@@ -941,6 +1102,14 @@ public partial class MainWindow : Window
     private void EnforceFullscreen()
     {
         CleanupExitedProcesses();
+        if (_maintenanceHoldActive)
+        {
+            SetSystemLockdownActive(false);
+            Topmost = false;
+            SetSecondaryCoversVisible(false);
+            return;
+        }
+
         if (AdminPanel.Visibility == Visibility.Visible)
         {
             SetSystemLockdownActive(true);
@@ -972,6 +1141,16 @@ public partial class MainWindow : Window
         if (_managedApps.Count == 0 && WebWorkspace.Visibility != Visibility.Visible)
         {
             _autoLaunchedKioskId = "";
+        }
+
+        if (_managedApps.Count == 0 && AppWorkspace.Visibility == Visibility.Visible)
+        {
+            AppWorkspace.Visibility = Visibility.Collapsed;
+            IdleWorkspace.Visibility = Visibility.Visible;
+            Show();
+            PlaceOnPrimaryScreen();
+            Topmost = true;
+            SetSecondaryCoversVisible(true);
         }
 
         if (_managedApps.Count == 0 && _appOwnsDisplays)

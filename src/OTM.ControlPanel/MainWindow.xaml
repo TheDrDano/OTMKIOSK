@@ -119,6 +119,8 @@
                         <TextBox x:Name="UpdateManifestUrlBox" Height="32" Margin="0,3,0,8" ToolTip="https://github.com/TheDrDano/OTMKIOSK/releases/latest/download/update-manifest.json" />
                         <TextBlock Text="Channel" Foreground="#344756" FontWeight="SemiBold" FontSize="12" />
                         <TextBox x:Name="UpdateChannelBox" Height="32" Margin="0,3,0,10" />
+                        <CheckBox x:Name="UpdateCheckOnStartupCheckBox" Content="Check GitHub on service startup" Margin="0,0,0,8" />
+                        <CheckBox x:Name="UpdateAutoDownloadCheckBox" Content="Download verified updates automatically" Margin="0,0,0,8" />
                         <Button Content="Save Update Settings" Style="{StaticResource SecondaryButton}" Margin="0,0,0,8" Click="SaveUpdateSettings_Click" />
                         <Button Content="Check Updates" Style="{StaticResource SecondaryButton}" Margin="0,0,0,8" Click="CheckUpdates_Click" />
                         <Button Content="Download Update" Margin="0,0,0,8" Click="DownloadUpdate_Click" />

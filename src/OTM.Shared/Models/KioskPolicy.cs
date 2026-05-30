@@ -113,8 +113,10 @@ public sealed class UpdatePolicy
     public bool Enabled { get; set; } = true;
     public string Channel { get; set; } = "stable";
     public string ManifestUrl { get; set; } = "https://github.com/TheDrDano/OTMKIOSK/releases/latest/download/update-manifest.json";
+    public bool CheckOnStartup { get; set; }
     public bool AutoDownload { get; set; }
     public bool AutoInstall { get; set; }
+    public bool HoldEnforcementDuringStartupUpdate { get; set; } = true;
     public int CheckIntervalHours { get; set; } = 24;
     public DateTimeOffset? LastCheckedAt { get; set; }
     public string LastCheckMessage { get; set; } = "";

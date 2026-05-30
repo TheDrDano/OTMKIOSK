@@ -131,9 +131,23 @@ public sealed class ProcessEnforcer
     {
         return policy.AllowedApps.Any(rule => Matches(rule, processName, path))
             || policy.BackgroundApps.Any(rule => Matches(rule, processName, path))
+            || IsAllowedWebRuntime(policy, processName)
             || policy.Launchers.Any(launcher =>
                 string.Equals(launcher.Type, KioskLauncherTypes.App, StringComparison.OrdinalIgnoreCase)
                 && Matches(ToAppRule(launcher), processName, path));
+    }
+
+    private static bool IsAllowedWebRuntime(KioskPolicy policy, string processName)
+    {
+        var candidateProcess = Path.GetFileNameWithoutExtension(processName);
+        if (!string.Equals(candidateProcess, "msedge", StringComparison.OrdinalIgnoreCase))
+        {
+            return false;
+        }
+
+        return policy.DedicatedKiosk.Enabled
+                && string.Equals(policy.DedicatedKiosk.Type, KioskLauncherTypes.Web, StringComparison.OrdinalIgnoreCase)
+            || policy.Launchers.Any(launcher => string.Equals(launcher.Type, KioskLauncherTypes.Web, StringComparison.OrdinalIgnoreCase));
     }
 
     private bool IsStartupGuardViolation(KioskPolicy policy, string processName, string? path, Process process)

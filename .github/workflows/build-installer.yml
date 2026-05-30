@@ -6,7 +6,7 @@ on:
       version:
         description: "Installer version"
         required: true
-        default: "9.0.0"
+        default: "9.1.0"
       allow_unsigned:
         description: "Allow unsigned installer artifact"
         required: true
@@ -57,9 +57,9 @@ jobs:
           OTM_SIGN_PFX_PASSWORD: ${{ secrets.OTM_SIGN_PFX_PASSWORD }}
         run: |
           if (Test-Path $env:OTM_SIGN_PFX_PATH) {
-            .\scripts\build-installer.ps1 -Version "${{ github.event.inputs.version || '9.0.0' }}" -Sign
+            .\scripts\build-installer.ps1 -Version "${{ github.event.inputs.version || '9.1.0' }}" -Sign
           } else {
-            .\scripts\build-installer.ps1 -Version "${{ github.event.inputs.version || '9.0.0' }}"
+            .\scripts\build-installer.ps1 -Version "${{ github.event.inputs.version || '9.1.0' }}"
           }
 
       - name: Verify signatures

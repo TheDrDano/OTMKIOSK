@@ -389,6 +389,10 @@ public partial class MainWindow : Window
         _currentPolicy.Updates.Enabled = UpdateEnabledCheckBox.IsChecked == true;
         _currentPolicy.Updates.ManifestUrl = UpdateManifestUrlBox.Text.Trim();
         _currentPolicy.Updates.Channel = string.IsNullOrWhiteSpace(UpdateChannelBox.Text) ? "stable" : UpdateChannelBox.Text.Trim();
+        _currentPolicy.Updates.CheckOnStartup = UpdateCheckOnStartupCheckBox.IsChecked == true;
+        _currentPolicy.Updates.AutoDownload = UpdateAutoDownloadCheckBox.IsChecked == true;
+        _currentPolicy.Updates.AutoInstall = false;
+        _currentPolicy.Updates.HoldEnforcementDuringStartupUpdate = true;
         await SaveCurrentPolicyAsync("Update settings saved.");
     }
 
@@ -402,6 +406,10 @@ public partial class MainWindow : Window
                 _currentPolicy.Updates.Enabled = UpdateEnabledCheckBox.IsChecked == true;
                 _currentPolicy.Updates.ManifestUrl = UpdateManifestUrlBox.Text.Trim();
                 _currentPolicy.Updates.Channel = string.IsNullOrWhiteSpace(UpdateChannelBox.Text) ? "stable" : UpdateChannelBox.Text.Trim();
+                _currentPolicy.Updates.CheckOnStartup = UpdateCheckOnStartupCheckBox.IsChecked == true;
+                _currentPolicy.Updates.AutoDownload = UpdateAutoDownloadCheckBox.IsChecked == true;
+                _currentPolicy.Updates.AutoInstall = false;
+                _currentPolicy.Updates.HoldEnforcementDuringStartupUpdate = true;
                 if (!await SaveCurrentPolicyAsync("Update settings saved before checking."))
                 {
                     return;
@@ -664,6 +672,8 @@ public partial class MainWindow : Window
     {
         var updates = policy?.Updates ?? new UpdatePolicy();
         UpdateEnabledCheckBox.IsChecked = updates.Enabled;
+        UpdateCheckOnStartupCheckBox.IsChecked = updates.CheckOnStartup;
+        UpdateAutoDownloadCheckBox.IsChecked = updates.AutoDownload;
         UpdateManifestUrlBox.Text = string.IsNullOrWhiteSpace(updates.ManifestUrl)
             ? new UpdatePolicy().ManifestUrl
             : updates.ManifestUrl;

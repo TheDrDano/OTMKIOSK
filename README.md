@@ -4,8 +4,7 @@ SimpleKioskOS is a local-first native Windows workspace launcher and shared-comp
 
 - `OTM.Service`: Windows service runtime for process enforcement, downloads quarantine/delete, SQLite policy/log persistence, and the local API used by the native apps.
 - `OTM.ControlPanel`: native WPF admin UI. No Electron.
-- `OTM.KioskShell`: fullscreen user-facing kiosk screen with approved application launchers and admin access.
-- `OTM.Manager`: separate native Remote Manager for connecting to multiple SimpleKioskOS stations.
+- `OTM.KioskShell`: fullscreen user-facing one-app/site loader with floating admin access.
 - `OTM.RecoveryTool`: offline local recovery/reset utility.
 
 ## MVP Behavior
@@ -33,7 +32,7 @@ Install prerequisites on a build machine:
 Then run:
 
 ```powershell
-.\scripts\build-installer.ps1 -Version 8.1.2
+.\scripts\build-installer.ps1 -Version 9.1.0
 ```
 
 The installer will be created in:
@@ -48,28 +47,26 @@ You can also build the installer in GitHub Actions. Push the repo to GitHub, ope
 
 ## GitHub Releases and Updates
 
-For public testing, keep the station app and Remote Manager in this repo as separate projects and separate installers. Do not use a branch as the product boundary; branches are better for development lines. The release workflow builds both installers from the same tag.
+For public testing, ship the station app first. The release workflow builds the local station installer from the release tag.
 
 To publish a release from GitHub:
 
 ```powershell
-git tag v8.1.2
-git push origin v8.1.2
+git tag v9.1.0
+git push origin v9.1.0
 ```
 
-Use one lowercase release tag per version, like `v8.1.2`. The workflow normalizes manual inputs and `V...` tags back to lowercase `v...`, but old duplicate GitHub releases should be deleted from the GitHub **Releases** page once so the list stays clean.
+Use one lowercase release tag per version, like `v9.1.0`. The workflow normalizes manual inputs and `V...` tags back to lowercase `v...`, but old duplicate GitHub releases should be deleted from the GitHub **Releases** page once so the list stays clean.
 
 The **Release Installers** workflow creates a GitHub Release with:
 
 - `OTM-Kiosk-Setup.exe`
-- `SimpleKioskOS-Remote-Manager-Setup.exe`
 - `update-manifest.json`
 
 The stable latest download URLs are:
 
 ```txt
 https://github.com/TheDrDano/OTMKIOSK/releases/latest/download/OTM-Kiosk-Setup.exe
-https://github.com/TheDrDano/OTMKIOSK/releases/latest/download/SimpleKioskOS-Remote-Manager-Setup.exe
 ```
 
 After the repo is public, set the station update manifest URL in the native Control Panel to:
@@ -78,20 +75,20 @@ After the repo is public, set the station update manifest URL in the native Cont
 https://github.com/TheDrDano/OTMKIOSK/releases/latest/download/update-manifest.json
 ```
 
-The current app checks and reports updates. V8.1.2 can also download the stable station installer from the manifest to `%ProgramData%\OTM Kiosk\Updates\OTM-Kiosk-Setup.exe`, verify its SHA256 hash, and mark it ready for manual install. It does not silently run installers yet; that should wait until signing, hash verification, and a recovery-safe install flow are finished.
+The current app checks and reports updates. V9.1.0 can also download the stable station installer from the manifest to `%ProgramData%\OTM Kiosk\Updates\OTM-Kiosk-Setup.exe`, verify its SHA256 hash, and mark it ready for manual install. It does not silently run installers yet; that should wait until signing, hash verification, and a recovery-safe install flow are finished.
 
-The generated `update-manifest.json` includes the stable station installer URL/hash plus Remote Manager installer metadata:
+During install, the optional **Check GitHub and download verified updates when SimpleKioskOS starts** task enables startup update checks from this repository. When enabled, the service checks the stable GitHub manifest on startup and downloads a verified newer installer in the background. Enforcement is temporarily held off while that startup update check/download is running, so an older installed build does not lock the system before the update is ready.
+
+The generated `update-manifest.json` includes the stable station installer URL/hash:
 
 ```json
 {
   "product": "SimpleKioskOS",
-  "version": "8.1.2",
+  "version": "9.1.0",
   "channel": "stable",
-  "releaseTag": "v8.1.2",
+  "releaseTag": "v9.1.0",
   "installerUrl": "https://github.com/TheDrDano/OTMKIOSK/releases/latest/download/OTM-Kiosk-Setup.exe",
   "sha256": "generated during release",
-  "managerInstallerUrl": "https://github.com/TheDrDano/OTMKIOSK/releases/latest/download/SimpleKioskOS-Remote-Manager-Setup.exe",
-  "managerSha256": "generated during release",
   "autoInstallEnabled": false
 }
 ```
@@ -103,7 +100,7 @@ Windows publisher identity for an `.exe` uses **Authenticode code signing**, not
 For local signing with a certificate installed in the machine certificate store:
 
 ```powershell
-.\scripts\build-installer.ps1 -Version 8.1.2 -Sign -CertificateThumbprint "YOUR_CERT_THUMBPRINT"
+.\scripts\build-installer.ps1 -Version 9.1.0 -Sign -CertificateThumbprint "YOUR_CERT_THUMBPRINT"
 ```
 
 Use `-CertificateStore LocalMachine` if the certificate is installed in the local machine store instead of the current user store.
@@ -111,7 +108,7 @@ Use `-CertificateStore LocalMachine` if the certificate is installed in the loca
 For local signing with a PFX:
 
 ```powershell
-.\scripts\build-installer.ps1 -Version 8.1.2 -Sign -PfxPath "C:\secure\otm-signing.pfx" -PfxPassword "PFX_PASSWORD"
+.\scripts\build-installer.ps1 -Version 9.1.0 -Sign -PfxPath "C:\secure\otm-signing.pfx" -PfxPassword "PFX_PASSWORD"
 ```
 
 The build signs published EXE/DLL files before packaging and signs the final setup EXE after Inno Setup finishes. If the final setup EXE is not Authenticode-signed by a trusted certificate, Windows will show **Unknown publisher**.
@@ -141,7 +138,7 @@ For lab-only testing without buying a certificate yet, create a self-signed test
 
 ```powershell
 .\scripts\create-test-signing-cert.ps1 -Password "test-password"
-.\scripts\build-installer.ps1 -Version 8.1.2 -Sign -PfxPath ".\artifacts\signing\simplekioskos-test.pfx" -PfxPassword "test-password"
+.\scripts\build-installer.ps1 -Version 9.1.0 -Sign -PfxPath ".\artifacts\signing\simplekioskos-test.pfx" -PfxPassword "test-password"
 ```
 
 On the test machine, trust that test cert before installing:
@@ -172,9 +169,9 @@ To test the fullscreen kiosk shell after the service is running:
 dotnet run --project .\src\OTM.KioskShell\OTM.KioskShell.csproj
 ```
 
-The kiosk shell is the user-facing locked workspace. It runs fullscreen, uses the SimpleKioskOS shield/monitor logo, shows a left rail of approved launchers, renders exam websites inside embedded WebView2 with no browser controls, and includes an in-shell **Open apps** taskbar for lab mode so approved apps can be brought back above the shell. Admin controls stay behind the smaller bottom-right **Admin** button. The shell hides the Windows taskbar while locked and installs a low-level keyboard hook to suppress common escape shortcuts such as Alt+F4, Alt+Tab, Ctrl+Esc, Ctrl+Shift+Esc, and Windows-key combinations. Ctrl+Alt+Del cannot be blocked by a normal Windows app and should be handled with Windows policy in production.
+The kiosk shell is the user-facing locked workspace. It runs fullscreen, uses the SimpleKioskOS shield/monitor logo, and launches one approved website or application for the station. Websites open in Microsoft Edge fullscreen kiosk mode by default, with embedded WebView2 as a fallback. The sidebar and open-apps taskbar are removed from the user experience. Admin access is available through a small floating admin button so maintenance is still possible after the app or website has focus. The shell hides the Windows taskbar while locked and installs a low-level keyboard hook to suppress common escape shortcuts such as Alt+F4, Alt+Tab, Ctrl+Esc, Ctrl+Shift+Esc, and Windows-key combinations. Ctrl+Alt+Del cannot be blocked by a normal Windows app and should be handled with Windows policy in production.
 
-The Control Panel also includes a **Kiosk** tab for a dedicated single-purpose station. When enabled, managed mode auto-opens one approved website fullscreen inside WebView2 or starts one approved application as the primary kiosk app. This is intended for true web kiosks, museum displays, exam sites, and single-app shared stations.
+The Control Panel includes a **Kiosk** tab for the dedicated single-purpose station target. When enabled, managed mode auto-opens one approved website through Edge kiosk mode or starts one approved application as the primary kiosk app. This is intended for true web kiosks, museum displays, exam sites, and single-app shared stations.
 
 Exam mode requires Microsoft Edge WebView2 Runtime on the target PC. The installer packages the Microsoft Evergreen WebView2 bootstrapper, checks Microsoft's WebView2 EdgeUpdate registry keys, and runs the bootstrapper silently if WebView2 is not registered. The bootstrapper needs internet access on the target PC. If WebView2 does not register after the bootstrapper runs, the installer shows a clear warning before opening the control panel.
 
@@ -297,32 +294,23 @@ The Websites tab works the same way. Add an allowed website and keep **Show allo
 
 ## Management
 
-Management is native-app first. The station installer includes the SimpleKioskOS Control Panel for setup, app rules, website rules, profiles, logs, and admin PIN changes. The service hosts a local/LAN API on port `47821` for the Control Panel, kiosk shell, and Remote Manager. The installer opens this port in Windows Firewall so LAN/VPN management can reach the station. There is no browser-based local manager UI.
+Management is local native-app first. The station installer includes the SimpleKioskOS Control Panel for setup, app rules, website rules, profiles, logs, updates, and admin PIN changes. The service hosts a localhost-only API on port `47821` for the Control Panel and kiosk shell. There is no browser-based local manager UI.
 
-The separate **SimpleKioskOS Remote Manager** app can track multiple stations by URL, refresh their status, send PIN-protected lock, unlock, restart, and shutdown commands, manage allowed/blocked app and website rules remotely, configure the remote-monitoring foundation, and trigger stable station update checks/downloads. Station update downloads are stored on the station and must be installed manually.
+Use **Allowed background apps** for monitoring agents, remote support tools, driver utilities, controller software, or hardware helpers that must run while the user-facing loader remains locked down. Background apps are not shown as user launch buttons.
 
-Remote monitoring is disabled by default and admin-PIN protected. The app stores and exposes monitoring settings through `/api/monitoring/config`, including LAN/VPN-only mode, screen-view permission, local/admin approval, and the planned secure transport. Live encrypted screen viewing should be implemented as a separate user-session monitor agent, not inside the LocalSystem service, because Windows services cannot reliably capture the interactive desktop. Do not expose the station API or a future VNC/RFB port directly to the public internet; use LAN, VPN, or a managed TLS relay.
-
-If a station times out from Remote Manager, first test this from the manager PC:
+If local management cannot connect, first test this on the station:
 
 ```txt
-http://STATION-IP:47821/api/status
+http://localhost:47821/api/status
 ```
 
-For older test installs, run this on the station in **PowerShell as Administrator** to reopen the LAN API firewall rule:
+For older test installs that opened the local API in Windows Firewall, remove that rule from **PowerShell as Administrator**:
 
 ```powershell
 netsh advfirewall firewall delete rule name="SimpleKioskOS Local API"
-netsh advfirewall firewall add rule name="SimpleKioskOS Local API" dir=in action=allow protocol=TCP localport=47821 profile=any
 ```
 
 Also verify `OTMKioskService` is running on the station.
-
-Build the Remote Manager installer with:
-
-```powershell
-.\scripts\build-manager-installer.ps1 -Version 8.1.2
-```
 
 ## Security Notes
 

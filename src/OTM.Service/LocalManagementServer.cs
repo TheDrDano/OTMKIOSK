@@ -24,6 +24,7 @@ public sealed class LocalManagementServer
     private readonly SqliteKioskStore _logs;
     private readonly HttpListener _listener = new();
     private bool _closed;
+    private bool _startupUpdateStarted;
 
     public LocalManagementServer(KioskRuntime runtime, SqliteKioskStore logs)
     {
@@ -40,6 +41,7 @@ public sealed class LocalManagementServer
             StartListenerWithFallback();
             ApplyBrowserPolicySafely(_runtime.GetPolicy());
             _runtime.Log("Info", "LocalApiStarted", "Local API listening at http://localhost:47821.");
+            _ = Task.Run(() => RunStartupUpdateAsync(cancellationToken), CancellationToken.None);
         }
         catch (Exception ex)
         {
@@ -403,6 +405,61 @@ public sealed class LocalManagementServer
         return monitoring;
     }
 
+    private async Task RunStartupUpdateAsync(CancellationToken cancellationToken)
+    {
+        if (_startupUpdateStarted)
+        {
+            return;
+        }
+
+        _startupUpdateStarted = true;
+
+        try
+        {
+            await Task.Delay(TimeSpan.FromSeconds(8), cancellationToken);
+        }
+        catch
+        {
+            return;
+        }
+
+        var policy = _runtime.GetPolicy();
+        policy.Updates ??= new UpdatePolicy();
+        if (!policy.Updates.Enabled || !policy.Updates.CheckOnStartup)
+        {
+            return;
+        }
+
+        var hold = policy.Updates.HoldEnforcementDuringStartupUpdate;
+        if (hold)
+        {
+            _runtime.BeginMaintenanceHold(TimeSpan.FromMinutes(30), "Startup GitHub update check/download is running.");
+        }
+
+        try
+        {
+            if (policy.Updates.AutoDownload)
+            {
+                await DownloadUpdateAsync();
+            }
+            else
+            {
+                await CheckForUpdatesAsync();
+            }
+        }
+        catch (Exception ex)
+        {
+            _runtime.Log("Error", "StartupUpdateFailed", ex.Message);
+        }
+        finally
+        {
+            if (hold)
+            {
+                _runtime.EndMaintenanceHold("Startup GitHub update check/download finished.");
+            }
+        }
+    }
+
     private async Task<object> CheckForUpdatesAsync()
     {
         var policy = _runtime.GetPolicy();
@@ -727,7 +784,7 @@ public sealed class LocalManagementServer
 
     private static string GetCurrentVersion()
     {
-        return Assembly.GetExecutingAssembly().GetName().Version?.ToString(3) ?? "9.0.0";
+        return Assembly.GetExecutingAssembly().GetName().Version?.ToString(3) ?? "9.1.0";
     }
 
     private static string GetConfiguredDeviceName(DeviceIdentity identity, KioskPolicy policy)
@@ -774,18 +831,23 @@ public sealed class LocalManagementServer
     {
         var policy = _runtime.GetPolicy();
         var dedicatedKioskLauncher = CreateDedicatedKioskLauncher(policy.DedicatedKiosk ?? new DedicatedKioskPolicy());
+        if (!string.IsNullOrWhiteSpace(dedicatedKioskLauncher.DisplayName))
+        {
+            return [NormalizeLauncher(dedicatedKioskLauncher)];
+        }
+
         if (policy.Launchers.Count > 0)
         {
-            return policy.Launchers
-                .Prepend(dedicatedKioskLauncher)
+            var launcher = policy.Launchers
                 .Where(launcher => !string.IsNullOrWhiteSpace(launcher.DisplayName))
                 .Select(NormalizeLauncher)
                 .OrderByDescending(launcher => launcher.Required)
                 .ThenBy(launcher => launcher.DisplayName)
-                .ToList();
+                .FirstOrDefault();
+            return launcher is null ? [] : [launcher];
         }
 
-        return policy.RequiredApps
+        var appLauncher = policy.RequiredApps
             .Concat(policy.AllowedApps)
             .Where(app => !string.IsNullOrWhiteSpace(app.DisplayName) && !string.IsNullOrWhiteSpace(app.ProcessName))
             .GroupBy(app => app.DisplayName, StringComparer.OrdinalIgnoreCase)
@@ -804,11 +866,11 @@ public sealed class LocalManagementServer
                     Required = app.Required
                 };
             })
-            .Prepend(dedicatedKioskLauncher)
             .Where(launcher => !string.IsNullOrWhiteSpace(launcher.DisplayName))
             .OrderByDescending(app => app.Required)
             .ThenBy(app => app.DisplayName)
-            .ToList();
+            .FirstOrDefault();
+        return appLauncher is null ? [] : [appLauncher];
     }
 
     private static KioskLauncher CreateDedicatedKioskLauncher(DedicatedKioskPolicy dedicatedKiosk)
