@@ -7,18 +7,34 @@
         WindowState="Maximized"
         ResizeMode="NoResize"
         Topmost="True"
-        Background="#080D12"
         Closing="Window_Closing"
         Deactivated="Window_Deactivated"
         PreviewKeyDown="Window_PreviewKeyDown">
+    <Window.Background>
+        <RadialGradientBrush GradientOrigin="0.5,0.2" Center="0.5,0.25" RadiusX="1.1" RadiusY="1.1">
+            <GradientStop Color="#11202F" Offset="0" />
+            <GradientStop Color="#0A111A" Offset="0.55" />
+            <GradientStop Color="#070C12" Offset="1" />
+        </RadialGradientBrush>
+    </Window.Background>
     <Window.Resources>
+        <LinearGradientBrush x:Key="AccentBrush" StartPoint="0,0" EndPoint="0,1">
+            <GradientStop Color="#FF8A3D" Offset="0" />
+            <GradientStop Color="#F0610A" Offset="1" />
+        </LinearGradientBrush>
+        <LinearGradientBrush x:Key="CardBrush" StartPoint="0,0" EndPoint="0,1">
+            <GradientStop Color="#15212F" Offset="0" />
+            <GradientStop Color="#0F1A25" Offset="1" />
+        </LinearGradientBrush>
+        <SolidColorBrush x:Key="CardBorderBrush" Color="#2A3B4D" />
+        <SolidColorBrush x:Key="AccentColorBrush" Color="#FF7A2E" />
         <Style TargetType="Button">
             <Setter Property="MinHeight" Value="44" />
             <Setter Property="Padding" Value="16,0" />
             <Setter Property="FontWeight" Value="SemiBold" />
             <Setter Property="BorderThickness" Value="1" />
             <Setter Property="Cursor" Value="Hand" />
-            <Setter Property="Background" Value="#FF6B1A" />
+            <Setter Property="Background" Value="{StaticResource AccentBrush}" />
             <Setter Property="Foreground" Value="White" />
             <Setter Property="BorderBrush" Value="#D9550D" />
             <Setter Property="Template">
@@ -28,19 +44,26 @@
                                 Background="{TemplateBinding Background}"
                                 BorderBrush="{TemplateBinding BorderBrush}"
                                 BorderThickness="{TemplateBinding BorderThickness}"
-                                CornerRadius="7"
-                                Padding="{TemplateBinding Padding}">
-                            <ContentPresenter Content="{TemplateBinding Content}"
-                                              ContentTemplate="{TemplateBinding ContentTemplate}"
-                                              HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
-                                              VerticalAlignment="Center" />
+                                CornerRadius="9"
+                                SnapsToDevicePixels="True">
+                            <Grid>
+                                <Border x:Name="Highlight"
+                                        CornerRadius="9"
+                                        Background="#FFFFFF"
+                                        Opacity="0" />
+                                <ContentPresenter Margin="{TemplateBinding Padding}"
+                                                  Content="{TemplateBinding Content}"
+                                                  ContentTemplate="{TemplateBinding ContentTemplate}"
+                                                  HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
+                                                  VerticalAlignment="Center" />
+                            </Grid>
                         </Border>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="Chrome" Property="Opacity" Value="0.9" />
+                                <Setter TargetName="Highlight" Property="Opacity" Value="0.12" />
                             </Trigger>
                             <Trigger Property="IsPressed" Value="True">
-                                <Setter TargetName="Chrome" Property="Opacity" Value="0.78" />
+                                <Setter TargetName="Chrome" Property="Opacity" Value="0.82" />
                             </Trigger>
                             <Trigger Property="IsEnabled" Value="False">
                                 <Setter TargetName="Chrome" Property="Opacity" Value="0.5" />
@@ -155,7 +178,7 @@
                 <RowDefinition Height="Auto" />
             </Grid.RowDefinitions>
 
-            <Border x:Name="WorkspaceHeader" Grid.Row="0" Margin="26,18,26,14" Background="#0F1722" BorderBrush="#263241" BorderThickness="1" CornerRadius="8" Padding="20,16">
+            <Border x:Name="WorkspaceHeader" Grid.Row="0" Margin="26,20,26,14" Background="{StaticResource CardBrush}" BorderBrush="{StaticResource CardBorderBrush}" BorderThickness="1" CornerRadius="14" Padding="24,18">
                 <Grid>
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="*" />
@@ -175,23 +198,29 @@
             </Border>
 
             <Grid Grid.Row="1" Margin="26,0,26,14">
-                <Border x:Name="IdleWorkspace" Background="#0F1722" BorderBrush="#263241" BorderThickness="1" CornerRadius="10">
+                <Border x:Name="IdleWorkspace" Background="{StaticResource CardBrush}" BorderBrush="{StaticResource CardBorderBrush}" BorderThickness="1" CornerRadius="16">
                     <Grid>
                         <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center" MaxWidth="680">
                             <Border Width="430" Height="170" Background="#F8FAFC" BorderBrush="#E2E8F0" BorderThickness="1" CornerRadius="85" Padding="30,22" HorizontalAlignment="Center">
+                                <Border.Effect>
+                                    <DropShadowEffect Color="#FF7A2E" BlurRadius="48" ShadowDepth="0" Opacity="0.35" />
+                                </Border.Effect>
                                 <Image Source="pack://application:,,,/Assets/simplekioskos_bottom.png" Stretch="Uniform" />
                             </Border>
-                            <TextBlock Text="Ready to launch" Foreground="#F8FAFC" FontSize="44" FontWeight="SemiBold" TextAlignment="Center" Margin="0,20,0,0" />
-                            <TextBlock Text="This station opens one approved app or website." Foreground="#AAB6C2" FontSize="17" TextAlignment="Center" TextWrapping="Wrap" Margin="0,12,0,0" />
-                            <Button x:Name="PrimaryLaunchButton" Height="58" MinWidth="260" Margin="0,26,0,0" Click="PrimaryLaunch_Click">
+                            <TextBlock Text="Ready to launch" Foreground="#F8FAFC" FontSize="46" FontWeight="SemiBold" TextAlignment="Center" Margin="0,26,0,0" />
+                            <TextBlock Text="This station opens one approved app or website." Foreground="#9FB0C0" FontSize="17" TextAlignment="Center" TextWrapping="Wrap" Margin="0,12,0,0" />
+                            <Button x:Name="PrimaryLaunchButton" Height="60" MinWidth="280" Margin="0,30,0,0" Click="PrimaryLaunch_Click">
+                                <Button.Effect>
+                                    <DropShadowEffect Color="#F0610A" BlurRadius="26" ShadowDepth="0" Opacity="0.5" />
+                                </Button.Effect>
                                 <TextBlock x:Name="PrimaryLaunchText" Text="Setup station" FontSize="18" FontWeight="SemiBold" />
                             </Button>
-                            <TextBlock x:Name="LaunchpadHintText" Text="SimpleKioskOS Launchpad" Foreground="#7E8B99" FontSize="13" TextAlignment="Center" TextWrapping="Wrap" Margin="0,16,0,0" />
+                            <TextBlock x:Name="LaunchpadHintText" Text="SimpleKioskOS Launchpad" Foreground="#7E8B99" FontSize="13" TextAlignment="Center" TextWrapping="Wrap" Margin="0,18,0,0" />
                         </StackPanel>
                     </Grid>
                 </Border>
 
-                <Border x:Name="WebWorkspace" Visibility="Collapsed" Background="Black" BorderBrush="#233746" BorderThickness="1" CornerRadius="10" ClipToBounds="True">
+                <Border x:Name="WebWorkspace" Visibility="Collapsed" Background="Black" BorderBrush="{StaticResource CardBorderBrush}" BorderThickness="1" CornerRadius="14" ClipToBounds="True">
                     <Grid>
                         <Grid.RowDefinitions>
                             <RowDefinition Height="Auto" />
@@ -214,10 +243,13 @@
                     </Grid>
                 </Border>
 
-                <Border x:Name="AppWorkspace" Visibility="Collapsed" Background="#0F1722" BorderBrush="#263241" BorderThickness="1" CornerRadius="10" Padding="28">
+                <Border x:Name="AppWorkspace" Visibility="Collapsed" Background="{StaticResource CardBrush}" BorderBrush="{StaticResource CardBorderBrush}" BorderThickness="1" CornerRadius="16" Padding="28">
                     <Grid>
                         <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center" MaxWidth="760">
                             <Border Width="360" Height="112" Background="#FFFFFF" BorderBrush="#E2E8F0" BorderThickness="1" CornerRadius="56" Padding="18">
+                                <Border.Effect>
+                                    <DropShadowEffect Color="#FF7A2E" BlurRadius="40" ShadowDepth="0" Opacity="0.3" />
+                                </Border.Effect>
                                 <Image Source="pack://application:,,,/Assets/simplekioskos_side.png" Stretch="Uniform" />
                             </Border>
                             <TextBlock x:Name="AppWorkspaceTitle" Text="Application workspace active" Foreground="#F8FAFC" FontSize="34" FontWeight="SemiBold" TextAlignment="Center" Margin="0,24,0,0" />
@@ -227,7 +259,7 @@
                 </Border>
             </Grid>
 
-            <Border x:Name="ShellTaskbar" Grid.Row="2" Visibility="Collapsed" Margin="26,0,26,18" Background="#0B1118" BorderBrush="#263241" BorderThickness="1" CornerRadius="8" Padding="12">
+            <Border x:Name="ShellTaskbar" Grid.Row="2" Visibility="Collapsed" Margin="26,0,26,18" Background="#0B131C" BorderBrush="{StaticResource CardBorderBrush}" BorderThickness="1" CornerRadius="12" Padding="12">
                 <Grid>
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="220" />
@@ -334,9 +366,9 @@
                    FontWeight="SemiBold"
                    TextAlignment="Center" />
 
-        <Border x:Name="AdminPanel" Grid.ColumnSpan="2" Panel.ZIndex="80" Visibility="Collapsed" HorizontalAlignment="Right" VerticalAlignment="Bottom" Width="460" Margin="0,0,30,30" Background="#F8FAFC" BorderBrush="#C8D4DE" BorderThickness="1" CornerRadius="8" Padding="18">
+        <Border x:Name="AdminPanel" Grid.ColumnSpan="2" Panel.ZIndex="80" Visibility="Collapsed" HorizontalAlignment="Right" VerticalAlignment="Bottom" Width="460" Margin="0,0,30,30" Background="#F8FAFC" BorderBrush="#C8D4DE" BorderThickness="1" CornerRadius="14" Padding="20">
             <Border.Effect>
-                <DropShadowEffect Color="#1D2935" Opacity="0.28" BlurRadius="24" ShadowDepth="4" />
+                <DropShadowEffect Color="#0A1119" Opacity="0.45" BlurRadius="32" ShadowDepth="6" />
             </Border.Effect>
             <StackPanel>
                 <DockPanel Margin="0,0,0,12">
@@ -442,8 +474,11 @@
                 Background="#F7FAFC"
                 BorderBrush="#C8D4DE"
                 BorderThickness="1"
-                CornerRadius="8"
+                CornerRadius="12"
                 Padding="16">
+            <Border.Effect>
+                <DropShadowEffect Color="#0A1119" Opacity="0.35" BlurRadius="28" ShadowDepth="5" />
+            </Border.Effect>
             <DockPanel>
                 <Border x:Name="NoticeAccent" DockPanel.Dock="Left" Width="5" Background="#176B87" CornerRadius="3" Margin="0,0,14,0" />
                 <StackPanel>

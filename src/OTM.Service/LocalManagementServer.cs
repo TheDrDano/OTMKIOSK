@@ -784,7 +784,7 @@ public sealed class LocalManagementServer
 
     private static string GetCurrentVersion()
     {
-        return Assembly.GetExecutingAssembly().GetName().Version?.ToString(3) ?? "9.3.1";
+        return Assembly.GetExecutingAssembly().GetName().Version?.ToString(3) ?? "9.4.0";
     }
 
     private static string GetConfiguredDeviceName(DeviceIdentity identity, KioskPolicy policy)

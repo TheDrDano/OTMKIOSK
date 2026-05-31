@@ -6,5 +6,6 @@
     <Company>SimpleKioskOS</Company>
     <Product>SimpleKioskOS</Product>
     <AssemblyCopyright>Copyright SimpleKioskOS</AssemblyCopyright>
+    <Version>9.4.0</Version>
   </PropertyGroup>
 </Project>

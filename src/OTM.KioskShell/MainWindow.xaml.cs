@@ -510,6 +510,11 @@ public partial class MainWindow : Window
                 UseShellExecute = string.Equals(edgePath, "msedge.exe", StringComparison.OrdinalIgnoreCase)
             });
 
+            // Edge consolidates into an existing browser process and the launched PID
+            // exits almost immediately, so the managed app is tracked by the msedge
+            // process group instead of a single short-lived handle.
+            const string edgeProcessKey = "msedge";
+
             WorkspaceTitle.Text = launcher.DisplayName;
             WorkspaceSubtitle.Text = "Microsoft Edge fullscreen kiosk";
             AppWorkspaceTitle.Text = $"{launcher.DisplayName} is running";
@@ -518,10 +523,11 @@ public partial class MainWindow : Window
             WebWorkspace.Visibility = Visibility.Collapsed;
             AppWorkspace.Visibility = Visibility.Visible;
             UpdateAdminAccessButtons();
+            Hide();
 
             if (process is not null)
             {
-                AddManagedApp(launcher.DisplayName, process);
+                AddManagedApp(launcher.DisplayName, process, edgeProcessKey);
                 _ = Dispatcher.InvokeAsync(async () =>
                 {
                     await Task.Delay(900);
@@ -532,7 +538,7 @@ public partial class MainWindow : Window
                         ProcessName = "msedge.exe",
                         Path = edgePath
                     }, process);
-                    FocusManagedApp(_managedApps.LastOrDefault(app => app.Process.Id == process.Id));
+                    FocusManagedApp(_managedApps.LastOrDefault(app => string.Equals(app.ProcessKey, edgeProcessKey, StringComparison.OrdinalIgnoreCase)));
                 });
             }
 
@@ -584,12 +590,12 @@ public partial class MainWindow : Window
 
             if (process is not null)
             {
-                AddManagedApp(launcher.DisplayName, process);
+                AddManagedApp(launcher.DisplayName, process, ResolveProcessKey(launcher));
                 _ = Dispatcher.InvokeAsync(async () =>
                 {
                     await Task.Delay(900);
                     TrackLauncherProcess(launcher, process);
-                    FocusManagedApp(_managedApps.LastOrDefault(app => app.Process.Id == process.Id));
+                    FocusManagedApp(_managedApps.LastOrDefault(app => SameProcess(app.Process, process)));
                 });
             }
             else
@@ -611,6 +617,7 @@ public partial class MainWindow : Window
             WebWorkspace.Visibility = Visibility.Collapsed;
             AppWorkspace.Visibility = Visibility.Visible;
             UpdateAdminAccessButtons();
+            Hide();
 
             if (launcher.AllowMultiMonitorOwnership || string.Equals(launcher.WorkspaceMode, KioskWorkspaceModes.AppOwner, StringComparison.OrdinalIgnoreCase))
             {
@@ -1270,7 +1277,7 @@ public partial class MainWindow : Window
 
     private void YieldDisplaysToApp(Process? process)
     {
-        if (process is not null && !_managedApps.Any(app => app.Process.Id == process.Id))
+        if (process is not null && !_managedApps.Any(app => SameProcess(app.Process, process)))
         {
             AddManagedApp(process.ProcessName, process);
         }
@@ -1345,15 +1352,27 @@ public partial class MainWindow : Window
         OpenAppsCountText.Text = _managedApps.Count.ToString();
     }
 
-    private void AddManagedApp(string displayName, Process process)
+    private void AddManagedApp(string displayName, Process process, string? processKey = null)
     {
-        if (_managedApps.Any(app => app.Process.Id == process.Id))
+        if (_managedApps.Any(app => SameProcess(app.Process, process)))
         {
             return;
         }
 
-        _managedApps.Add(new ManagedApp(displayName, process));
+        _managedApps.Add(new ManagedApp(displayName, process, processKey));
         RefreshManagedTaskbar();
+    }
+
+    private static bool SameProcess(Process a, Process b)
+    {
+        try
+        {
+            return a.Id == b.Id;
+        }
+        catch
+        {
+            return false;
+        }
     }
 
     private void TrackLauncherProcess(KioskLauncher launcher, Process? startedProcess)
@@ -1365,7 +1384,7 @@ public partial class MainWindow : Window
                 startedProcess.Refresh();
                 if (!startedProcess.HasExited)
                 {
-                    AddManagedApp(launcher.DisplayName, startedProcess);
+                    AddManagedApp(launcher.DisplayName, startedProcess, ResolveProcessKey(launcher));
                     return;
                 }
             }
@@ -1403,8 +1422,20 @@ public partial class MainWindow : Window
 
         if (process is not null)
         {
-            AddManagedApp(launcher.DisplayName, process);
+            AddManagedApp(launcher.DisplayName, process, processName);
         }
+    }
+
+    private static string ResolveProcessKey(KioskLauncher launcher)
+    {
+        if (!string.IsNullOrWhiteSpace(launcher.ProcessName))
+        {
+            return Path.GetFileNameWithoutExtension(launcher.ProcessName);
+        }
+
+        return string.IsNullOrWhiteSpace(launcher.Path)
+            ? ""
+            : Path.GetFileNameWithoutExtension(launcher.Path);
     }
 
     private static DateTime GetProcessStartTimeSafe(Process process)
@@ -1421,17 +1452,7 @@ public partial class MainWindow : Window
 
     private void PruneExitedManagedApps()
     {
-        _managedApps.RemoveAll(app =>
-        {
-            try
-            {
-                return app.Process.HasExited;
-            }
-            catch
-            {
-                return true;
-            }
-        });
+        _managedApps.RemoveAll(app => !app.IsRunning());
     }
 
     private void InstallKeyboardHook()
@@ -1808,8 +1829,80 @@ public partial class MainWindow : Window
         Error
     }
 
-    private sealed record ManagedApp(string DisplayName, Process Process)
+    private sealed class ManagedApp
     {
+        private static readonly TimeSpan LaunchGrace = TimeSpan.FromSeconds(6);
+
+        public ManagedApp(string displayName, Process process, string? processKey)
+        {
+            DisplayName = displayName;
+            Process = process;
+            ProcessKey = string.IsNullOrWhiteSpace(processKey) ? SafeProcessName(process) : processKey;
+        }
+
+        public string DisplayName { get; }
+
+        public Process Process { get; private set; }
+
+        public string ProcessKey { get; }
+
         public DateTimeOffset StartedAt { get; } = DateTimeOffset.UtcNow;
+
+        // A managed app is only considered gone once its original handle has exited AND no
+        // process from the same group is still alive. This keeps the shell from slamming
+        // itself back on top of apps (notably Edge) that hand off to a child process and
+        // recycle their launch PID, which would otherwise trap the live window behind the shell.
+        public bool IsRunning()
+        {
+            try
+            {
+                Process.Refresh();
+                if (!Process.HasExited)
+                {
+                    return true;
+                }
+            }
+            catch
+            {
+                // Fall through and try to re-acquire a live process from the same group.
+            }
+
+            if (!string.IsNullOrWhiteSpace(ProcessKey))
+            {
+                var live = System.Diagnostics.Process.GetProcessesByName(ProcessKey)
+                    .FirstOrDefault(candidate =>
+                    {
+                        try
+                        {
+                            return !candidate.HasExited;
+                        }
+                        catch
+                        {
+                            return false;
+                        }
+                    });
+
+                if (live is not null)
+                {
+                    Process = live;
+                    return true;
+                }
+            }
+
+            // Give freshly launched targets a brief window to spin up their real process.
+            return DateTimeOffset.UtcNow - StartedAt < LaunchGrace;
+        }
+
+        private static string SafeProcessName(Process process)
+        {
+            try
+            {
+                return process.ProcessName;
+            }
+            catch
+            {
+                return "";
+            }
+        }
     }
 }
