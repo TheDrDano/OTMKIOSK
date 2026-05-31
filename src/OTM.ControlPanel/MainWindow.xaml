@@ -4,13 +4,23 @@
         Title="SimpleKioskOS Control Panel" Height="720" Width="1080" MinHeight="620" MinWidth="900"
         Background="#E8EDF2">
     <Window.Resources>
+        <SolidColorBrush x:Key="WindowBackground" Color="#E8EDF2" />
+        <SolidColorBrush x:Key="PanelBackground" Color="#FFFFFF" />
+        <SolidColorBrush x:Key="PanelBorderBrush" Color="#D8DEE6" />
+        <SolidColorBrush x:Key="PanelAccentBrush" Color="#F8FAFC" />
+        <SolidColorBrush x:Key="PrimaryAccentBrush" Color="#FF6B1A" />
+        <SolidColorBrush x:Key="SecondaryAccentBrush" Color="#D9550D" />
+        <SolidColorBrush x:Key="DangerBrush" Color="#B42318" />
+        <SolidColorBrush x:Key="TextPrimary" Color="#1D2935" />
+        <SolidColorBrush x:Key="TextSecondary" Color="#64748B" />
+
         <Style TargetType="Button">
             <Setter Property="Height" Value="38" />
             <Setter Property="Padding" Value="16,0" />
             <Setter Property="FontWeight" Value="SemiBold" />
-            <Setter Property="Background" Value="#FF6B1A" />
+            <Setter Property="Background" Value="{StaticResource PrimaryAccentBrush}" />
             <Setter Property="Foreground" Value="White" />
-            <Setter Property="BorderBrush" Value="#D9550D" />
+            <Setter Property="BorderBrush" Value="{StaticResource SecondaryAccentBrush}" />
             <Setter Property="BorderThickness" Value="1" />
             <Setter Property="Cursor" Value="Hand" />
             <Setter Property="Template">
@@ -20,7 +30,7 @@
                                 Background="{TemplateBinding Background}"
                                 BorderBrush="{TemplateBinding BorderBrush}"
                                 BorderThickness="{TemplateBinding BorderThickness}"
-                                CornerRadius="7"
+                                CornerRadius="8"
                                 Padding="{TemplateBinding Padding}">
                             <ContentPresenter Content="{TemplateBinding Content}"
                                               ContentTemplate="{TemplateBinding ContentTemplate}"
@@ -42,14 +52,81 @@
                 </Setter.Value>
             </Setter>
         </Style>
+
         <Style x:Key="SecondaryButton" TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
             <Setter Property="Background" Value="White" />
-            <Setter Property="Foreground" Value="#1D2935" />
+            <Setter Property="Foreground" Value="{StaticResource TextPrimary}" />
             <Setter Property="BorderBrush" Value="#C7D0DA" />
         </Style>
+
         <Style x:Key="DangerButton" TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
-            <Setter Property="Background" Value="#B42318" />
+            <Setter Property="Background" Value="{StaticResource DangerBrush}" />
             <Setter Property="BorderBrush" Value="#8F1D14" />
+        </Style>
+
+        <Style TargetType="TextBox">
+            <Setter Property="Height" Value="34" />
+            <Setter Property="Margin" Value="0,0,0,8" />
+            <Setter Property="Padding" Value="10,6" />
+            <Setter Property="Background" Value="White" />
+            <Setter Property="BorderBrush" Value="{StaticResource PanelBorderBrush}" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="Foreground" Value="{StaticResource TextPrimary}" />
+        </Style>
+
+        <Style TargetType="PasswordBox">
+            <Setter Property="Height" Value="38" />
+            <Setter Property="Margin" Value="0,0,0,8" />
+            <Setter Property="Padding" Value="10,6" />
+            <Setter Property="Background" Value="White" />
+            <Setter Property="BorderBrush" Value="{StaticResource PanelBorderBrush}" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="Foreground" Value="{StaticResource TextPrimary}" />
+        </Style>
+
+        <Style TargetType="ComboBox">
+            <Setter Property="Height" Value="34" />
+            <Setter Property="Margin" Value="0,0,0,10" />
+            <Setter Property="Padding" Value="10,4" />
+            <Setter Property="Background" Value="White" />
+            <Setter Property="BorderBrush" Value="{StaticResource PanelBorderBrush}" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="Foreground" Value="{StaticResource TextPrimary}" />
+        </Style>
+
+        <Style TargetType="ListBox">
+            <Setter Property="Margin" Value="0" />
+            <Setter Property="Padding" Value="8" />
+            <Setter Property="Background" Value="White" />
+            <Setter Property="BorderBrush" Value="{StaticResource PanelBorderBrush}" />
+            <Setter Property="BorderThickness" Value="1" />
+        </Style>
+
+        <Style x:Key="SectionBorder" TargetType="Border">
+            <Setter Property="Background" Value="{StaticResource PanelBackground}" />
+            <Setter Property="BorderBrush" Value="{StaticResource PanelBorderBrush}" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="CornerRadius" Value="8" />
+            <Setter Property="Padding" Value="18" />
+            <Setter Property="Margin" Value="0,0,0,14" />
+        </Style>
+
+        <Style TargetType="DataGrid">
+            <Setter Property="AutoGenerateColumns" Value="False" />
+            <Setter Property="IsReadOnly" Value="True" />
+            <Setter Property="GridLinesVisibility" Value="None" />
+            <Setter Property="RowBackground" Value="White" />
+            <Setter Property="AlternatingRowBackground" Value="#F8FAFC" />
+            <Setter Property="HeadersVisibility" Value="Column" />
+            <Setter Property="CanUserResizeRows" Value="False" />
+            <Setter Property="CanUserResizeColumns" Value="True" />
+            <Setter Property="Margin" Value="0" />
+        </Style>
+
+        <Style TargetType="TabControl">
+            <Setter Property="Background" Value="{StaticResource PanelBackground}" />
+            <Setter Property="BorderBrush" Value="{StaticResource PanelBorderBrush}" />
+            <Setter Property="BorderThickness" Value="1" />
         </Style>
     </Window.Resources>
     <Grid>
@@ -65,9 +142,13 @@
                     <TextBlock Text="Local setup for SimpleKioskOS workspaces" Foreground="#526171" FontSize="13" Margin="2,6,0,0" />
                 </StackPanel>
                 <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
-                    <TextBlock Text="Admin PIN" Foreground="#344756" FontWeight="SemiBold" VerticalAlignment="Center" Margin="0,0,8,0" />
-                    <PasswordBox x:Name="PinBox" Width="190" Height="38" Margin="0,0,10,0" ToolTip="Admin PIN" />
-                    <Button Content="Refresh" Width="106" Click="Refresh_Click" />
+                    <Border Background="{StaticResource PanelAccentBrush}" BorderBrush="{StaticResource PanelBorderBrush}" BorderThickness="1" CornerRadius="10" Padding="12" Margin="0,0,0,0">
+                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Spacing="10">
+                            <TextBlock Text="Admin PIN" Foreground="{StaticResource TextPrimary}" FontWeight="SemiBold" VerticalAlignment="Center" Margin="0,0,0,0" />
+                            <PasswordBox x:Name="PinBox" Width="180" ToolTip="Admin PIN" />
+                            <Button Content="Refresh policy" Click="Refresh_Click" />
+                        </StackPanel>
+                    </Border>
                 </StackPanel>
             </DockPanel>
         </Border>
@@ -80,7 +161,7 @@
 
             <ScrollViewer Grid.Column="0" Margin="0,0,16,0" VerticalScrollBarVisibility="Auto">
             <StackPanel>
-                <Border Background="White" BorderBrush="#D8DEE6" BorderThickness="1" CornerRadius="8" Padding="18" Margin="0,0,0,14">
+                <Border Style="{StaticResource SectionBorder}">
                     <StackPanel>
                         <TextBlock Text="Workspace Controls" FontSize="18" FontWeight="SemiBold" Margin="0,0,0,4" />
                         <TextBlock Text="Use these first. Advanced policy JSON is still available when needed." Foreground="#64748B" FontSize="12" TextWrapping="Wrap" Margin="0,0,0,12" />
@@ -99,7 +180,7 @@
                     </StackPanel>
                 </Border>
 
-                <Border Background="White" BorderBrush="#D8DEE6" BorderThickness="1" CornerRadius="8" Padding="18" Margin="0,0,0,14">
+                <Border Style="{StaticResource SectionBorder}">
                     <StackPanel>
                         <TextBlock Text="Profiles" FontSize="16" FontWeight="SemiBold" Margin="0,0,0,8" />
                         <TextBlock Text="Export this station setup or import a saved profile. Import keeps this PC's admin PIN." Foreground="#64748B" FontSize="12" TextWrapping="Wrap" Margin="0,0,0,10" />
@@ -110,7 +191,7 @@
                     </StackPanel>
                 </Border>
 
-                <Border Background="White" BorderBrush="#D8DEE6" BorderThickness="1" CornerRadius="8" Padding="18" Margin="0,0,0,14">
+                <Border Style="{StaticResource SectionBorder}">
                     <StackPanel>
                         <TextBlock Text="Updates" FontSize="16" FontWeight="SemiBold" Margin="0,0,0,8" />
                         <TextBlock Text="Use the GitHub release manifest after this repo is public." Foreground="#64748B" FontSize="12" TextWrapping="Wrap" Margin="0,0,0,10" />
@@ -129,7 +210,7 @@
                     </StackPanel>
                 </Border>
 
-                <Border Background="White" BorderBrush="#D8DEE6" BorderThickness="1" CornerRadius="8" Padding="18" Margin="0,0,0,14">
+                <Border Style="{StaticResource SectionBorder}">
                     <StackPanel>
                         <TextBlock Text="Branding" FontSize="16" FontWeight="SemiBold" Margin="0,0,0,8" />
                         <TextBlock Text="Controls the small footer shown on the fullscreen launcher." Foreground="#64748B" FontSize="12" TextWrapping="Wrap" Margin="0,0,0,10" />
@@ -142,7 +223,7 @@
                     </StackPanel>
                 </Border>
 
-                <Border Background="White" BorderBrush="#D8DEE6" BorderThickness="1" CornerRadius="8" Padding="18">
+                <Border Style="{StaticResource SectionBorder}" Margin="0">
                     <StackPanel>
                         <TextBlock Text="Admin" FontSize="16" FontWeight="SemiBold" Margin="0,0,0,10" />
                         <TextBlock Text="Change PIN" Margin="0,0,0,4" />
