@@ -121,6 +121,26 @@ public partial class MainWindow : Window
         }
     }
 
+    private void PinKeypad_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is Button { Tag: string digit } && PinBox.Password.Length < 32)
+        {
+            PinBox.Password += digit;
+        }
+    }
+
+    private void PinBackspace_Click(object sender, RoutedEventArgs e)
+    {
+        var current = PinBox.Password;
+        PinBox.Password = current.Length > 0 ? current[..^1] : current;
+    }
+
+    private void PinClear_Click(object sender, RoutedEventArgs e)
+    {
+        PinBox.Clear();
+        PinBox.Focus();
+    }
+
     private async void Unlock_Click(object sender, RoutedEventArgs e)
     {
         if (await AdminPostAsync("/api/unlock", JsonSerializer.Serialize(new { minutes = 15 })))
@@ -966,6 +986,11 @@ public partial class MainWindow : Window
         SetAdminPanelOpen(open);
     }
 
+    private void AdminBackdrop_MouseDown(object sender, System.Windows.Input.MouseButtonEventArgs e)
+    {
+        SetAdminPanelOpen(false);
+    }
+
     private void CreateFloatingAdminButton()
     {
         if (_adminButtonWindow is not null)
@@ -1017,6 +1042,7 @@ public partial class MainWindow : Window
         }
 
         AdminPanel.Visibility = open ? Visibility.Visible : Visibility.Collapsed;
+        AdminBackdrop.Visibility = open ? Visibility.Visible : Visibility.Collapsed;
         UpdateAdminAccessButtons();
         if (open)
         {
@@ -1041,7 +1067,28 @@ public partial class MainWindow : Window
         Topmost = true;
         SetSecondaryCoversVisible(true);
         SetAdminPanelOpen(true);
-        Activate();
+        BringShellToFront();
+    }
+
+    // A managed app holds the foreground, so a plain Activate() is not enough to raise the
+    // shell above it. Force the shell window to the foreground so the admin surface reliably
+    // appears on top of the running app instead of staying trapped behind it.
+    private void BringShellToFront()
+    {
+        try
+        {
+            var handle = new System.Windows.Interop.WindowInteropHelper(this).EnsureHandle();
+            Activate();
+            if (handle != IntPtr.Zero)
+            {
+                ShowWindow(handle, SwShow);
+                SetForegroundWindow(handle);
+            }
+        }
+        catch (Exception ex)
+        {
+            Debug.WriteLine(ex);
+        }
     }
 
     private bool HasLaunchedWorkspace()
@@ -1059,6 +1106,7 @@ public partial class MainWindow : Window
 
         AdminTaskbarButton.Visibility = Visibility.Collapsed;
         AdminCornerButton.Visibility = !panelOpen && !activeWorkspace ? Visibility.Visible : Visibility.Collapsed;
+        ShellPowerControls.Visibility = !panelOpen && !activeWorkspace ? Visibility.Visible : Visibility.Collapsed;
         SetFloatingAdminButtonVisible(!panelOpen && activeWorkspace);
     }
 

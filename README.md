@@ -32,7 +32,7 @@ Install prerequisites on a build machine:
 Then run:
 
 ```powershell
-.\scripts\build-installer.ps1 -Version 9.4.0
+.\scripts\build-installer.ps1 -Version 9.4.1
 ```
 
 The installer will be created in:
@@ -52,11 +52,11 @@ For public testing, ship the station app first. The release workflow builds the 
 To publish a release from GitHub:
 
 ```powershell
-git tag v9.4.0
-git push origin v9.4.0
+git tag v9.4.1
+git push origin v9.4.1
 ```
 
-Use one lowercase release tag per version, like `v9.4.0`. The workflow normalizes manual inputs and `V...` tags back to lowercase `v...`, but old duplicate GitHub releases should be deleted from the GitHub **Releases** page once so the list stays clean.
+Use one lowercase release tag per version, like `v9.4.1`. The workflow normalizes manual inputs and `V...` tags back to lowercase `v...`, but old duplicate GitHub releases should be deleted from the GitHub **Releases** page once so the list stays clean.
 
 The **Release Installers** workflow creates a GitHub Release with:
 
@@ -75,7 +75,7 @@ After the repo is public, set the station update manifest URL in the native Cont
 https://github.com/TheDrDano/OTMKIOSK/releases/latest/download/update-manifest.json
 ```
 
-The current app checks and reports updates. V9.4.0 can also download the stable station installer from the manifest to `%ProgramData%\OTM Kiosk\Updates\OTM-Kiosk-Setup.exe`, verify its SHA256 hash, and mark it ready for manual install. It does not silently run installers yet; that should wait until signing, hash verification, and a recovery-safe install flow are finished.
+The current app checks and reports updates. V9.4.1 can also download the stable station installer from the manifest to `%ProgramData%\OTM Kiosk\Updates\OTM-Kiosk-Setup.exe`, verify its SHA256 hash, and mark it ready for manual install. It does not silently run installers yet; that should wait until signing, hash verification, and a recovery-safe install flow are finished.
 
 During install, the optional **Check GitHub and download verified updates when SimpleKioskOS starts** task enables startup update checks from this repository. When enabled, the service checks the stable GitHub manifest on startup and downloads a verified newer installer in the background. Enforcement is temporarily held off while that startup update check/download is running, so an older installed build does not lock the system before the update is ready.
 
@@ -84,9 +84,9 @@ The generated `update-manifest.json` includes the stable station installer URL/h
 ```json
 {
   "product": "SimpleKioskOS",
-  "version": "9.4.0",
+  "version": "9.4.1",
   "channel": "stable",
-  "releaseTag": "v9.4.0",
+  "releaseTag": "v9.4.1",
   "installerUrl": "https://github.com/TheDrDano/OTMKIOSK/releases/latest/download/OTM-Kiosk-Setup.exe",
   "sha256": "generated during release",
   "autoInstallEnabled": false
@@ -100,7 +100,7 @@ Windows publisher identity for an `.exe` uses **Authenticode code signing**, not
 For local signing with a certificate installed in the machine certificate store:
 
 ```powershell
-.\scripts\build-installer.ps1 -Version 9.4.0 -Sign -CertificateThumbprint "YOUR_CERT_THUMBPRINT"
+.\scripts\build-installer.ps1 -Version 9.4.1 -Sign -CertificateThumbprint "YOUR_CERT_THUMBPRINT"
 ```
 
 Use `-CertificateStore LocalMachine` if the certificate is installed in the local machine store instead of the current user store.
@@ -108,7 +108,7 @@ Use `-CertificateStore LocalMachine` if the certificate is installed in the loca
 For local signing with a PFX:
 
 ```powershell
-.\scripts\build-installer.ps1 -Version 9.4.0 -Sign -PfxPath "C:\secure\otm-signing.pfx" -PfxPassword "PFX_PASSWORD"
+.\scripts\build-installer.ps1 -Version 9.4.1 -Sign -PfxPath "C:\secure\otm-signing.pfx" -PfxPassword "PFX_PASSWORD"
 ```
 
 The build signs published EXE/DLL files before packaging and signs the final setup EXE after Inno Setup finishes. If the final setup EXE is not Authenticode-signed by a trusted certificate, Windows will show **Unknown publisher**.
@@ -138,7 +138,7 @@ For lab-only testing without buying a certificate yet, create a self-signed test
 
 ```powershell
 .\scripts\create-test-signing-cert.ps1 -Password "test-password"
-.\scripts\build-installer.ps1 -Version 9.4.0 -Sign -PfxPath ".\artifacts\signing\simplekioskos-test.pfx" -PfxPassword "test-password"
+.\scripts\build-installer.ps1 -Version 9.4.1 -Sign -PfxPath ".\artifacts\signing\simplekioskos-test.pfx" -PfxPassword "test-password"
 ```
 
 On the test machine, trust that test cert before installing:

@@ -2,9 +2,11 @@ using System.Net.Http;
 using System.Net.Http.Json;
 using System.Diagnostics;
 using System.IO;
+using System.Runtime.InteropServices;
 using System.Text;
 using System.Text.Json;
 using System.Windows;
+using System.Windows.Interop;
 using System.Windows.Media;
 using System.Windows.Threading;
 using Microsoft.Win32;
@@ -29,13 +31,50 @@ public partial class MainWindow : Window
     public MainWindow()
     {
         InitializeComponent();
-        Loaded += async (_, _) => await RefreshAsync();
+        Loaded += async (_, _) =>
+        {
+            // The kiosk shell may be running fullscreen and topmost, so force the Control
+            // Panel above it on open instead of letting it appear behind the shell.
+            SurfaceAboveShell();
+            await RefreshAsync();
+        };
         _noticeTimer.Tick += (_, _) =>
         {
             NoticePanel.Visibility = Visibility.Collapsed;
             _noticeTimer.Stop();
         };
     }
+
+    private void SurfaceAboveShell()
+    {
+        try
+        {
+            if (WindowState == WindowState.Minimized)
+            {
+                WindowState = WindowState.Normal;
+            }
+
+            var wasTopmost = Topmost;
+            Topmost = true;
+            Activate();
+
+            var handle = new WindowInteropHelper(this).EnsureHandle();
+            if (handle != IntPtr.Zero)
+            {
+                SetForegroundWindow(handle);
+            }
+
+            // Drop topmost again so the panel behaves like a normal window once it is in front.
+            Dispatcher.BeginInvoke(new Action(() => Topmost = wasTopmost), DispatcherPriority.ApplicationIdle);
+        }
+        catch (Exception ex)
+        {
+            Debug.WriteLine(ex);
+        }
+    }
+
+    [DllImport("user32.dll")]
+    private static extern bool SetForegroundWindow(IntPtr hWnd);
 
     private async void Refresh_Click(object sender, RoutedEventArgs e) => await RefreshAsync();
     private async void Unlock_Click(object sender, RoutedEventArgs e) => await RunAdminActionAsync("/api/unlock", HttpMethod.Post, "{\"minutes\":15}");

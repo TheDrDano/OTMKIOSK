@@ -100,6 +100,30 @@
             <Setter Property="Foreground" Value="White" />
             <Setter Property="BorderBrush" Value="#8F1D14" />
         </Style>
+        <Style x:Key="GhostDangerButton" TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
+            <Setter Property="Background" Value="#FFF1EE" />
+            <Setter Property="Foreground" Value="#B42318" />
+            <Setter Property="BorderBrush" Value="#F3C6BF" />
+        </Style>
+        <Style x:Key="KeypadButton" TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
+            <Setter Property="Background" Value="#FFFFFF" />
+            <Setter Property="Foreground" Value="#17202A" />
+            <Setter Property="BorderBrush" Value="#CBD5E1" />
+            <Setter Property="FontSize" Value="22" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="MinHeight" Value="54" />
+            <Setter Property="Margin" Value="4" />
+            <Setter Property="HorizontalContentAlignment" Value="Center" />
+        </Style>
+        <Style x:Key="AdminActionButton" TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
+            <Setter Property="Background" Value="#FFFFFF" />
+            <Setter Property="Foreground" Value="#17202A" />
+            <Setter Property="BorderBrush" Value="#CBD5E1" />
+            <Setter Property="MinHeight" Value="48" />
+            <Setter Property="FontSize" Value="14" />
+            <Setter Property="HorizontalContentAlignment" Value="Left" />
+            <Setter Property="Padding" Value="14,0" />
+        </Style>
         <Style x:Key="TaskbarIconButton" TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
             <Setter Property="Background" Value="#17202A" />
             <Setter Property="Foreground" Value="#DDE5EF" />
@@ -333,9 +357,33 @@
             </Border>
         </Grid>
 
+        <StackPanel x:Name="ShellPowerControls"
+                    Grid.ColumnSpan="2"
+                    Orientation="Horizontal"
+                    HorizontalAlignment="Left"
+                    VerticalAlignment="Bottom"
+                    Margin="36,0,0,36">
+            <Button Width="118" Height="44" Padding="0" Style="{StaticResource SecondaryButton}" Click="RestartSystem_Click" ToolTip="Restart Windows">
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                    <Viewbox Width="16" Height="16" Margin="0,0,8,0">
+                        <Path Fill="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" Data="{StaticResource IconRefresh}" />
+                    </Viewbox>
+                    <TextBlock Text="Restart" VerticalAlignment="Center" />
+                </StackPanel>
+            </Button>
+            <Button Width="128" Height="44" Margin="10,0,0,0" Padding="0" Style="{StaticResource GhostDangerButton}" Click="ShutdownSystem_Click" ToolTip="Shut down Windows">
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                    <Viewbox Width="16" Height="16" Margin="0,0,8,0">
+                        <Path Fill="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" Data="{StaticResource IconPower}" />
+                    </Viewbox>
+                    <TextBlock Text="Shut down" VerticalAlignment="Center" />
+                </StackPanel>
+            </Button>
+        </StackPanel>
+
         <Button x:Name="AdminCornerButton"
                 Grid.ColumnSpan="2"
-                Width="98"
+                Width="118"
                 Height="44"
                 HorizontalAlignment="Right"
                 VerticalAlignment="Bottom"
@@ -366,100 +414,136 @@
                    FontWeight="SemiBold"
                    TextAlignment="Center" />
 
-        <Border x:Name="AdminPanel" Grid.ColumnSpan="2" Panel.ZIndex="80" Visibility="Collapsed" HorizontalAlignment="Right" VerticalAlignment="Bottom" Width="460" Margin="0,0,30,30" Background="#F8FAFC" BorderBrush="#C8D4DE" BorderThickness="1" CornerRadius="14" Padding="20">
+        <Border x:Name="AdminBackdrop"
+                Grid.ColumnSpan="2"
+                Panel.ZIndex="70"
+                Visibility="Collapsed"
+                Background="#B3060B12"
+                MouseLeftButtonDown="AdminBackdrop_MouseDown" />
+
+        <Border x:Name="AdminPanel" Grid.ColumnSpan="2" Panel.ZIndex="80" Visibility="Collapsed" HorizontalAlignment="Center" VerticalAlignment="Center" Width="420" Background="#F8FAFC" BorderBrush="#C8D4DE" BorderThickness="1" CornerRadius="16" Padding="24">
             <Border.Effect>
-                <DropShadowEffect Color="#0A1119" Opacity="0.45" BlurRadius="32" ShadowDepth="6" />
+                <DropShadowEffect Color="#0A1119" Opacity="0.5" BlurRadius="40" ShadowDepth="8" />
             </Border.Effect>
             <StackPanel>
-                <DockPanel Margin="0,0,0,12">
+                <DockPanel Margin="0,0,0,16">
                     <StackPanel>
-                        <TextBlock Text="Admin Access" FontSize="18" FontWeight="SemiBold" Foreground="#17202A" />
-                        <TextBlock Text="Manage this kiosk locally." FontSize="12" Foreground="#64748B" Margin="0,3,0,0" />
+                        <TextBlock Text="Admin Access" FontSize="22" FontWeight="SemiBold" Foreground="#17202A" />
+                        <TextBlock Text="Manage this station locally." FontSize="13" Foreground="#64748B" Margin="0,3,0,0" />
                     </StackPanel>
-                    <Button DockPanel.Dock="Right" Width="82" Height="34" Style="{StaticResource SecondaryButton}" Click="ToggleAdmin_Click">
-                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
-                            <Viewbox Width="13" Height="13" Margin="0,0,7,0">
-                                <Path Fill="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" Data="{StaticResource IconClose}" />
-                            </Viewbox>
-                            <TextBlock Text="Hide" />
-                        </StackPanel>
+                    <Button DockPanel.Dock="Right" Width="40" Height="40" Padding="0" VerticalAlignment="Top" Style="{StaticResource SecondaryButton}" Click="ToggleAdmin_Click" ToolTip="Close">
+                        <Viewbox Width="14" Height="14">
+                            <Path Fill="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" Data="{StaticResource IconClose}" />
+                        </Viewbox>
                     </Button>
                 </DockPanel>
+
                 <StackPanel x:Name="AdminSignInPanel">
-                    <TextBlock Text="PIN or recovery key" Foreground="#344756" FontWeight="SemiBold" Margin="0,0,0,4" />
-                    <PasswordBox x:Name="PinBox" Height="40" Margin="0,0,0,10" KeyDown="PinBox_KeyDown" />
-                    <Button Height="42" Click="AdminSignIn_Click">
+                    <TextBlock Text="Enter admin PIN" Foreground="#344756" FontWeight="SemiBold" FontSize="14" Margin="0,0,0,8" />
+                    <Border Background="#FFFFFF" BorderBrush="#CBD5E1" BorderThickness="1" CornerRadius="10" Padding="6">
+                        <PasswordBox x:Name="PinBox"
+                                     BorderThickness="0"
+                                     Background="Transparent"
+                                     FontSize="26"
+                                     FontFamily="Consolas"
+                                     Height="44"
+                                     Padding="10,0"
+                                     VerticalContentAlignment="Center"
+                                     KeyDown="PinBox_KeyDown" />
+                    </Border>
+
+                    <UniformGrid Columns="3" Rows="4" Margin="0,12,0,0">
+                        <Button Style="{StaticResource KeypadButton}" Tag="1" Click="PinKeypad_Click" Content="1" />
+                        <Button Style="{StaticResource KeypadButton}" Tag="2" Click="PinKeypad_Click" Content="2" />
+                        <Button Style="{StaticResource KeypadButton}" Tag="3" Click="PinKeypad_Click" Content="3" />
+                        <Button Style="{StaticResource KeypadButton}" Tag="4" Click="PinKeypad_Click" Content="4" />
+                        <Button Style="{StaticResource KeypadButton}" Tag="5" Click="PinKeypad_Click" Content="5" />
+                        <Button Style="{StaticResource KeypadButton}" Tag="6" Click="PinKeypad_Click" Content="6" />
+                        <Button Style="{StaticResource KeypadButton}" Tag="7" Click="PinKeypad_Click" Content="7" />
+                        <Button Style="{StaticResource KeypadButton}" Tag="8" Click="PinKeypad_Click" Content="8" />
+                        <Button Style="{StaticResource KeypadButton}" Tag="9" Click="PinKeypad_Click" Content="9" />
+                        <Button Style="{StaticResource KeypadButton}" Foreground="#64748B" FontSize="14" Click="PinClear_Click" Content="Clear" />
+                        <Button Style="{StaticResource KeypadButton}" Tag="0" Click="PinKeypad_Click" Content="0" />
+                        <Button Style="{StaticResource KeypadButton}" Foreground="#64748B" FontSize="20" Click="PinBackspace_Click" Content="&#x232B;" ToolTip="Backspace" />
+                    </UniformGrid>
+
+                    <Button Height="50" Margin="4,12,4,0" FontSize="16" Click="AdminSignIn_Click">
                         <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
-                            <Viewbox Width="15" Height="15" Margin="0,0,8,0">
+                            <Viewbox Width="16" Height="16" Margin="0,0,8,0">
                                 <Path Fill="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" Data="{StaticResource IconUnlock}" />
                             </Viewbox>
                             <TextBlock Text="Sign in" />
                         </StackPanel>
                     </Button>
-                    <TextBlock Text="Admin tools are hidden until sign-in." Foreground="#64748B" TextWrapping="Wrap" FontSize="12" Margin="0,10,0,0" />
+                    <TextBlock Text="A recovery key can also be typed with a keyboard." Foreground="#94A3B4" TextWrapping="Wrap" FontSize="12" TextAlignment="Center" Margin="0,12,0,0" />
                 </StackPanel>
+
                 <StackPanel x:Name="AdminActionsPanel" Visibility="Collapsed">
-                <UniformGrid Columns="2" Rows="4">
-                    <Button Margin="0,0,6,6" Click="Unlock_Click">
-                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
-                            <Viewbox Width="15" Height="15" Margin="0,0,8,0">
-                                <Path Fill="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" Data="{StaticResource IconUnlock}" />
-                            </Viewbox>
-                            <TextBlock Text="Unlock 15m" />
-                        </StackPanel>
-                    </Button>
-                    <Button Margin="6,0,0,6" Style="{StaticResource DangerButton}" Click="Lock_Click">
-                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
-                            <Viewbox Width="15" Height="15" Margin="0,0,8,0">
-                                <Path Fill="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" Data="{StaticResource IconLock}" />
-                            </Viewbox>
-                            <TextBlock Text="Lock" />
-                        </StackPanel>
-                    </Button>
-                    <Button Margin="0,6,6,0" Style="{StaticResource SecondaryButton}" Click="ControlPanel_Click">
-                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
-                            <Viewbox Width="15" Height="15" Margin="0,0,8,0">
+                    <UniformGrid Columns="2" Margin="0,0,0,10">
+                        <Button Height="50" Margin="0,0,5,0" Click="Unlock_Click">
+                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                                <Viewbox Width="15" Height="15" Margin="0,0,8,0">
+                                    <Path Fill="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" Data="{StaticResource IconUnlock}" />
+                                </Viewbox>
+                                <TextBlock Text="Unlock 15m" />
+                            </StackPanel>
+                        </Button>
+                        <Button Height="50" Margin="5,0,0,0" Style="{StaticResource DangerButton}" Click="Lock_Click">
+                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                                <Viewbox Width="15" Height="15" Margin="0,0,8,0">
+                                    <Path Fill="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" Data="{StaticResource IconLock}" />
+                                </Viewbox>
+                                <TextBlock Text="Lock" />
+                            </StackPanel>
+                        </Button>
+                    </UniformGrid>
+
+                    <Button Style="{StaticResource AdminActionButton}" Margin="0,0,0,8" Click="ControlPanel_Click">
+                        <StackPanel Orientation="Horizontal">
+                            <Viewbox Width="16" Height="16" Margin="0,0,12,0">
                                 <Path Fill="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" Data="{StaticResource IconSliders}" />
                             </Viewbox>
-                            <TextBlock Text="Control Panel" />
+                            <TextBlock Text="Open Control Panel" VerticalAlignment="Center" />
                         </StackPanel>
                     </Button>
-                    <Button Margin="6,6,0,0" Style="{StaticResource DangerButton}" Click="EmergencyUnlock_Click">
-                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
-                            <Viewbox Width="15" Height="15" Margin="0,0,8,0">
-                                <Path Fill="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" Data="{StaticResource IconWarning}" />
-                            </Viewbox>
-                            <TextBlock Text="Emergency" />
-                        </StackPanel>
-                    </Button>
-                    <Button Margin="0,6,6,0" Style="{StaticResource SecondaryButton}" Click="ExitShell_Click">
-                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
-                            <Viewbox Width="15" Height="15" Margin="0,0,8,0">
+
+                    <UniformGrid Columns="2" Margin="0,0,0,8">
+                        <Button Style="{StaticResource AdminActionButton}" HorizontalContentAlignment="Center" Margin="0,0,5,0" Click="CheckStationUpdate_Click">
+                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                                <Viewbox Width="14" Height="14" Margin="0,0,8,0">
+                                    <Path Fill="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" Data="{StaticResource IconRefresh}" />
+                                </Viewbox>
+                                <TextBlock Text="Check update" />
+                            </StackPanel>
+                        </Button>
+                        <Button Style="{StaticResource AdminActionButton}" HorizontalContentAlignment="Center" Margin="5,0,0,0" Click="DownloadStationUpdate_Click">
+                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                                <Viewbox Width="14" Height="14" Margin="0,0,8,0">
+                                    <Path Fill="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" Data="{StaticResource IconDisplay}" />
+                                </Viewbox>
+                                <TextBlock Text="Download" />
+                            </StackPanel>
+                        </Button>
+                    </UniformGrid>
+
+                    <Separator Margin="0,8,0,8" />
+
+                    <Button Style="{StaticResource AdminActionButton}" Margin="0,0,0,8" Click="ExitShell_Click">
+                        <StackPanel Orientation="Horizontal">
+                            <Viewbox Width="16" Height="16" Margin="0,0,12,0">
                                 <Path Fill="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" Data="{StaticResource IconExit}" />
                             </Viewbox>
-                            <TextBlock Text="Exit Shell" />
+                            <TextBlock Text="Exit kiosk shell" VerticalAlignment="Center" />
                         </StackPanel>
                     </Button>
-                    <Button Margin="0,6,6,0" Style="{StaticResource SecondaryButton}" Click="CheckStationUpdate_Click">
-                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
-                            <Viewbox Width="15" Height="15" Margin="0,0,8,0">
-                                <Path Fill="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" Data="{StaticResource IconRefresh}" />
+                    <Button Style="{StaticResource GhostDangerButton}" MinHeight="48" Padding="14,0" HorizontalContentAlignment="Left" Click="EmergencyUnlock_Click">
+                        <StackPanel Orientation="Horizontal">
+                            <Viewbox Width="16" Height="16" Margin="0,0,12,0">
+                                <Path Fill="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" Data="{StaticResource IconWarning}" />
                             </Viewbox>
-                            <TextBlock Text="Check Update" />
+                            <TextBlock Text="Emergency unlock" VerticalAlignment="Center" />
                         </StackPanel>
                     </Button>
-                    <Button Margin="6,6,0,0" Style="{StaticResource SecondaryButton}" Click="DownloadStationUpdate_Click">
-                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
-                            <Viewbox Width="15" Height="15" Margin="0,0,8,0">
-                                <Path Fill="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" Data="{StaticResource IconDisplay}" />
-                            </Viewbox>
-                            <TextBlock Text="Download" />
-                        </StackPanel>
-                    </Button>
-                </UniformGrid>
-                <Separator Margin="0,14,0,12" />
-                <TextBlock Text="Local administration only" FontWeight="SemiBold" Foreground="#17202A" />
-                <TextBlock Text="Use the native Control Panel for setup, profiles, app rules, website rules, and logs." Foreground="#64748B" TextWrapping="Wrap" FontSize="12" Margin="0,4,0,0" />
                 </StackPanel>
             </StackPanel>
         </Border>
