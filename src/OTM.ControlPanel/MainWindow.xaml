@@ -143,9 +143,9 @@
                 </StackPanel>
                 <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
                     <Border Background="{StaticResource PanelAccentBrush}" BorderBrush="{StaticResource PanelBorderBrush}" BorderThickness="1" CornerRadius="10" Padding="12" Margin="0,0,0,0">
-                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Spacing="10">
-                            <TextBlock Text="Admin PIN" Foreground="{StaticResource TextPrimary}" FontWeight="SemiBold" VerticalAlignment="Center" Margin="0,0,0,0" />
-                            <PasswordBox x:Name="PinBox" Width="180" ToolTip="Admin PIN" />
+                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                            <TextBlock Text="Admin PIN" Foreground="{StaticResource TextPrimary}" FontWeight="SemiBold" VerticalAlignment="Center" Margin="0,0,10,0" />
+                            <PasswordBox x:Name="PinBox" Width="180" ToolTip="Admin PIN" Margin="0,0,10,0" />
                             <Button Content="Refresh policy" Click="Refresh_Click" />
                         </StackPanel>
                     </Border>
